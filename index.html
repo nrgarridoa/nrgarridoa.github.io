@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portafolio · Mining Tech</title>
+  <meta name="description" content="Portafolio de proyectos en Python, Power BI, Excel, Streamlit y Machine Learning aplicados a minería." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+  <!-- TailwindCSS Play CDN (simple para GitHub Pages) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base: '#0A192F',
+            accent: '#0068FF',
+            accent2: '#00D2FF'
+          },
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+            display: ['Montserrat', 'Inter', 'ui-sans-serif']
+          },
+          boxShadow: {
+            soft: '0 10px 30px -12px rgba(0,0,0,0.35)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .glass { backdrop-filter: saturate(180%) blur(8px); background: rgba(255,255,255,0.05); }
+  </style>
+</head>
+<body class="bg-base text-white font-sans">
+  <!-- NAV -->
+  <header class="sticky top-0 z-50 glass border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="h-8 w-8 rounded-xl bg-gradient-to-br from-accent to-accent2"></div>
+        <span class="font-bold tracking-wide">Portafolio · Mining Tech</span>
+      </div>
+      <nav class="hidden md:flex items-center gap-6 text-sm text-white/80">
+        <a href="#about" class="hover:text-white">Sobre mí</a>
+        <a href="#projects" class="hover:text-white">Proyectos</a>
+        <a href="#achievements" class="hover:text-white">Logros</a>
+        <a href="#cv" class="hover:text-white">CV</a>
+        <a href="#contact" class="hover:text-white">Contacto</a>
+      </nav>
+      <div class="flex items-center gap-2">
+        <a href="https://github.com/" target="_blank" class="px-3 py-2 rounded-md border border-white/15 bg-white/10 hover:bg-white/20 text-sm">GitHub</a>
+        <a href="assets/CV_TuNombre.pdf" class="px-3 py-2 rounded-md bg-accent hover:bg-[#0056d1] text-sm">Descargar CV</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="relative overflow-hidden">
+    <div class="max-w-7xl mx-auto px-6 py-20 grid md:grid-cols-2 gap-10 items-center">
+      <div>
+        <span class="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">
+          <span class="h-1.5 w-1.5 rounded-full bg-accent2"></span> Disponible para colaboraciones
+        </span>
+        <h1 class="mt-4 text-4xl md:text-5xl font-extrabold leading-tight font-display">
+          Ingeniería de Datos & BI <span class="text-accent2">para Minería</span>
+        </h1>
+        <p class="mt-4 text-white/80 max-w-xl">
+          Portafolio de proyectos en Python, Power BI, Excel, Streamlit y Machine Learning, enfocados en productividad, costos y operaciones mineras.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-3 text-xs">
+          <span class="px-3 py-1 rounded-full border border-white/15 bg-white/5">Python</span>
+          <span class="px-3 py-1 rounded-full border border-white/15 bg-white/5">Power BI</span>
+          <span class="px-3 py-1 rounded-full border border-white/15 bg-white/5">Streamlit</span>
+          <span class="px-3 py-1 rounded-full border border-white/15 bg-white/5">Machine Learning</span>
+        </div>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="#cv" class="px-4 py-2 rounded-md bg-accent hover:bg-[#0056d1] text-sm">Descargar CV PDF</a>
+          <a href="#projects" class="px-4 py-2 rounded-md border border-white/15 bg-white/10 hover:bg-white/20 text-sm">Ver proyectos</a>
+        </div>
+      </div>
+      <div class="relative h-[420px] rounded-3xl border border-white/10 bg-gradient-to-br from-[#081226] via-[#0E2C5A] to-base p-2 shadow-soft">
+        <div class="absolute -top-10 -right-10 h-64 w-64 rounded-full bg-accent/30 blur-3xl"></div>
+        <div class="absolute -bottom-14 -left-10 h-64 w-64 rounded-full bg-accent2/20 blur-3xl"></div>
+        <div class="relative h-full w-full rounded-2xl bg-[#0E1B36] grid grid-cols-3 gap-2 p-4">
+          <!-- Placeholder de mini-vistas -->
+          <div class="rounded-xl border border-white/10 bg-white/5"></div>
+          <div class="rounded-xl border border-white/10 bg-white/5"></div>
+          <div class="rounded-xl border border-white/10 bg-white/5"></div>
+          <div class="rounded-xl border border-white/10 bg-white/5"></div>
+          <div class="rounded-xl border border-white/10 bg-white/5"></div>
+          <div class="rounded-xl border border-white/10 bg-white/5"></div>
+          <div class="rounded-xl border border-white/10 bg-white/5"></div>
+          <div class="rounded-xl border border-white/10 bg-white/5"></div>
+          <div class="rounded-xl border border-white/10 bg-white/5"></div>
+        </div>
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
+          Carrusel de vistas de proyectos
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about" class="py-20 border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-12 items-start">
+      <div class="md:col-span-2">
+        <h2 class="text-3xl font-bold font-display">Sobre mí</h2>
+        <p class="mt-4 text-white/80">
+          Profesional de minería con enfoque en analítica y automatización. Diseña soluciones de datos para operaciones de carguío y acarreo, costo-eficiencia (O'Hara, cutoff grade) y tableros ejecutivos. Apasionado por transformar datos en decisiones.
+        </p>
+        <div class="mt-6 grid sm:grid-cols-3 gap-4">
+          <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+            <h3 class="text-sm font-semibold">Stack</h3>
+            <p class="mt-1 text-sm text-white/80">Python · Power BI · Excel · Streamlit · ML</p>
+          </div>
+          <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+            <h3 class="text-sm font-semibold">Enfoque</h3>
+            <p class="mt-1 text-sm text-white/80">Productividad, KPIs, costos, optimización</p>
+          </div>
+          <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+            <h3 class="text-sm font-semibold">Industria</h3>
+            <p class="mt-1 text-sm text-white/80">Minería a tajo abierto y subterránea</p>
+          </div>
+        </div>
+      </div>
+      <div class="space-y-3">
+        <h3 class="font-semibold text-white/90">Datos rápidos</h3>
+        <ul class="space-y-2 text-sm text-white/80">
+          <li>+X años en proyectos de minería y analítica</li>
+          <li>Docencia: Python aplicado a minería</li>
+          <li>Interés actual: ML para fragmentación y calidad</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section id="projects" class="py-20 border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="flex items-center justify-between gap-4">
+        <h2 class="text-3xl font-bold font-display">Proyectos</h2>
+        <div id="filters" class="flex flex-wrap gap-2 text-xs"></div>
+      </div>
+      <div id="grid" class="mt-8 grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+  </section>
+
+  <!-- ACHIEVEMENTS -->
+  <section id="achievements" class="py-20 border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-6">
+      <h2 class="text-3xl font-bold font-display">Logros & Certificaciones</h2>
+      <div class="mt-8 grid md:grid-cols-3 gap-6">
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+          <h3 class="text-base font-semibold">Ganador Debate (SM)</h3>
+          <p class="text-sm text-white/80 mt-1">Primer lugar nacional en debate técnico — Capítulos SM.</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+          <h3 class="text-base font-semibold">Becario PRONABEC</h3>
+          <p class="text-sm text-white/80 mt-1">Reconocimiento por mérito académico (primeros puestos).</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+          <h3 class="text-base font-semibold">Certificaciones</h3>
+          <p class="text-sm text-white/80 mt-1">Python, Power BI, ML (lista breve).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CV -->
+  <section id="cv" class="py-20 border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center">
+      <div>
+        <h2 class="text-3xl font-bold font-display">Currículum</h2>
+        <p class="mt-4 text-white/80">Descarga una versión PDF actualizada de mi CV y consulta experiencia, formación y proyectos clave.</p>
+        <div class="mt-6">
+          <a class="px-4 py-2 rounded-md bg-accent hover:bg-[#0056d1] text-sm inline-flex items-center" href="assets/CV_TuNombre.pdf" download>Descargar CV PDF</a>
+        </div>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div class="h-[360px] rounded-lg border border-white/10 grid place-items-center text-white/60 text-sm">Vista previa del CV (embed)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPERIENCE -->
+  <section id="experience" class="py-20 border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-6">
+      <h2 class="text-3xl font-bold font-display">Experiencia & Docencia</h2>
+      <div class="mt-8 grid md:grid-cols-3 gap-6 text-sm">
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+          <h3 class="text-base font-semibold">Cursos dictados</h3>
+          <p class="text-white/80 mt-1">Python para Minería · Power BI · ML aplicado</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+          <h3 class="text-base font-semibold">Proyectos clave</h3>
+          <p class="text-white/80 mt-1">FMS KPIs · Cutoff Grade App · O'Hara Estimator</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+          <h3 class="text-base font-semibold">Resultados</h3>
+          <p class="text-white/80 mt-1">+X% de visibilidad en KPIs, reducción de tiempos de reporte</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact" class="py-20 border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-start">
+      <div>
+        <h2 class="text-3xl font-bold font-display">Contacto</h2>
+        <p class="mt-4 text-white/80">¿Te interesa colaborar o contratar? Déjame un mensaje a través del formulario o conecta por LinkedIn.</p>
+        <div class="mt-6 flex items-center gap-3">
+          <a class="px-3 py-2 rounded-md border border-white/15 bg-white/10 hover:bg-white/20 text-sm" href="https://www.linkedin.com/" target="_blank">LinkedIn</a>
+          <a class="px-3 py-2 rounded-md border border-white/15 bg-white/10 hover:bg-white/20 text-sm" href="mailto:tu.email@dominio.com">Correo</a>
+        </div>
+      </div>
+      <form class="bg-white/5 border border-white/10 rounded-xl p-5 grid gap-3 text-sm" action="https://formspree.io/f/xyz" method="POST">
+        <div>
+          <label class="text-white/70">Nombre</label>
+          <input name="name" class="mt-1 w-full rounded-md bg-white/10 border border-white/15 px-3 py-2 placeholder:text-white/50" placeholder="Tu nombre" required />
+        </div>
+        <div>
+          <label class="text-white/70">Email</label>
+          <input name="email" type="email" class="mt-1 w-full rounded-md bg-white/10 border border-white/15 px-3 py-2 placeholder:text-white/50" placeholder="tu@correo.com" required />
+        </div>
+        <div>
+          <label class="text-white/70">Mensaje</label>
+          <textarea name="message" class="mt-1 w-full rounded-md bg-white/10 border border-white/15 px-3 py-2 h-28 placeholder:text-white/50" placeholder="Cuéntame brevemente" required></textarea>
+        </div>
+        <button class="px-4 py-2 rounded-md bg-accent hover:bg-[#0056d1]" type="submit">Enviar</button>
+        <p class="text-xs text-white/50">* Formulario servido por Formspree para ocultar tu email.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-6 py-10 text-sm text-white/60 flex flex-col md:flex-row items-center justify-between gap-4">
+      <p>© 2025 Tu Nombre — Portafolio</p>
+      <div class="flex items-center gap-4">
+        <a class="hover:text-white" href="https://github.com/" target="_blank">GitHub</a>
+        <a class="hover:text-white" href="https://www.linkedin.com/" target="_blank">LinkedIn</a>
+        <span class="text-white/40">·</span>
+        <span>Hecho con GitHub Pages</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ====== Datos de proyectos (editar a tu gusto) ======
+    const PROJECTS = [
+      {
+        title: 'Python for Mining: Ore Grade Dashboard',
+        desc: 'Exploración de leyes de mineral con pandas + Plotly. Visualización por banco, tonelaje y ley promedio.',
+        tags: ['Python','DataViz','Mining'],
+        image: 'assets/p1.png',
+        github: 'https://github.com/tuuser/ore-grade-dashboard',
+        demo: '#'
+      },
+      {
+        title: 'Power BI — Producción & KPI de Flota',
+        desc: 'Dashboard de productividad para carguío y acarreo: disponibilidad, utilización, ciclos y tiempos.',
+        tags: ['Power BI','KPIs','Fleet'],
+        image: 'assets/p2.png',
+        github: 'https://github.com/tuuser/pbi-fleet-kpis',
+        demo: 'https://app.powerbi.com/view?r=xxxx'
+      },
+      {
+        title: "Excel — O'Hara Estimator",
+        desc: 'Template para estimación preliminar de costos CAPEX/OPEX usando O\'Hara.',
+        tags: ['Excel','Costs','Mining'],
+        image: 'assets/p3.png',
+        github: 'https://github.com/tuuser/ohara-estimator',
+        demo: '#'
+      },
+      {
+        title: 'Streamlit — Cutoff Grade (Kenneth Lane)',
+        desc: 'App para calcular ley de corte, escenarios de precio/costo y VPN anual.',
+        tags: ['Streamlit','Optimization','Finance'],
+        image: 'assets/p4.png',
+        github: 'https://github.com/tuuser/cutoff-lane-app',
+        demo: 'https://tuapp.streamlit.app'
+      },
+      {
+        title: 'ML — Fragmentación de Roca (SVM)',
+        desc: 'Clasificador de tamaños de fragmento a partir de imágenes etiquetadas; pipeline de features + SVM.',
+        tags: ['Machine Learning','CV','SVM'],
+        image: 'assets/p5.png',
+        github: 'https://github.com/tuuser/rock-fragmentation-svm',
+        demo: '#'
+      }
+    ];
+
+    const CATEGORIES = ['Todos','Python','Power BI','Excel','Streamlit','Machine Learning'];
+
+    const filtersEl = document.getElementById('filters');
+    const gridEl = document.getElementById('grid');
+    let active = 'Todos';
+
+    function renderFilters() {
+      filtersEl.innerHTML = '';
+      CATEGORIES.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'rounded-full border px-3 py-1 ' + (active===cat ? 'bg-accent border-transparent' : 'border-white/15 bg-white/5 hover:bg-white/10');
+        btn.textContent = cat;
+        btn.onclick = () => { active = cat; renderProjects(); renderFilters(); };
+        filtersEl.appendChild(btn);
+      });
+    }
+
+    function tagToCategory(tags) {
+      if (tags.includes('Python')) return 'Python';
+      if (tags.includes('Power BI')) return 'Power BI';
+      if (tags.includes('Excel')) return 'Excel';
+      if (tags.includes('Streamlit')) return 'Streamlit';
+      if (tags.includes('Machine Learning')) return 'Machine Learning';
+      return 'Otros';
+    }
+
+    function renderProjects() {
+      gridEl.innerHTML = '';
+      const subset = PROJECTS.filter(p => active==='Todos' ? true : tagToCategory(p.tags)===active);
+
+      subset.forEach(p => {
+        const card = document.createElement('article');
+        card.className = 'group bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition flex flex-col';
+        card.innerHTML = `
+          <div class="h-40 bg-[#0E2C5A] grid place-items-center overflow-hidden">
+            <img src="${p.image}" alt="${p.title}" class="h-full w-full object-cover object-center opacity-90 group-hover:opacity-100 transition" onerror="this.style.display='none'">
+          </div>
+          <div class="p-5 grow">
+            <h3 class="text-lg font-semibold">${p.title}</h3>
+            <p class="text-white/70 text-sm mt-1">${p.desc}</p>
+            <div class="flex flex-wrap gap-2 mt-3">
+              ${p.tags.map(t=>`<span class='px-2 py-0.5 text-xs rounded-md border border-white/15 bg-white/10'>${t}</span>`).join('')}
+            </div>
+          </div>
+          <div class="p-5 pt-0 flex gap-2">
+            <a class="px-3 py-2 rounded-md bg-accent hover:bg-[#0056d1] text-sm" target="_blank" href="${p.github}">GitHub</a>
+            <a class="px-3 py-2 rounded-md border border-white/15 bg-white/10 hover:bg-white/20 text-sm" target="_blank" href="${p.demo}">Demo</a>
+          </div>
+        `;
+        gridEl.appendChild(card);
+      });
+
+      if (subset.length === 0) {
+        gridEl.innerHTML = '<p class="text-white/60">No hay proyectos en esta categoría aún.</p>';
+      }
+    }
+
+    renderFilters();
+    renderProjects();
+  </script>
+
+  <!-- (Opcional) Analytics — Plausible -->
+  <!-- <script defer data-domain="tu-dominio.com" src="https://plausible.io/js/script.js"></script> -->
+</body>
+</html>
