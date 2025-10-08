@@ -1,0 +1,19 @@
+{% if page.embed_type == "powerbi" and page.embed_url %}
+  <h2 class="text-xl font-semibold mb-3">Vista interactiva (Power BI)</h2>
+  <div class="embed"><iframe src="{{ page.embed_url }}" allowfullscreen></iframe></div>
+{% endif %}
+
+{% if page.embed_type == "youtube" and page.embed_url %}
+  <h2 class="text-xl font-semibold mb-3">Video</h2>
+  <div class="embed"><iframe src="{{ page.embed_url }}" allowfullscreen></iframe></div>
+{% endif %}
+
+{% if page.embed_type == "iframe" and page.embed_url %}
+  <h2 class="text-xl font-semibold mb-3">Vista embebida</h2>
+  <div class="embed"><iframe src="{{ page.embed_url }}" allowfullscreen></iframe></div>
+{% endif %}
+
+{% if page.embed_type == "html" and page.embed_html %}
+  <h2 class="text-xl font-semibold mb-3">Notebook / HTML</h2>
+  <div class="embed"><iframe src="{{ page.embed_html | relative_url }}" allowfullscreen></iframe></div>
+{% endif %}
