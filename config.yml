@@ -1,0 +1,21 @@
+title: "Portafolio · Nilson R. Garrido"
+description: "Proyectos en minería: Power BI, Python, Streamlit, ML."
+baseurl: ""   # en user pages va vacío
+url: "https://nrgarridoa.github.io"
+
+collections:
+  projects:
+    output: true
+    permalink: /projects/:name/
+
+defaults:
+  - scope:
+      path: ""
+      type: "projects"
+    values:
+      layout: project
+      tags: []
+
+markdown: kramdown
+kramdown:
+  input: GFM
