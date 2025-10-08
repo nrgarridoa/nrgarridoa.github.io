@@ -5,7 +5,7 @@ summary: "Análisis geoespacial de la dureza del macizo rocoso con secciones int
 tags: ["Power BI","Geotecnia","Minería","Dashboard"]
 cover: /assets/control_durezas_cover.png
 embed_type: powerbi
-embed_url: "https://app.powerbi.com/view?r=TU_TOKEN_AQUI"
+embed_url: "[https://app.powerbi.com/view?r=TU_TOKEN_AQUI](https://app.powerbi.com/view?r=eyJrIjoiMWNhNWMwNmEtNjE4YS00NzgxLTkzOTUtYTliYjMyYTk0NTI3IiwidCI6ImY3YWNmODc2LWU3ZTgtNDQ0Yy05NWFlLWY5NTQ4YWNmZTMyZiIsImMiOjR9)"
 github: "https://github.com/nrgarridoa/powerbi-control-durezas"
 demo: "https://app.powerbi.com/view?r=TU_TOKEN_AQUI"
 data_info: "Dataset de control geotécnico con coordenadas X, Y, Z, tipo de roca y clasificación de dureza."
