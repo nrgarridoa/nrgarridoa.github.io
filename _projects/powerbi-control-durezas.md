@@ -11,12 +11,3 @@ demo: https://app.powerbi.com/view?r=eyJrIjoiMWNhNWMwNmEtNjE4YS00NzgxLTkzOTUtYTl
 data_info: "Dataset de control geotécnico con coordenadas X, Y, Z, tipo de roca y clasificación de dureza."
 results: "Permite agilizar la toma de decisiones operativas en campo, mejorando la detección de zonas críticas que pueden afectar el rendimiento de perforación o voladura."
 ---
-
-### Descripción del Tablero
-El tablero **Control de Durezas** permite analizar la variación de dureza del macizo rocoso en tres vistas principales:
-
-- **X-Y:** Visualización del comportamiento horizontal del frente de minado.  
-- **Y-Z:** Sección vertical que muestra los niveles de profundidad y su relación con la dureza.  
-- **X-Z:** Corte longitudinal que permite interpretar zonas de transición de material.
-
----
