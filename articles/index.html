@@ -1,0 +1,47 @@
+---
+layout: none
+title: Articulos
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Artículos · Nilson</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>html{scroll-behavior:smooth}</style>
+</head>
+<body class="bg-[#0A192F] text-white">
+  <header class="max-w-7xl mx-auto px-6 py-8">
+    <a href="{{ '/' | relative_url }}" class="text-sm text-white/70 hover:text-white">← Volver al inicio</a>
+    <h1 class="mt-2 text-3xl font-extrabold">Artículos</h1>
+    <p class="text-white/70 mt-2">Explora dashboards y apps (Power BI, Python, Streamlit, ML).</p>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 pb-16">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% assign items = site.projects | sort: 'date' | reverse %}
+      {% for p in items %}
+        <a href="{{ p.url | relative_url }}" class="group rounded-xl overflow-hidden border border-white/10 bg-white/5 hover:border-white/20 transition block">
+          <div class="h-40 bg-[#0E2C5A] overflow-hidden">
+            {% if p.cover %}
+              <img src="{{ p.cover | relative_url }}" alt="{{ p.title }}" class="w-full h-full object-cover group-hover:scale-[1.02] transition"/>
+            {% endif %}
+          </div>
+          <div class="p-4">
+            <h3 class="font-semibold">{{ p.title }}</h3>
+            {% if p.summary %}<p class="text-sm text-white/70 mt-1">{{ p.summary }}</p>{% endif %}
+            {% if p.tags %}
+              <div class="flex flex-wrap gap-2 mt-3">
+                {% for t in p.tags %}
+                  <span class="text-xs px-2 py-0.5 rounded-md border border-white/15 bg-white/10">{{ t }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </main>
+</body>
+</html>
