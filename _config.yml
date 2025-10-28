@@ -7,6 +7,9 @@ collections:
   projects:
     output: true
     permalink: /projects/:name/
+  articles:
+    output: true
+    permalink: article/:name/
 
 defaults:
   - scope:
