@@ -1,0 +1,15 @@
+# education.yml — Educación formal
+
+- institution: "Universidad Nacional de Cajamarca"
+  logo: "/assets/cv/logos/unc.jpg"
+  degree: "Ingeniería de Minas"
+  level: "Bachiller"
+  achievement: "Egresado en primer puesto"
+  location: "Cajamarca, Perú"
+
+- institution: "SENATI"
+  logo: "/assets/cv/logos/senati.jpg"
+  degree: "Administración Industrial"
+  level: "Técnico"
+  achievement: "Aprendizaje dual: formación y trabajo en empresa"
+  location: "Lima, Perú"

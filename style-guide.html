@@ -1,0 +1,457 @@
+---
+layout: default
+title: "Style Guide"
+description: "Sistema de diseño: tokens, colores, tipografía, componentes y patrones UI del portafolio."
+permalink: /style-guide/
+sitemap: false
+---
+
+<section class="max-w-6xl mx-auto px-6 py-12">
+
+  <!-- ============================================================
+       HEADER
+       ============================================================ -->
+  <header class="mb-12">
+    <h1 class="text-4xl md:text-5xl font-display font-extrabold tracking-tight">Style Guide</h1>
+    <p class="mt-3 text-white/70 max-w-2xl">
+      Sistema de diseño del portafolio. Referencia visual de tokens, colores, tipografía, componentes y patrones UI.
+    </p>
+    <div class="mt-2 h-[3px] w-20 rounded-full bg-gradient-to-r from-accent to-accent2"></div>
+  </header>
+
+  <!-- ============================================================
+       1. PALETA DE COLORES
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">1. Paleta de colores</h2>
+    <p class="text-white/60 text-sm mb-6">Definidos como CSS custom properties en <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">_base.css</code></p>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <!-- Base -->
+      <div>
+        <div class="h-24 rounded-xl bg-base border border-white/10"></div>
+        <p class="mt-2 text-sm font-semibold">Base</p>
+        <p class="text-xs text-white/50">#0A192F</p>
+        <p class="text-xs text-white/40">--color-base</p>
+      </div>
+      <!-- Surface -->
+      <div>
+        <div class="h-24 rounded-xl border border-white/10" style="background: rgb(15 23 42)"></div>
+        <p class="mt-2 text-sm font-semibold">Surface</p>
+        <p class="text-xs text-white/50">#0F172A</p>
+        <p class="text-xs text-white/40">--color-surface</p>
+      </div>
+      <!-- Surface 2 -->
+      <div>
+        <div class="h-24 rounded-xl border border-white/10" style="background: rgb(30 41 59)"></div>
+        <p class="mt-2 text-sm font-semibold">Surface 2</p>
+        <p class="text-xs text-white/50">#1E293B</p>
+        <p class="text-xs text-white/40">--color-surface-2</p>
+      </div>
+      <!-- Primary -->
+      <div>
+        <div class="h-24 rounded-xl bg-accent"></div>
+        <p class="mt-2 text-sm font-semibold">Primary</p>
+        <p class="text-xs text-white/50">#0068FF</p>
+        <p class="text-xs text-white/40">--color-primary</p>
+      </div>
+      <!-- Primary Hover -->
+      <div>
+        <div class="h-24 rounded-xl bg-accent2"></div>
+        <p class="mt-2 text-sm font-semibold">Primary Hover</p>
+        <p class="text-xs text-white/50">#00D2FF</p>
+        <p class="text-xs text-white/40">--color-primary-hover</p>
+      </div>
+      <!-- White / Text -->
+      <div>
+        <div class="h-24 rounded-xl bg-white/90"></div>
+        <p class="mt-2 text-sm font-semibold">Text</p>
+        <p class="text-xs text-white/50">#E2E8F0</p>
+        <p class="text-xs text-white/40">--color-text</p>
+      </div>
+    </div>
+
+    <!-- Opacidades de texto -->
+    <h3 class="text-lg font-semibold mt-8 mb-3">Opacidades de texto</h3>
+    <div class="space-y-2">
+      <p class="text-white">text-white — Títulos principales (100%)</p>
+      <p class="text-white/90">text-white/90 — Texto de botones y énfasis (90%)</p>
+      <p class="text-white/80">text-white/80 — Texto de párrafos (80%)</p>
+      <p class="text-white/70">text-white/70 — Texto secundario, labels (70%)</p>
+      <p class="text-white/60">text-white/60 — Texto terciario, fechas (60%)</p>
+      <p class="text-white/50">text-white/50 — Texto muted, notas al pie (50%)</p>
+      <p class="text-white/40">text-white/40 — Placeholders (40%)</p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       2. TIPOGRAFÍA
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">2. Tipografía</h2>
+    <p class="text-white/60 text-sm mb-6">
+      Display: <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">Montserrat</code> ·
+      Body: <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">Inter</code>
+    </p>
+
+    <div class="space-y-6 rounded-2xl bg-white/5 border border-white/10 p-6">
+      <div>
+        <span class="text-xs text-white/40 block mb-1">font-display · text-5xl · font-extrabold</span>
+        <p class="text-5xl font-display font-extrabold">Heading Display</p>
+      </div>
+      <div>
+        <span class="text-xs text-white/40 block mb-1">font-sans · text-4xl · font-extrabold</span>
+        <p class="text-4xl font-extrabold">Heading 1</p>
+      </div>
+      <div>
+        <span class="text-xs text-white/40 block mb-1">font-sans · text-3xl · font-extrabold</span>
+        <p class="text-3xl font-extrabold">Heading 2</p>
+      </div>
+      <div>
+        <span class="text-xs text-white/40 block mb-1">font-sans · text-2xl · font-extrabold</span>
+        <p class="text-2xl font-extrabold">Heading 3</p>
+      </div>
+      <div>
+        <span class="text-xs text-white/40 block mb-1">font-sans · text-xl · font-semibold</span>
+        <p class="text-xl font-semibold">Heading 4</p>
+      </div>
+      <div>
+        <span class="text-xs text-white/40 block mb-1">font-sans · text-lg · font-semibold</span>
+        <p class="text-lg font-semibold">Heading 5</p>
+      </div>
+      <hr class="border-white/10">
+      <div>
+        <span class="text-xs text-white/40 block mb-1">font-sans · text-base · text-white/80</span>
+        <p class="text-base text-white/80">Párrafo base — Power BI, Tableau, Python, Excel, VBA, C#, Streamlit y Machine Learning aplicados a control de procesos, operaciones, planeamiento y optimización operativa.</p>
+      </div>
+      <div>
+        <span class="text-xs text-white/40 block mb-1">font-sans · text-sm · text-white/70</span>
+        <p class="text-sm text-white/70">Texto pequeño — Usado en descripciones secundarias, subtítulos de cards y metadata.</p>
+      </div>
+      <div>
+        <span class="text-xs text-white/40 block mb-1">font-sans · text-xs · text-white/60</span>
+        <p class="text-xs text-white/60">Texto extra pequeño — Fechas, emisores de certificaciones, pies de nota.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       3. BOTONES
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">3. Botones</h2>
+    <p class="text-white/60 text-sm mb-6">Clases: <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">btn-primary</code> · <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">btn-secondary</code></p>
+
+    <div class="flex flex-wrap gap-4 items-center">
+      <button class="btn-primary">Primario</button>
+      <button class="btn-secondary">Secundario</button>
+      <button class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/90 transition border border-white/10">Con borde</button>
+      <button class="btn-primary opacity-60 cursor-not-allowed">Deshabilitado</button>
+    </div>
+
+    <h3 class="text-lg font-semibold mt-8 mb-3">Tamaños</h3>
+    <div class="flex flex-wrap gap-4 items-center">
+      <button class="px-3 py-1 rounded-lg bg-accent hover:bg-accent2 text-white text-sm font-semibold transition">Pequeño</button>
+      <button class="btn-primary">Normal</button>
+      <button class="px-6 py-3 rounded-xl bg-accent hover:bg-accent2 text-white font-semibold shadow-soft transition text-lg">Grande</button>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       4. CARDS
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">4. Cards</h2>
+    <p class="text-white/60 text-sm mb-6">Clases: <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">card</code> · <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">card-hover</code></p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Card básica -->
+      <div class="card p-5">
+        <h3 class="text-lg font-semibold">Card básica</h3>
+        <div class="mt-1 h-px w-11 rounded-full bg-gradient-to-r from-accent/50 to-accent2/50"></div>
+        <p class="mt-3 text-white/75 text-sm">Clase <code class="bg-white/10 px-1 rounded text-xs">.card</code> sin hover.</p>
+      </div>
+
+      <!-- Card con hover -->
+      <div class="card card-hover p-5">
+        <h3 class="text-lg font-semibold">Card con hover</h3>
+        <div class="mt-1 h-px w-11 rounded-full bg-gradient-to-r from-accent/50 to-accent2/50"></div>
+        <p class="mt-3 text-white/75 text-sm">Agrega <code class="bg-white/10 px-1 rounded text-xs">.card-hover</code> para efecto al pasar el cursor.</p>
+      </div>
+
+      <!-- Card glass -->
+      <div class="rounded-2xl p-5 glass border border-white/10">
+        <h3 class="text-lg font-semibold">Card glass</h3>
+        <div class="mt-1 h-px w-11 rounded-full bg-gradient-to-r from-accent/50 to-accent2/50"></div>
+        <p class="mt-3 text-white/75 text-sm">Clase <code class="bg-white/10 px-1 rounded text-xs">.glass</code> con backdrop-blur.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       5. BADGES & PILLS
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">5. Badges & Pills</h2>
+    <p class="text-white/60 text-sm mb-6">Clases: <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">badge</code> · <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">badge-filled</code></p>
+
+    <div class="flex flex-wrap gap-3 items-center">
+      <span class="badge">#Power BI</span>
+      <span class="badge">#Python</span>
+      <span class="badge">#Minería</span>
+      <span class="badge-filled">ETL</span>
+      <span class="badge-filled">Dashboard</span>
+      <span class="badge-filled">ML</span>
+    </div>
+
+    <h3 class="text-lg font-semibold mt-8 mb-3">Badges con indicador</h3>
+    <div class="flex flex-wrap gap-3 items-center">
+      <span class="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs">
+        <span class="h-1.5 w-1.5 rounded-full bg-sky-400"></span> Serie: Vibraciones
+      </span>
+      <span class="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs">
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> 12 min
+      </span>
+      <span class="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs">
+        <span class="h-1.5 w-1.5 rounded-full bg-indigo-400"></span> 31 Oct 2025
+      </span>
+    </div>
+
+    <h3 class="text-lg font-semibold mt-8 mb-3">Badge animado (shimmer)</h3>
+    <span class="badge-animated px-4 py-1 text-sm text-white/80">
+      Portafolio · Analítica y Tecnología para Minería
+    </span>
+  </section>
+
+  <!-- ============================================================
+       6. SECCIÓN HEADER
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">6. Section Headers</h2>
+    <p class="text-white/60 text-sm mb-6">Clases: <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">section-title</code> · <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">section-line</code></p>
+
+    <div class="rounded-2xl bg-white/5 border border-white/10 p-6 space-y-8">
+      <div>
+        <h3 class="section-title">Logros & Certificaciones</h3>
+        <div class="section-line"></div>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold">Subsección</h3>
+        <div class="mt-1 h-[3px] w-10 rounded-full bg-gradient-to-r from-sky-400 to-blue-500"></div>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold">Subsección alternativa</h3>
+        <div class="mt-1 h-[3px] w-10 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       7. FORMULARIO
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">7. Formularios</h2>
+    <p class="text-white/60 text-sm mb-6">Inputs con estilo consistente del sitio.</p>
+
+    <div class="max-w-md card p-6 space-y-4">
+      <div>
+        <label class="block text-sm text-white/70">Input de texto</label>
+        <input type="text" placeholder="Tu nombre"
+               class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-white/90 placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-sky-500">
+      </div>
+      <div>
+        <label class="block text-sm text-white/70">Email</label>
+        <input type="email" placeholder="tu@correo.com"
+               class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-white/90 placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-sky-500">
+      </div>
+      <div>
+        <label class="block text-sm text-white/70">Select</label>
+        <select class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-white/90 focus:outline-none focus:ring-2 focus:ring-sky-500">
+          <option>Opción A</option>
+          <option>Opción B</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm text-white/70">Textarea</label>
+        <textarea rows="3" placeholder="Escribe aquí..."
+                  class="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-white/90 placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+      </div>
+      <button class="btn-primary w-full">Enviar</button>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       8. SOMBRAS & RADIOS
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">8. Sombras & Radios</h2>
+    <p class="text-white/60 text-sm mb-6">Definidos en <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">_base.css</code></p>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div class="bg-white/5 border border-white/10 p-4 rounded-lg text-center">
+        <p class="text-sm text-white/70">rounded-lg</p>
+        <p class="text-xs text-white/40 mt-1">0.5rem</p>
+      </div>
+      <div class="bg-white/5 border border-white/10 p-4 rounded-xl text-center">
+        <p class="text-sm text-white/70">rounded-xl</p>
+        <p class="text-xs text-white/40 mt-1">0.75rem</p>
+      </div>
+      <div class="bg-white/5 border border-white/10 p-4 rounded-2xl text-center">
+        <p class="text-sm text-white/70">rounded-2xl</p>
+        <p class="text-xs text-white/40 mt-1">1rem</p>
+      </div>
+      <div class="bg-white/5 border border-white/10 p-4 rounded-full text-center">
+        <p class="text-sm text-white/70">rounded-full</p>
+        <p class="text-xs text-white/40 mt-1">9999px</p>
+      </div>
+    </div>
+
+    <h3 class="text-lg font-semibold mt-8 mb-3">Sombras</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white/5 border border-white/10 p-6 rounded-2xl shadow-soft text-center">
+        <p class="text-sm text-white/70">shadow-soft</p>
+        <p class="text-xs text-white/40 mt-1">--shadow-soft</p>
+      </div>
+      <div class="bg-white/5 border border-white/10 p-6 rounded-2xl text-center" style="box-shadow: var(--shadow-card)">
+        <p class="text-sm text-white/70">shadow-card</p>
+        <p class="text-xs text-white/40 mt-1">--shadow-card</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       9. ANIMACIONES
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">9. Animaciones</h2>
+    <p class="text-white/60 text-sm mb-6">Movimientos sutiles para elementos decorativos.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-6 text-center">
+        <div class="mx-auto h-16 w-16 rounded-full bg-accent/30 animate-float"></div>
+        <p class="mt-4 text-sm text-white/70">animate-float</p>
+        <p class="text-xs text-white/40">6s ease-in-out infinite</p>
+      </div>
+      <div class="card p-6 text-center">
+        <div class="mx-auto h-8 w-48 rounded-full animate-shimmer"
+             style="background-image:linear-gradient(90deg,rgba(255,255,255,.15),rgba(255,255,255,.55),rgba(255,255,255,.15));background-size:200% 100%;">
+        </div>
+        <p class="mt-4 text-sm text-white/70">animate-shimmer</p>
+        <p class="text-xs text-white/40">3s linear infinite</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       10. GRADIENTES
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">10. Gradientes</h2>
+    <p class="text-white/60 text-sm mb-6">Gradientes usados en texto, líneas decorativas y overlays.</p>
+
+    <div class="space-y-6">
+      <!-- Texto gradiente -->
+      <div class="card p-6">
+        <p class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-accent to-accent2">
+          Texto con gradiente primary
+        </p>
+        <p class="text-xs text-white/40 mt-2">from-accent to-accent2</p>
+      </div>
+
+      <!-- Líneas gradiente -->
+      <div class="card p-6 space-y-4">
+        <div>
+          <div class="h-[3px] w-20 rounded-full bg-gradient-to-r from-sky-400 to-blue-500"></div>
+          <p class="text-xs text-white/40 mt-1">from-sky-400 to-blue-500 (secciones primarias)</p>
+        </div>
+        <div>
+          <div class="h-[3px] w-20 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+          <p class="text-xs text-white/40 mt-1">from-emerald-400 to-teal-500 (secciones secundarias)</p>
+        </div>
+        <div>
+          <div class="h-[3px] w-20 rounded-full bg-gradient-to-r from-accent to-accent2"></div>
+          <p class="text-xs text-white/40 mt-1">from-accent to-accent2 (section-line)</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       11. ICONOS
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">11. Iconos</h2>
+    <p class="text-white/60 text-sm mb-6">
+      SVGs en <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">_includes/icons/</code> ·
+      Uso: <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">{% raw %}{% include icons/github.svg class="h-5 w-5" %}{% endraw %}</code> ·
+      Heredan <code class="bg-white/10 px-1.5 py-0.5 rounded text-xs">currentColor</code>
+    </p>
+
+    <div class="grid grid-cols-3 sm:grid-cols-6 gap-4">
+      <div class="card p-4 flex flex-col items-center gap-3">
+        {% include icons/github.svg class="h-8 w-8" %}
+        <span class="text-xs text-white/50">github</span>
+      </div>
+      <div class="card p-4 flex flex-col items-center gap-3">
+        {% include icons/linkedin.svg class="h-8 w-8" %}
+        <span class="text-xs text-white/50">linkedin</span>
+      </div>
+      <div class="card p-4 flex flex-col items-center gap-3">
+        {% include icons/menu.svg class="h-8 w-8" %}
+        <span class="text-xs text-white/50">menu</span>
+      </div>
+      <div class="card p-4 flex flex-col items-center gap-3">
+        {% include icons/close.svg class="h-8 w-8" %}
+        <span class="text-xs text-white/50">close</span>
+      </div>
+      <div class="card p-4 flex flex-col items-center gap-3">
+        {% include icons/chevron-right.svg class="h-8 w-8" %}
+        <span class="text-xs text-white/50">chevron-right</span>
+      </div>
+      <div class="card p-4 flex flex-col items-center gap-3">
+        {% include icons/arrow-right.svg class="h-8 w-8" %}
+        <span class="text-xs text-white/50">arrow-right</span>
+      </div>
+    </div>
+
+    <h3 class="text-lg font-semibold mt-8 mb-3">Herencia de color</h3>
+    <div class="flex flex-wrap gap-6 items-center">
+      <span class="text-white">{% include icons/github.svg class="h-6 w-6 inline" %} text-white</span>
+      <span class="text-accent">{% include icons/github.svg class="h-6 w-6 inline" %} text-accent</span>
+      <span class="text-accent2">{% include icons/github.svg class="h-6 w-6 inline" %} text-accent2</span>
+      <span class="text-emerald-400">{% include icons/github.svg class="h-6 w-6 inline" %} text-emerald</span>
+      <span class="text-white/40">{% include icons/github.svg class="h-6 w-6 inline" %} text-white/40</span>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       12. ESPACIADO
+       ============================================================ -->
+  <section class="mb-16">
+    <h2 class="text-2xl font-extrabold mb-1">12. Espaciado</h2>
+    <p class="text-white/60 text-sm mb-6">Escala de Tailwind usada en el sitio.</p>
+
+    <div class="space-y-3">
+      {% assign spaces = "1,2,3,4,5,6,8,10,12,16,20" | split: "," %}
+      {% for s in spaces %}
+      <div class="flex items-center gap-4">
+        <span class="w-12 text-xs text-white/50 text-right">{{ s }}</span>
+        <div class="h-3 rounded bg-accent/40" style="width: calc({{ s }} * 0.25rem)"></div>
+        <span class="text-xs text-white/40">{{ s | times: 4 }}px</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FOOTER DE REFERENCIA
+       ============================================================ -->
+  <footer class="mt-16 pt-8 border-t border-white/10">
+    <p class="text-white/40 text-sm">
+      Este style guide es una referencia interna del sistema de diseño.
+      Los tokens se definen en <code class="bg-white/10 px-1 rounded text-xs">assets/css/_base.css</code>
+      y los componentes en <code class="bg-white/10 px-1 rounded text-xs">assets/css/_components.css</code>.
+    </p>
+  </footer>
+
+</section>

@@ -1,0 +1,85 @@
+/* ================================================================
+   _prism-overrides.css — VS Code Dark+ inspired theme
+   Aplica sobre el tema base prism-okaidia cargado en artículos.
+   ================================================================ */
+
+pre[class*="language-"] {
+  position: relative;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #080f1e;
+}
+.code-block pre[class*="language-"] {
+  border-radius: 0;
+}
+code[class*="language-"] {
+  background: #080f1e;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+pre.line-numbers {
+  padding-left: 3.5em;
+}
+
+/* ── Tokens — VS Code Dark+ palette ── */
+
+/* Comments: tenue, itálica */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #546e7a;
+  font-style: italic;
+}
+
+/* Punctuation */
+.token.punctuation { color: #89ddff; }
+
+/* Properties, tags, constants */
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol,
+.token.deleted { color: #f07178; }
+
+/* Booleans, numbers — dorado vibrante */
+.token.boolean,
+.token.number { color: #f78c6c; }
+
+/* Strings — verde menta */
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted { color: #c3e88d; }
+
+/* Operators, URLs — cyan */
+.token.operator,
+.token.entity,
+.token.url { color: #89ddff; }
+
+/* Keywords — violeta */
+.token.atrule,
+.token.keyword { color: #c792ea; }
+
+/* Functions — azul brillante */
+.token.function { color: #82aaff; }
+
+/* Class names — amarillo */
+.token.class-name { color: #ffcb6b; }
+
+/* Regex, important — rojo coral */
+.token.regex,
+.token.important { color: #f07178; }
+
+/* Decorators / annotations */
+.token.decorator,
+.token.annotation { color: #ff5370; }
+
+/* Variable — blanco suave */
+.token.variable { color: #eeffff; }
+
+/* Built-in — turquesa */
+.token.builtin { color: #89ddff; }

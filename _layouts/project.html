@@ -1,0 +1,100 @@
+---
+layout: default
+---
+
+<div class="max-w-6xl mx-auto px-6 py-10">
+  <!-- HERO -->
+  <header class="mb-8">
+    <p class="text-white/60 text-sm">{{ page.date | date: "%d %b %Y" }}</p>
+    <h1 class="mt-1 text-3xl md:text-4xl font-extrabold leading-tight">{{ page.title }}</h1>
+    {% if page.subtitle %}
+      <p class="mt-2 text-white/80 max-w-3xl">{{ page.subtitle }}</p>
+    {% endif %}
+
+    <!-- badges -->
+    <div class="mt-4 flex flex-wrap gap-2">
+      {% for s in page.stack %}
+        <span class="inline-flex items-center rounded-lg bg-white/5 px-2.5 py-1 text-xs text-white/80">
+          {{ s }}
+        </span>
+      {% endfor %}
+      {% for t in page.tags %}
+        <span class="inline-flex items-center rounded-lg border border-white/10 px-2.5 py-1 text-xs text-white/60">
+          #{{ t }}
+        </span>
+      {% endfor %}
+    </div>
+
+    <!-- CTAs -->
+    <div class="mt-6">
+      {% include components/project-ctas.html %}
+    </div>
+  </header>
+
+  {% if site.author %}
+    <div class="mt-6 mb-6 flex items-center gap-4">
+      {% assign avatar_src = page.author_avatar | default: site.author.project_avatar | default: site.author.avatar %}
+      <img src="{{ avatar_src | relative_url }}" alt="{{ site.author.name }}"
+          class="h-12 w-12 md:h-14 md:w-14 rounded-full object-cover ring-2 ring-white/10">
+      <div class="leading-tight">
+        <div class="text-[18px] md:text-[20px] font-semibold text-slate-100">
+          {{ site.author.name }}
+        </div>
+        {% if site.author.position %}
+          <div class="text-[14px] md:text-[16px] text-slate-300">
+            {{ site.author.position }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- EMBED -->
+  {% include components/project-embed.html %}
+
+  <!-- DOS COLUMNAS: datos / resultados -->
+  <section class="mt-10 grid gap-8 md:grid-cols-2">
+    <div>
+      <h2 class="text-lg font-bold">Datos</h2>
+      <div class="mt-1 h-[3px] w-10 rounded-full bg-gradient-to-r from-sky-400 to-blue-500"></div>
+      <p class="mt-3 text-white/80">{{ page.data_overview }}</p>
+    </div>
+    <div>
+      <h2 class="text-lg font-bold">Resultados</h2>
+      <div class="mt-1 h-[3px] w-10 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+      <p class="mt-3 text-white/80">{{ page.results }}</p>
+
+      {% if page.metrics %}
+      <ul class="mt-4 grid gap-2 md:grid-cols-2 text-sm">
+        {% for k in page.metrics %}
+          <li class="bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+            <span class="text-white/60">{{ k[0] | replace:'_',' ' }}:</span>
+            <span class="ml-1 font-semibold">{{ k[1] }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- GALERÍA -->
+  {% if page.gallery %}
+  <section class="mt-10">
+    <h2 class="text-lg font-bold">Galería</h2>
+    <div class="mt-4 grid gap-4 md:grid-cols-3">
+      {% for img in page.gallery %}
+        <a href="{{ img | relative_url }}" target="_blank" class="block rounded-xl overflow-hidden border border-white/10">
+          <img src="{{ img | relative_url }}" alt="preview" loading="lazy" class="w-full h-48 object-cover">
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Contenido adicional del markdown -->
+  {% if content and content != "" %}
+  <section class="prose prose-invert max-w-none mt-10">
+    {{ content }}
+  </section>
+  {% endif %}
+</div>

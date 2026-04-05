@@ -1,0 +1,37 @@
+# cv/teaching.yml — Cursos dictados (cada uno es una card en el carrusel)
+# certificate: ruta a imagen del certificado/resolución (opcional)
+
+- name: "Power BI aplicado a la perforación y voladura superficial"
+  institution: "CODEa UNI"
+  year: "2024"
+  certificate: ""
+
+- name: "Programación en Python aplicado a la Ingeniería de Minas"
+  institution: "CODEa UNI"
+  year: "2024"
+  certificate: ""
+
+- name: "Casos de uso de Power BI aplicado a la Ingeniería de Minas"
+  institution: "CODEa UNI"
+  year: "2024"
+  certificate: ""
+
+- name: "Minería para no Mineros"
+  institution: "CODEa UNI"
+  year: "2025"
+  certificate: ""
+
+- name: "Ingeniería de explosivos"
+  institution: "Universidad Nacional de Cajamarca"
+  year: "2022"
+  certificate: ""
+
+- name: "Ingeniería económica"
+  institution: "Universidad Nacional de Cajamarca"
+  year: "2022"
+  certificate: ""
+
+- name: "Investigación de operaciones aplicadas"
+  institution: "Universidad Nacional de Cajamarca"
+  year: "2022"
+  certificate: ""

@@ -1,0 +1,23 @@
+{% comment %}
+  component: author-card
+  description: Tarjeta de autor con avatar, nombre, posición y links sociales.
+  params: ninguno (lee de site.author y site.data.social)
+  usage: {% include components/author-card.html %}
+{% endcomment %}
+
+<div class="card p-5 flex gap-4">
+  {% if site.author.avatar %}
+    <img src="{{ site.author.avatar }}" alt="{{ site.author.name }}" class="h-16 w-16 rounded-full object-cover">
+  {% endif %}
+  <div>
+    <div class="font-semibold">{{ site.author.name }}</div>
+    {% if site.author.position %}
+      <div class="text-white/70 text-sm">{{ site.author.position }}</div>
+    {% endif %}
+    <div class="mt-2 text-sm text-white/70 flex gap-3">
+      {% for link in site.data.social %}
+        <a href="{{ link.url }}" class="hover:underline" {% if link.platform != 'Email' %}target="_blank" rel="noopener"{% endif %}>{{ link.platform }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</div>

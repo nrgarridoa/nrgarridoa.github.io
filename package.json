@@ -1,0 +1,19 @@
+{
+  "name": "nrgarridoa.github.io",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Portfolio - Mining Engineer & Data Analyst · Jekyll + Tailwind + Alpine.js",
+  "scripts": {
+    "css:dev": "npx tailwindcss -i ./assets/css/tailwind.css -o ./assets/css/main.css --watch",
+    "css:build": "npx tailwindcss -i ./assets/css/tailwind.css -o ./assets/css/main.css --minify",
+    "clean": "rm -rf _site .jekyll-cache"
+  },
+  "keywords": ["portfolio", "jekyll", "tailwindcss", "mining", "data-analyst"],
+  "author": "Nilson R. Garrido",
+  "license": "MIT",
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.14"
+  }
+}

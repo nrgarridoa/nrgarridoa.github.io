@@ -1,0 +1,16 @@
+{% comment %}
+  component: badge
+  description: Pill/tag reutilizable con variantes outline y filled.
+  params:
+    - text  (required): texto del badge
+    - style (optional): "filled" | "outline" (default: "outline")
+  usage:
+    {% include components/badge.html text="Python" %}
+    {% include components/badge.html text="Power BI" style="filled" %}
+{% endcomment %}
+
+{% assign _style = include.style | default: "outline" %}
+
+<span class="{% if _style == 'filled' %}badge-filled{% else %}badge{% endif %}">
+  {{ include.text }}
+</span>

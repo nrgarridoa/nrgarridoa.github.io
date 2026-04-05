@@ -1,0 +1,131 @@
+# cv/activities.yml — Desarrollo profesional
+
+# ═══ EVENTOS ═══
+events:
+  - name: "Perumin 37"
+    type: "Convención Minera"
+    organizer: "Instituto de Ingenieros de Minas del Perú"
+    role: "Convencionista"
+    date: "22 – 26 set 2025"
+    location: "Arequipa, Perú"
+    logo: ""
+    gallery: []
+
+  - name: "Semana de la Geología Nacional"
+    type: "Congreso"
+    organizer: "Sociedad Geológica del Perú (SGP)"
+    role: "Expositor"
+    date: "15 – 19 set 2025"
+    location: "Lima, Perú"
+    logo: ""
+    gallery: []
+
+  - name: "IV Comasurmin"
+    type: "Congreso"
+    organizer: "Capítulos estudiantiles del sur del Perú"
+    role: "Representante de empresa"
+    date: "4 – 8 nov 2024"
+    location: "Moquegua, Perú"
+    logo: ""
+    gallery: []
+
+  - name: "XVII Coneimin"
+    type: "Congreso"
+    organizer: "EP Ingeniería de Minas - UNSA"
+    role: "Representante de empresa"
+    date: "19 – 24 ago 2024"
+    location: "Arequipa, Perú"
+    logo: ""
+    gallery: []
+
+  - name: "II Comincax"
+    type: "Congreso"
+    organizer: "EAP Ingeniería de Minas – UNC"
+    role: "Presidente del comité organizador"
+    date: "05 – 10 dic 2022"
+    location: "Cajamarca, Perú"
+    logo: ""
+    gallery: []
+
+  - name: "I Feria Minera UNC"
+    type: "Feria"
+    organizer: "EAP Ingeniería de Minas – UNC"
+    role: "Presidente del comité organizador"
+    date: "05 – 06 jul 2022"
+    location: "Cajamarca, Perú"
+    logo: ""
+    gallery: []
+
+# ═══ VOLUNTARIADO ═══
+volunteering:
+  - org: "Voluntariado Iberoamericano de Desarrollo Estudiantil (VIDE)"
+    positions:
+      - role: "Consultor VIDE"
+        start: "abr 2023"
+        end: "actualidad"
+      - role: "Presidente regional – Cajamarca"
+        start: "jul 2022"
+        end: "mar 2023"
+      - role: "Voluntario"
+        start: "may 2018"
+        end: "jun 2022"
+
+# ═══ PROGRAMAS ═══
+programs:
+  - org: "Instituto de Ingenieros de Minas del Perú (IIMP)"
+    positions:
+      - role: "XVIII Programa de Mentoring"
+        description: "Mentor"
+        start: "mar 2026"
+        end: "actualidad"
+        attachment: ""
+      - role: "VII Programa de Soporte Intergeneracional"
+        description: "Asociado Junior"
+        start: "feb 2024"
+        end: "jul 2024"
+        attachment: ""
+      - role: "VI Programa de Coaching"
+        description: "Coachee"
+        start: "jul 2023"
+        end: "dic 2023"
+        attachment: ""
+      - role: "XV Programa de Mentoring"
+        description: "Mentorizado"
+        start: "feb 2024"
+        end: "jun 2024"
+        attachment: ""
+      - role: "XIV Programa de Mentoring"
+        description: "Mentorizado"
+        start: "dic 2022"
+        end: "jun 2023"
+        attachment: ""
+      - role: "XIII Programa de Mentoring"
+        description: "Mentorizado"
+        start: "feb 2022"
+        end: "jun 2022"
+        attachment: ""
+      - role: "XII Programa de Mentoring"
+        description: "Mentorizado"
+        start: "ago 2021"
+        end: "dic 2021"
+        attachment: ""
+
+# ═══ LOGROS ═══
+achievements:
+  - org: "Universidad Nacional de Cajamarca"
+    items:
+      - title: "Secretario General del Centro Federado de Ingeniería de Minas"
+        date: "ene 2022 – feb 2023"
+        attachment: ""
+      - title: "Miembro del Comité Directivo de la EAP de Ingeniería de Minas"
+        date: "oct 2020 – oct 2021 / mar 2022 – feb 2023"
+        attachment: ""
+      - title: "Miembro del Comité Curricular de la EAP de Ingeniería de Minas"
+        date: "ago 2019 – dic 2019"
+        attachment: ""
+
+  - org: "SME UNC"
+    items:
+      - title: "Ganador del I Debate Minero de Capítulos Estudiantiles SME – Perú"
+        date: "nov – dic 2022"
+        attachment: ""

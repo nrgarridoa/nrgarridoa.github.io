@@ -1,0 +1,74 @@
+title: "Portafolio · Nilson R. Garrido"
+tagline: "Analítica y Tecnología para Minería"
+description: "Portafolio profesional de Nilson Garrido — Ingeniero de Minas y Data Analyst. Proyectos, artículos técnicos y certificaciones en Power BI, Python, Machine Learning y tecnología aplicada a minería."
+author:
+  name: "Nilson Rolando Garrido Asenjo"
+  role_primary: "Mining Engineer"
+  role_secondary: "Industrial Manager"
+  location: "Lima, Perú"
+  position: "Mining Engineer · Data Analyst · Python C# VBA SQL Developer · ML Engineer · BI Analyst"
+  email: "nrgarridoa@gmail.com"
+  github: "https://github.com/nrgarridoa"
+  linkedin: "https://www.linkedin.com/in/nrgarridoa"
+  avatar: "/assets/perfil.jpg"
+  cv_url: "/assets/cv/Nilson_Garrido_CV.pdf"
+  project_avatar: "/assets/project-avatar.jpg"
+  article_avatar: "/assets/article-avatar.jpg"
+baseurl: ""   # en user pages va vacío
+url: "https://nrgarridoa.github.io"
+image: /assets/og-default.jpg
+
+# Colecciones dinamicas
+collections:
+  projects:
+    output: true
+    permalink: /projects/:name/
+  articles:
+    output: true
+    permalink: /articles/:name/
+
+# Valores por defecto (layouts y metadatos)
+defaults:
+  - scope:
+      path: ""
+      type: "projects"
+    values:
+      layout: project
+      tags: []
+  - scope:
+      path: ""
+      type: "articles"
+    values:
+      layout: article
+      tags: []
+
+# Markdown engine
+markdown: kramdown
+kramdown:
+  input: GFM
+highlighter: rouge
+rouge:
+  theme: base16.solarized.dark
+
+# Plugins soportados por GitHub Pages
+plugins:
+  - jekyll-sitemap     # /sitemap.xml automático
+  - jekyll-seo-tag     # metas SEO automáticas
+
+assets:
+  default_project_cover: "/assets/projects/default/cover-default.jpg"
+  default_article_cover: "/assets/articles/default/cover-default.jpg"
+
+# Excluir archivos de build del sitio generado
+exclude:
+  - node_modules
+  - package.json
+  - package-lock.json
+  - postcss.config.js
+  - tailwind.config.js
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - LICENSE
+  - .editorconfig
+  - .nvmrc

@@ -1,0 +1,57 @@
+---
+layout: default
+title: "Proyectos"
+description: "Proyectos de analítica, automatización y tecnología aplicada a operaciones mineras — Power BI, Python, Machine Learning y más."
+permalink: /projects/
+---
+
+<section class="max-w-6xl mx-auto px-6 py-12"
+         x-data="{
+           selected: 'Todos',
+           matches(tags){ if(this.selected==='Todos') return true; return (tags||[]).includes(this.selected) }
+         }">
+  <header class="mb-8">
+    <h1 class="text-3xl font-display font-bold">Proyectos</h1>
+    <p class="text-white/70 mt-2">Power BI · Python · Streamlit · ML aplicado a minería</p>
+  </header>
+
+  <!-- TAGS únicos (generados en build) -->
+  {% assign all = "" | split: "" %}
+  {% for p in site.projects %}
+    {% for t in p.tags %}
+      {% assign all = all | push: t %}
+    {% endfor %}
+  {% endfor %}
+  {% assign unique = all | uniq | sort %}
+
+  <!-- Filtros -->
+  <div class="mb-8 rounded-2xl bg-white/5 border border-white/10 p-5">
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="text-xs text-white/40 uppercase tracking-wider font-semibold w-14">Tags</span>
+      <button @click="selected='Todos'"
+              :class="selected==='Todos' ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white/90'"
+              class="px-3.5 py-1.5 rounded-lg text-sm font-medium border transition">Todos</button>
+      {% for tag in unique %}
+        <button @click="selected='{{ tag }}'"
+                :class="selected==='{{ tag }}' ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white/90'"
+                class="px-3.5 py-1.5 rounded-lg text-sm font-medium border transition">{{ tag }}</button>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% assign items = site.projects
+    | where_exp: 'p','p.status != "draft"'
+    | sort: 'date' | reverse %}
+
+  {% if items.size == 0 %}
+    <p class="text-white/60">Aún no hay proyectos publicados.</p>
+  {% else %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for project in items %}
+        <div x-show="matches({{ project.tags | jsonify }})" x-transition>
+          {% include components/project-card.html item=project %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>

@@ -1,0 +1,196 @@
+# experience.yml — Experiencia laboral agrupada por empresa (estilo LinkedIn)
+# Cada posición tiene: description, responsibilities, achievements, attachment
+
+- company: "CODEa UNI"
+  logo: "/assets/cv/logos/codea-uni.jpg"
+  location: "Perú"
+  positions:
+    - title: "Jefe de proyectos"
+      start: "oct 2023"
+      end: "actualidad"
+      description: "Gestión integral de las operaciones de CODEa UNI, liderando un equipo de 16 personas (14 reportes directos) en 6 áreas: desarrollo, marketing, ventas, operaciones académicas, proyectos e ingeniería de campo. Responsable de la estrategia operativa, crecimiento comercial, desarrollo de productos digitales y relación con clientes del sector minero."
+      responsibilities:
+        - "Dirigir las operaciones de 6 áreas funcionales (desarrollo, marketing, ventas, operaciones académicas, proyectos e ingeniería de campo) con 14 reportes directos."
+        - "Gestionar el ciclo completo de programas educativos: cursos, especializaciones y bootcamps orientados a tecnología aplicada a minería."
+        - "Liderar la relación comercial con clientes del sector minero, incluyendo prospección, propuestas técnico-comerciales y licitaciones."
+        - "Concebir, diseñar y liderar el desarrollo de 3 plataformas digitales propias: Meta Mining Media (gestión de marketing digital con agentes de IA), HeadHunting for Mining (reclutamiento especializado para minería) y English for Mining (plataforma de inglés técnico con metodología ESP e IA integrada)."
+        - "Definir estrategias de marca y marketing digital, supervisando la creación de contenido y la presencia en redes sociales."
+        - "Formular y ejecutar la gestión ante instituciones públicas para oficializaciones, fondos concursables y acreditaciones."
+        - "Crear y dirigir el Programa de Embajadores CODEa: programa de becas para estudiantes destacados de minería enfocado en desarrollo de talento en tecnología."
+        - "Supervisar el desarrollo de dashboards, reportes automatizados y herramientas de análisis con Power BI, Python y Excel avanzado."
+        - "Gestionar la planificación, presupuesto y seguimiento de todos los proyectos mediante indicadores y KPIs."
+      achievements:
+        - "Crecimiento del equipo de 3 a 16 personas, con oficina propia en San Isidro (Lima) y operación rentable."
+        - "Ganador del Startup Perú 11G de ProInnovate (Ministerio de la Producción) — gestión completa del proceso."
+        - "Ganador de Acelera 3G de Incuba UNT — programa de aceleración empresarial."
+        - "Oficialización de bootcamps de Minería y Metalurgia por el Ministerio de Energía y Minas (MINEM)."
+        - "Oficialización del CODEa Mining Fest por el MINEM — evento propio de tecnología aplicada a minería."
+        - "Crecimiento de redes sociales de 0 a 15,000+ seguidores."
+        - "Licitación ganada con Rio Tinto Mining and Exploration (Proyecto Mara) — gestión comercial y técnica integral."
+        - "Despliegue de 3 plataformas digitales propias: Meta Mining Media, HeadHunting for Mining y English for Mining."
+        - "Creación de la línea de servicios de ingeniería de campo (operaciones con drones) a partir de demanda del mercado."
+      attachment: ""
+
+    - title: "Líder de Auditoría y Reconciliación de Mineral – Chinalco (Proyecto Toromocho)"
+      start: "feb 2026"
+      end: "abr 2026"
+      description: "Liderazgo de las capas de auditoría y reconciliación de mineral en el Proyecto Toromocho (Chinalco), en alianza con Geoperuvian. Integración de datos GPS de palas y camiones con modelos de bloques y el sistema de despacho Minestar para identificar pérdidas de mineral y generar ratios de reconciliación reportables en Power BI."
+      responsibilities:
+        - "Liderar la capa de auditoría de mineral: integrar datos GPS de la cuchara de la pala y GPS del camión para identificar origen, recorrido y descarga de material, detectando patrones anómalos (ej: mineral con destino a planta que termina en botadero)."
+        - "Contrastar la data de trayectorias GPS con el modelo de bloques y los registros del sistema de despacho Minestar para validar la trazabilidad del mineral."
+        - "Liderar la capa de reconciliación de mineral: tomar los 3 modelos de bloques (corto, mediano y largo plazo), topografías de corte mensual y generar sólidos de intersección para calcular 8 ratios de reconciliación."
+        - "Diseñar e implementar la arquitectura de datos: almacenamiento en base de datos, conexión con Power BI y generación de reportes automáticos."
+        - "Coordinar con Geoperuvian (responsables de la parte técnica/geológica) la integración de datos y la validación cruzada de resultados."
+      achievements:
+        - "Implementación de un sistema de auditoría espacial de mineral que permite detectar pérdidas de material en tiempo real."
+        - "Generación de 8 ratios de reconciliación estandarizados, conectados a base de datos y reportados automáticamente en Power BI."
+      attachment: ""
+
+    - title: "Piloto de Dron – Mina Reliquias (Silver Mountain Resources)"
+      start: "oct 2025"
+      end: "ene 2026"
+      description: "Operación autónoma de dron DJI Matrice 4 Enterprise a más de 4,500 msnm en la Mina Reliquias (Huancavelica), documentando la evolución constructiva de infraestructura crítica para Silver Mountain Resources: presa de relaves, planta de tratamiento de aguas, campamento, planta de procesamiento de minerales e interior mina."
+      responsibilities:
+        - "Planificar, coordinar y ejecutar vuelos con DJI Matrice 4 Enterprise para registro fotográfico y videográfico del avance de obra en todas las instalaciones del proyecto."
+        - "Elaborar planes de vuelo considerando la altitud extrema (+4,500 msnm), condiciones climáticas y restricciones operativas de la mina."
+        - "Documentar la evolución constructiva de la presa de relaves, planta de tratamiento de aguas, planta de procesamiento y campamento."
+        - "Ejecutar operaciones de captura en bocamina e interior mina con DJI Pocket 3 para registro visual complementario."
+        - "Gestionar la seguridad operativa de todas las operaciones con dron, garantizando el cumplimiento de protocolos de la unidad minera."
+        - "Coordinar con el equipo en campo y con los responsables de obra para la planificación de accesos, horarios y zonas de vuelo."
+        - "Organizar, clasificar y entregar registros audiovisuales georreferenciados para reportes técnicos y presentaciones ejecutivas."
+      achievements:
+        - "Ejecución exitosa de operaciones de dron en condiciones extremas de altitud (+4,500 msnm) sin incidentes de seguridad."
+        - "Generación de registro completo de la evolución constructiva del proyecto, utilizado como evidencia para el seguimiento y toma de decisiones del cliente."
+        - "Gestión integral del proyecto como piloto responsable: planificación, ejecución, seguridad y entrega de resultados."
+      attachment: ""
+
+    - title: "Supervisor RPAS – Proyecto Mara (Rio Tinto Mining and Exploration)"
+      start: "may 2025"
+      end: "jun 2025"
+      description: "Supervisión y gestión de operaciones con dron Elios 3 (Flyability) para inspección y mapeo LiDAR de labores subterráneas artesanales en el Proyecto Mara, un greenfield de exploración de cobre de Rio Tinto ubicado en la provincia de Cotabambas, Apurímac."
+      responsibilities:
+        - "Liderar un equipo de 4 personas (piloto, asistente de piloto, topógrafo y supervisor) en operaciones de inspección subterránea con dron."
+        - "Formular y ejecutar el plan de trabajo para el mapeo de labores subterráneas, definiendo alcance, cronograma, protocolos de seguridad y procedimientos operativos."
+        - "Supervisar la ejecución segura de vuelos con Elios 3 en labores artesanales donde, por restricciones de seguridad, no se permitió el ingreso de personal."
+        - "Gestionar los desafíos de conectividad y telemetría en labores subterráneas, optimizando el alcance de mapeo desde las bocaminas."
+        - "Coordinar con Rio Tinto la logística de campo, permisos de acceso, recursos y planificación de operaciones en un entorno de exploración greenfield."
+        - "Supervisar el procesamiento de datos LiDAR con el software Flyability (Inspector) para generar nubes de puntos y ortomosaicos georreferenciados."
+      achievements:
+        - "Mapeo exitoso de 3 labores subterráneas artesanales mediante inspección remota con dron, sin exposición de personal a riesgos de ingreso."
+        - "Generación de nubes de puntos 3D y ortomosaicos georreferenciados que permitieron a Rio Tinto evaluar el estado de las labores sin acceso físico."
+        - "Superación de desafíos técnicos de conectividad en labores artesanales, maximizando el alcance de mapeo desde bocamina."
+        - "Cumplimiento del 100% del plan de trabajo formulado, en tiempo y dentro de los estándares de seguridad de Rio Tinto."
+      attachment: ""
+
+    - title: "Asistente de proyectos"
+      start: "mar 2022"
+      end: "set 2023"
+      description: "Creación de soluciones de software especializadas para la industria minera, utilizando C#, Python y VBA para optimizar procesos y mejorar la eficiencia operativa."
+      responsibilities:
+        - "Desarrollar aplicaciones educativas enfocadas en la industria minera."
+        - "Redactar artículos técnicos de minería y publicarlos en la página web."
+        - "Usar Python para optimizar el procesamiento de los videos de las clases."
+        - "Usar C#, Python y VBA para desarrollar aplicaciones gratuitas para la comunidad."
+      achievements:
+        - "Reducción de costos de almacenamiento en la nube hasta en 50%."
+        - "Publicación de múltiples aplicaciones gratuitas para la comunidad minera."
+      attachment: ""
+    
+
+- company: "Gold Fields La Cima – Tawa Perú S.A.C."
+  logo: "/assets/cv/logos/tawa.jpg"
+  location: "Hualgayoc, Perú"
+  positions:
+    - title: "Supervisor de topografía"
+      start: "set 2023"
+      end: "feb 2024"
+      description: "Supervisión del área de topografía en Servicios Técnicos de Gold Fields – Cerro Corona. Control topográfico completo de la operación: cubicación, conciliación de voladura, actualización diaria de topografía y soporte a múltiples áreas (planeamiento, operaciones, geología, grade control, geotecnia y planta)."
+      responsibilities:
+        - "Liderar y supervisar una guardia de 5 personas, asegurando el cumplimiento de KPIs y estándares de seguridad."
+        - "Actualizar la topografía del pit de manera diaria usando GPS diferencial e impulsar la adopción progresiva de drones RTK (DJI Matrice 250/300) para levantamientos."
+        - "Realizar la cubicación diaria de stocks de mineral descargados para reportar a grade control, considerando polígonos y leyes descargadas."
+        - "Elaborar las conciliaciones de voladura comparando diseño vs ejecutado en metros perforados y material volado, usando Excel y Civil 3D."
+        - "Realizar la comparación de taladros perforados vs diseño de malla para verificar desviaciones en campo post-perforación."
+        - "Cubicación semanal de los bines con estación total para que planta evalúe abastecimiento."
+        - "Elaborar planos del pit, frentes de minado, depósitos de desmonte, presa de relaves y otros requeridos para auditorías de Osinergmin y OEFA."
+        - "Coordinar con planeamiento, operaciones, geología, grade control, geotecnia, planta y presa para asegurar el cumplimiento de los planes programados."
+        - "Preparar el cierre mensual: material acarreado desde el pit, descargas en depósitos de desmonte, mineral marginal en stocks, bolas de acero en molinos SAG y de bolas, stock en los fingers del Rompad."
+      achievements:
+        - "Creación de un reporte de control de pisos para stocks y botaderos en Power BI — no existía previamente, integrando topografía y puntos de medición con cotas para identificar zonas de corte, relleno y piso nivelado."
+        - "Asunción de liderazgo completo de guardia en la segunda rotación, tras solo 3 días de inducción, demostrando rápida adaptación operativa."
+        - "Ejecución de cierres mensuales de manera autónoma, coordinando con todas las áreas involucradas."
+        - "Impulso en la adopción de drones RTK para levantamientos topográficos, complementando el trabajo tradicional con GPS diferencial."
+      attachment: ""
+
+- company: "Newmont Yanacocha – Divino Salvador S.A."
+  logo: "/assets/cv/logos/divino-salvador.png"
+  location: "Cajamarca, Perú"
+  positions:
+    - title: "Asistente de supervisión"
+      start: "mar 2023"
+      end: "set 2023"
+      description: "Supervisión del equipo en el CIP Cerro Negro (Centro de Investigación Experimental), proyecto de cierre de minas de Newmont Yanacocha enfocado en rehabilitación de terrenos, revegetación y producción de investigación aplicada al cierre minero."
+      responsibilities:
+        - "Supervisar a 18 personas en el cumplimiento del plan de trabajo diario y los estándares HSE (Health, Safety & Environment) de Newmont Yanacocha."
+        - "Liderar las charlas de seguridad diarias y las reuniones previas al inicio de labores para coordinar las actividades del día."
+        - "Controlar el avance del proyecto contra el presupuesto aprobado, reportando mensualmente la ejecución mediante curva S para evaluar el cumplimiento del plan."
+        - "Elaborar informes diarios de producción y avance para reportar al sponsor del titular minero."
+        - "Supervisar las actividades de rehabilitación de terreno: cosecha de semillas, preparación del vivero, siembra y revegetación de áreas impactadas."
+        - "Liderar y coredactar artículos de investigación aplicada al cierre de minas, materializando los resultados experimentales del CIP Cerro Negro."
+        - "Asistir a las reuniones de integración de especialistas HSE de Newmont Yanacocha y empresas contratistas para alineamiento en estándares de seguridad."
+        - "Recibir y guiar delegaciones de visitantes (comunidades, instituciones, universidades) al CIP Cerro Negro, explicando las operaciones de cierre e investigación — al menos 2 visitas semanales."
+      achievements:
+        - "Publicación de 2 artículos de investigación: 'Efecto de dos fuentes nitrogenadas en la variación del pH del suelo' y 'Efecto de abonamiento orgánico con compost, guano de aves, gallinaza y tratamiento sin abono'."
+        - "Diseño y puesta en marcha de 2 investigaciones adicionales que continuaron tras mi salida: evaluación de desarrollo radicular en material de tajo y evaluación de velocidad de crecimiento de especies introducidas para revegetación."
+        - "Implementación de un sistema de control de avance diario que no existía previamente, mejorando la trazabilidad y el reporte de actividades."
+        - "Gestión de seguridad sin incidentes reportables durante todo el periodo de supervisión."
+      attachment: ""
+
+- company: "Universidad Nacional de Cajamarca"
+  logo: "/assets/cv/logos/unc.jpg"
+  location: "Cajamarca, Perú"
+  positions:
+    - title: "Asistente de cátedra"
+      start: "jun 2022"
+      end: "nov 2022"
+      description: "Soporte académico en cursos de ingeniería de minas para estudiantes de pregrado."
+      responsibilities:
+        - "Asistencia en los cursos de Ingeniería de explosivos, Ingeniería económica e Investigación de operaciones aplicadas."
+      achievements: []
+      attachment: ""
+
+- company: "Medifarma S.A."
+  logo: "/assets/cv/logos/medifarma.jpg"
+  location: "Lima, Perú"
+  positions:
+    - title: "Asistente de producción"
+      start: "nov 2014"
+      end: "mar 2018"
+      description: ""
+      responsibilities: []
+      achievements: []
+      attachment: ""
+
+- company: "Frontera Sur S.A."
+  logo: ""
+  location: "Lima, Perú"
+  positions:
+    - title: "Asist. logístico / Asist. de importaciones y exportaciones"
+      start: "ene 2014"
+      end: "ago 2014"
+      description: ""
+      responsibilities: []
+      achievements: []
+      attachment: ""
+
+- company: "Salchichería Alemana"
+  logo: "/assets/cv/logos/salchicheria.jpg"
+  location: "Lima, Perú"
+  positions:
+    - title: "Asistente de Gerencia"
+      start: "abr 2012"
+      end: "ene 2014"
+      description: ""
+      responsibilities: []
+      achievements: []
+      attachment: ""

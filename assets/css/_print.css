@@ -1,0 +1,20 @@
+/* ================================================================
+   _print.css — Estilos de impresión (usados por el layout CV)
+   ================================================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+  .page {
+    box-shadow: none !important;
+    border: none !important;
+  }
+  @page {
+    margin: 16mm 14mm;
+  }
+}

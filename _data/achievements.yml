@@ -1,0 +1,14 @@
+- id: sme-debate
+  title: Ganador Debate Minero (SME)
+  org: IIMP · Revista Minería
+  date: 2022
+  summary: Primer lugar nacional en debate técnico.
+  url: "https://revistamineria.com/tu-nota-aqui"  # o vacío si no hay link
+  image: "/assets/achievements/sme-debate.jpg"     # opcional
+
+- id: pronabec
+  title: Beca PRONABEC
+  org: PRONABEC
+  date: 2020
+  summary: Reconocimiento por mérito académico (primeros puestos).
+  url: ""   # si luego consigues enlace, lo agregas

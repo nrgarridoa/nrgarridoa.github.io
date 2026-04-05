@@ -1,0 +1,509 @@
+---
+layout: default
+---
+
+{%- assign hero_img = page.cover | default: site.assets.default_article_cover -%}
+{%- assign avatar_src = page.author_avatar | default: site.author.article_avatar | default: site.author.avatar -%}
+
+<!-- Progress bar de lectura -->
+<div id="reading-progress" class="fixed top-0 left-0 h-[3px] bg-gradient-to-r from-accent to-accent2 z-50 transition-[width] duration-100" style="width:0%"></div>
+
+<!-- HERO full width con imagen + degradado -->
+<section class="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden">
+  <img src="{{ hero_img | relative_url }}" alt="cover"
+       class="absolute inset-0 w-full h-full object-cover">
+  <div class="absolute inset-0 pointer-events-none z-10"
+       style="background: linear-gradient(
+         to top,
+         rgba(0, 22, 48, 0.95) 0%,
+         rgba(0, 60, 120, 0.75) 35%,
+         rgba(0, 107, 255, 0.40) 65%,
+         rgba(18, 169, 239, 0.0) 100%
+       );">
+  </div>
+</section>
+
+<div class="max-w-5xl mx-auto px-6 -mt-20 relative z-10">
+  <!-- Header compacto -->
+  <header class="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-6 shadow-soft">
+    <!-- Serie indicator -->
+    {% if page.series %}
+      {%- comment -%} Calcular posición en la serie {%- endcomment -%}
+      {%- assign serie_articles = site.articles | where: "series", page.series | sort: "date" -%}
+      {%- assign serie_total = serie_articles.size -%}
+      {%- assign serie_pos = 0 -%}
+      {%- for sa in serie_articles -%}
+        {%- if sa.url == page.url -%}{%- assign serie_pos = forloop.index -%}{%- endif -%}
+      {%- endfor -%}
+      <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-sky-500/10 border border-sky-500/20 px-3 py-1 text-xs text-sky-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-sky-400"></span>
+        Serie: {{ page.series }} · Parte {{ serie_pos }} de {{ serie_total }}
+      </div>
+    {% endif %}
+
+    <h1 class="text-2xl md:text-3xl font-extrabold leading-tight">{{ page.title }}</h1>
+
+    {% if page.subtitle %}
+      <p class="mt-2 text-white/70 text-lg">{{ page.subtitle }}</p>
+    {% endif %}
+
+    <!-- Autor + metadata en una línea -->
+    <div class="mt-4 flex flex-wrap items-center gap-3 text-sm text-white/60">
+      <div class="flex items-center gap-2">
+        <img src="{{ avatar_src | relative_url }}" alt="{{ site.author.name }}"
+             class="h-8 w-8 rounded-full object-cover ring-1 ring-white/10"
+             onerror="this.onerror=null;this.src='{{ site.author.avatar | relative_url }}';">
+        <span class="text-white/80 font-medium">{{ site.author.name }}</span>
+      </div>
+      <span class="text-white/20">·</span>
+      <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%d %b %Y" }}</time>
+      {% if page.reading_time %}
+        <span class="text-white/20">·</span>
+        <span class="inline-flex items-center gap-1">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+          </svg>
+          {{ page.reading_time }}
+        </span>
+      {% endif %}
+    </div>
+
+    <!-- Tags -->
+    {% if page.tags %}
+      <div class="mt-3 flex flex-wrap gap-2">
+        {% for t in page.tags %}
+          <span class="badge text-xs">#{{ t }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </header>
+
+  <!-- Resumen destacado -->
+  {% if page.summary %}
+  <section class="mt-8 rounded-2xl bg-sky-900/30 border border-sky-500/20 p-6">
+    <h2 class="text-lg font-bold">Resumen</h2>
+    <div class="mt-1 h-[3px] w-10 rounded-full bg-gradient-to-r from-sky-400 to-blue-500"></div>
+    <div class="mt-4 prose prose-invert max-w-none
+                [&>p]:m-0 [&>p+*]:mt-3
+                [&_.ppv-note]:mx-auto [&_.ppv-note]:max-w-2xl [&_.ppv-note]:text-center
+                [&_.ppv-note]:rounded-xl [&_.ppv-note]:bg-white/5 [&_.ppv-note]:border [&_.ppv-note]:border-white/10
+                [&_.ppv-note]:px-4 [&_.ppv-note]:py-3
+                [&_.ppv-note_strong]:text-white
+                [&_.ppv-note_code]:bg-slate-800/60 [&_.ppv-note_code]:px-2 [&_.ppv-note_code]:py-0.5 [&_.ppv-note_code]:rounded">
+      {{ page.summary }}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Cards técnicas -->
+  {% if page.tech_cards %}
+  <section class="mt-8">
+    <h2 class="text-lg font-bold">Aspectos técnicos</h2>
+    <div class="mt-4 grid gap-4 md:grid-cols-3">
+      {% for c in page.tech_cards %}
+        <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
+          <h3 class="font-semibold text-slate-100">{{ c.title }}</h3>
+          <div class="mt-1 h-[3px] w-8 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+          <p class="mt-3 text-white/80 text-sm">{{ c.body }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Contenido principal con TOC lateral -->
+  <div class="mt-8 lg:flex lg:gap-8">
+
+    <!-- TOC sticky lateral (desktop) -->
+    {% if page.contents %}
+    <aside class="hidden lg:block lg:w-56 shrink-0">
+      <nav id="toc-sidebar" class="sticky top-20">
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <h3 class="text-xs text-white/40 uppercase tracking-wider font-semibold mb-3">Contenido</h3>
+          <ol class="space-y-1">
+            {% for item in page.contents %}
+            <li>
+              <a href="{{ item.anchor }}"
+                 data-toc-link="{{ item.anchor }}"
+                 class="toc-link block rounded-lg px-3 py-1.5 text-sm text-white/50
+                        hover:text-white/80 hover:bg-white/5 transition">
+                {{ item.title }}
+              </a>
+            </li>
+            {% endfor %}
+          </ol>
+        </div>
+      </nav>
+    </aside>
+    {% endif %}
+
+    <!-- TOC colapsable (mobile) -->
+    {% if page.contents %}
+    <div class="lg:hidden mb-6" x-data="{ tocOpen: false }">
+      <button @click="tocOpen = !tocOpen"
+              class="w-full flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white/80">
+        <span class="flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-sky-400"></span>
+          Contenido
+        </span>
+        <svg class="h-4 w-4 text-white/40 transition-transform" :class="tocOpen && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </button>
+      <div x-show="tocOpen" x-transition.duration.200ms
+           class="mt-2 rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+        <ol class="divide-y divide-white/5">
+          {% for item in page.contents %}
+          <li>
+            <a href="{{ item.anchor }}" @click="tocOpen = false"
+               class="flex items-center gap-3 px-5 py-2.5 text-sm text-white/70 hover:bg-white/5 transition">
+              <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center
+                          rounded-md bg-white/10 text-[11px] font-semibold text-white/80">
+                {{ forloop.index | prepend: "00" | slice: -2, 2 }}
+              </span>
+              <span>{{ item.title }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Cuerpo del artículo -->
+    <div class="min-w-0 flex-1">
+      <div class="max-w-4xl">
+        <article id="article-body" class="article-body">
+          {{ content }}
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recursos -->
+  {% if page.resources %}
+  <section class="mt-10">
+    <h2 class="text-lg font-bold">Recursos</h2>
+    <div class="mt-1 h-[3px] w-10 rounded-full bg-gradient-to-r from-sky-400 to-blue-500"></div>
+    <div class="mt-4 grid gap-4 md:grid-cols-2">
+      {% for r in page.resources %}
+        <a href="{{ r.url }}" target="_blank" rel="noopener"
+           class="group rounded-2xl border border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-white/20 transition p-4 flex items-center gap-4">
+          {% assign t = r.type | downcase %}
+          <div class="flex-shrink-0 h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/60 group-hover:text-accent2 transition">
+            {% if t == 'notebook' %}
+              {% include icons/notebook.svg class="h-5 w-5" %}
+            {% elsif t == 'data' %}
+              {% include icons/database.svg class="h-5 w-5" %}
+            {% elsif t == 'video' %}
+              {% include icons/video.svg class="h-5 w-5" %}
+            {% elsif t == 'repo' %}
+              {% include icons/github.svg class="h-5 w-5" %}
+            {% else %}
+              {% include icons/external-link.svg class="h-5 w-5" %}
+            {% endif %}
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="font-semibold text-white/90 group-hover:text-white transition">{{ r.label }}</div>
+            <div class="text-xs text-white/50 truncate">{{ r.type | capitalize }}</div>
+          </div>
+          <div class="flex-shrink-0 text-white/30 group-hover:text-white/60 transition">
+            {% include icons/chevron-right.svg class="h-4 w-4" %}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Navegación de serie (prev/next) -->
+  {% if page.series %}
+    {%- assign serie_articles = site.articles | where: "series", page.series | sort: "date" -%}
+    {%- if serie_articles.size > 1 -%}
+      {%- assign prev_article = nil -%}
+      {%- assign next_article = nil -%}
+      {%- assign found = false -%}
+      {%- for sa in serie_articles -%}
+        {%- if found and next_article == nil -%}
+          {%- assign next_article = sa -%}
+        {%- endif -%}
+        {%- if sa.url == page.url -%}
+          {%- assign found = true -%}
+        {%- endif -%}
+        {%- unless found -%}
+          {%- assign prev_article = sa -%}
+        {%- endunless -%}
+      {%- endfor -%}
+
+      {%- if prev_article or next_article -%}
+      <nav class="mt-10 grid gap-4 sm:grid-cols-2">
+        {% if prev_article %}
+        <a href="{{ prev_article.url | relative_url }}"
+           class="group rounded-2xl border border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-white/20 transition p-5">
+          <div class="text-xs text-white/40 uppercase tracking-wider mb-1">
+            <span class="inline-flex items-center gap-1">
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Anterior en la serie
+            </span>
+          </div>
+          <div class="text-sm font-semibold text-white/80 group-hover:text-white transition line-clamp-2">{{ prev_article.title }}</div>
+        </a>
+        {% else %}
+        <div></div>
+        {% endif %}
+
+        {% if next_article %}
+        <a href="{{ next_article.url | relative_url }}"
+           class="group rounded-2xl border border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-white/20 transition p-5 text-right">
+          <div class="text-xs text-white/40 uppercase tracking-wider mb-1">
+            <span class="inline-flex items-center gap-1">
+              Siguiente en la serie
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+          </div>
+          <div class="text-sm font-semibold text-white/80 group-hover:text-white transition line-clamp-2">{{ next_article.title }}</div>
+        </a>
+        {% endif %}
+      </nav>
+      {%- endif -%}
+    {%- endif -%}
+  {% endif %}
+
+  <!-- Artículos relacionados (mismos tags, excluyendo el actual) -->
+  {%- assign related = "" | split: "" -%}
+  {%- for a in site.articles -%}
+    {%- if a.url != page.url -%}
+      {%- for t in page.tags -%}
+        {%- if a.tags contains t -%}
+          {%- assign related = related | push: a -%}
+          {%- break -%}
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- assign related = related | uniq | slice: 0, 3 -%}
+
+  {% if related.size > 0 %}
+  <section class="mt-10">
+    <h2 class="text-lg font-bold">Artículos relacionados</h2>
+    <div class="mt-1 h-[3px] w-10 rounded-full bg-gradient-to-r from-sky-400 to-blue-500"></div>
+    <div class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {% for rel in related %}
+        {% include components/article-card.html post=rel %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Author box al final -->
+  <section class="mt-10 rounded-2xl bg-white/5 border border-white/10 p-6">
+    <div class="flex items-start gap-4">
+      <img src="{{ avatar_src | relative_url }}" alt="{{ site.author.name }}"
+           class="h-16 w-16 rounded-full object-cover ring-2 ring-white/10 shrink-0"
+           onerror="this.onerror=null;this.src='{{ site.author.avatar | relative_url }}';">
+      <div class="min-w-0">
+        <div class="text-xs text-white/40 uppercase tracking-wider font-semibold mb-1">Sobre el autor</div>
+        <div class="font-bold text-lg text-slate-100">{{ site.author.name }}</div>
+        {% if site.author.position %}
+          <div class="text-sm text-white/60 mt-0.5">{{ site.author.position }}</div>
+        {% endif %}
+        <div class="mt-3 flex items-center gap-3">
+          {% if site.author.github %}
+          <a href="{{ site.author.github }}" target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition">
+            {% include icons/github.svg class="h-4 w-4" %}
+            <span>GitHub</span>
+          </a>
+          {% endif %}
+          {% if site.author.linkedin %}
+          <a href="{{ site.author.linkedin }}" target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition">
+            {% include icons/linkedin.svg class="h-4 w-4" %}
+            <span>LinkedIn</span>
+          </a>
+          {% endif %}
+          {% if site.author.email %}
+          <a href="mailto:{{ site.author.email }}"
+             class="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z"/>
+            </svg>
+            <span>Email</span>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comentarios (Giscus opcional) -->
+  {% if page.comments and page.giscus and page.giscus.repo %}
+  <section class="mt-10 rounded-2xl bg-white/5 border border-white/10 p-4">
+    <script src="https://giscus.app/client.js"
+            data-repo="{{ page.giscus.repo }}"
+            data-repo-id="{{ page.giscus.repo_id }}"
+            data-category="{{ page.giscus.category | default: 'General' }}"
+            data-category-id="{{ page.giscus.category_id }}"
+            data-mapping="{{ page.giscus.mapping | default: 'pathname' }}"
+            data-reactions-enabled="{{ page.giscus.reactions | default: '1' }}"
+            data-emit-metadata="0"
+            data-input-position="bottom"
+            data-theme="{{ page.giscus.theme | default: 'dark' }}"
+            crossorigin="anonymous"
+            async>
+    </script>
+    <noscript class="text-white/70 text-sm">Habilita JavaScript para ver los comentarios.</noscript>
+  </section>
+  {% endif %}
+</div>
+
+<!-- PrismJS 1.29.0: tema oscuro + línea de números (pinned, local) -->
+<link rel="stylesheet" href="/vendor/prism-okaidia-1.29.0.min.css">
+<link rel="stylesheet" href="/vendor/prism-line-numbers-1.29.0.min.css">
+
+<script src="/vendor/prism-1.29.0.min.js"></script>
+<script src="/vendor/prism-python-1.29.0.min.js"></script>
+<script src="/vendor/prism-line-numbers-1.29.0.min.js"></script>
+
+<script>
+  // PrismJS: wrap pre blocks with styled container + language header + copy button
+  var copyIcon = '<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  var checkIcon = '<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>';
+
+  document.querySelectorAll('.article-body pre').forEach(function(pre) {
+    pre.classList.add('line-numbers');
+    var code = pre.querySelector('code[class*="language-"]');
+    var match = code && code.className.match(/language-(\w+)/);
+    var lang = match ? match[1].toUpperCase() : '';
+
+    // Wrap pre in container
+    var wrapper = document.createElement('div');
+    wrapper.className = 'code-block';
+    pre.parentNode.insertBefore(wrapper, pre);
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'code-header';
+    header.innerHTML =
+      '<div class="code-header-dots">' +
+        '<span class="code-dot code-dot--red"></span>' +
+        '<span class="code-dot code-dot--yellow"></span>' +
+        '<span class="code-dot code-dot--green"></span>' +
+      '</div>' +
+      (lang ? '<span class="code-header-lang">' + lang + '</span>' : '') +
+      '<button class="code-copy-btn" title="Copiar código">' +
+        copyIcon + '<span>Copiar</span>' +
+      '</button>';
+
+    wrapper.appendChild(header);
+    wrapper.appendChild(pre);
+
+    // Copy functionality with text feedback
+    var copyBtn = header.querySelector('.code-copy-btn');
+    copyBtn.addEventListener('click', function() {
+      var text = code ? code.textContent : pre.textContent;
+      navigator.clipboard.writeText(text).then(function() {
+        copyBtn.classList.add('copied');
+        copyBtn.innerHTML = checkIcon + '<span>Copiado</span>';
+        setTimeout(function() {
+          copyBtn.classList.remove('copied');
+          copyBtn.innerHTML = copyIcon + '<span>Copiar</span>';
+        }, 2000);
+      });
+    });
+  });
+
+  // Reading progress bar
+  (function() {
+    const bar = document.getElementById('reading-progress');
+    const article = document.getElementById('article-body');
+    if (!bar || !article) return;
+
+    function updateProgress() {
+      const rect = article.getBoundingClientRect();
+      const articleTop = rect.top + window.scrollY;
+      const articleHeight = rect.height;
+      const scrolled = window.scrollY - articleTop;
+      const progress = Math.min(Math.max(scrolled / (articleHeight - window.innerHeight * 0.5), 0), 1);
+      bar.style.width = (progress * 100) + '%';
+    }
+
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+  })();
+
+  // TOC: smooth scroll + active section highlighting
+  (function() {
+    const tocLinks = document.querySelectorAll('[data-toc-link]');
+    if (tocLinks.length === 0) return;
+
+    // Build mapping: for each TOC link, find the anchor element and the
+    // next visible heading sibling (which we'll observe for intersection).
+    const sections = [];
+    tocLinks.forEach(link => {
+      const id = link.getAttribute('data-toc-link').replace('#', '');
+      const anchor = document.getElementById(id);
+      if (!anchor) return;
+
+      // The heading is the next element sibling after the anchor
+      // (anchor-clean is invisible, the H2 follows it)
+      let heading = anchor.nextElementSibling;
+      // If anchor is inside a <p> wrapper (markdown wraps it), go up
+      if (anchor.parentElement && anchor.parentElement.tagName === 'P') {
+        heading = anchor.parentElement.nextElementSibling;
+      }
+      if (heading) {
+        heading.setAttribute('data-section-id', id);
+        sections.push({ id, heading, link });
+      }
+    });
+
+    // Smooth scroll on click
+    tocLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const id = this.getAttribute('data-toc-link').replace('#', '');
+        const anchor = document.getElementById(id);
+        if (anchor) {
+          // Scroll to the heading, not the invisible anchor
+          let target = anchor.nextElementSibling;
+          if (anchor.parentElement && anchor.parentElement.tagName === 'P') {
+            target = anchor.parentElement.nextElementSibling;
+          }
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          history.pushState(null, '', '#' + id);
+        }
+      });
+    });
+
+    if (sections.length === 0) return;
+
+    // Use scroll position to determine active section (more reliable than IO for hidden anchors)
+    let ticking = false;
+    function updateActiveSection() {
+      const scrollY = window.scrollY + 120; // offset for navbar
+      let activeIdx = 0;
+      for (let i = sections.length - 1; i >= 0; i--) {
+        if (sections[i].heading.getBoundingClientRect().top + window.scrollY <= scrollY) {
+          activeIdx = i;
+          break;
+        }
+      }
+      tocLinks.forEach(l => l.classList.remove('toc-link-active'));
+      sections[activeIdx].link.classList.add('toc-link-active');
+    }
+
+    window.addEventListener('scroll', function() {
+      if (!ticking) {
+        requestAnimationFrame(function() {
+          updateActiveSection();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+    updateActiveSection();
+  })();
+</script>

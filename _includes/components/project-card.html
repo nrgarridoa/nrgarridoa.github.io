@@ -1,0 +1,39 @@
+{% comment %}
+  component: project-card
+  description: Card para el listado de proyectos con imagen, título, subtítulo y stack.
+  params:
+    - item (required): objeto de proyecto (site.projects item)
+  usage: {% include components/project-card.html item=project %}
+{% endcomment %}
+
+{% assign _img = include.item.thumbnail | default: include.item.cover | default: site.assets.default_project_cover %}
+
+<article class="group rounded-2xl overflow-hidden border border-white/10 bg-white/5 shadow-soft">
+  <a href="{{ include.item.url | relative_url }}" class="block">
+    <img
+      src="{{ _img | relative_url }}"
+      alt="{{ include.item.title | escape }}"
+      width="1200" height="630" loading="lazy"
+      class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-[1.02]">
+    <div class="p-4">
+      <h3 class="font-semibold">
+        {{ include.item.title }}
+      </h3>
+
+      {% if include.item.subtitle %}
+      <p class="mt-1 text-sm text-white/70 line-clamp-2">
+        {{ include.item.subtitle }}
+      </p>
+      {% endif %}
+
+      {% assign _stack = include.item.stack | default: include.item.tags %}
+      {% if _stack and _stack.size > 0 %}
+      <div class="mt-3 flex flex-wrap gap-2">
+        {% for s in _stack limit:3 %}
+          <span class="text-[11px] rounded-md bg-white/5 px-2 py-0.5 text-white/70">{{ s }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </a>
+</article>

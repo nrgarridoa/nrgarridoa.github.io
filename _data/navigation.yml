@@ -1,0 +1,14 @@
+# ================================================================
+# navigation.yml — Fuente única de verdad para la navegación
+# Editar aquí se refleja en navbar desktop + mobile.
+# ================================================================
+
+main:
+  - label: "Inicio"
+    url: "/"
+  - label: "Proyectos"
+    url: "/projects/"
+  - label: "Artículos"
+    url: "/articles/"
+  - label: "Contacto"
+    url: "/#contacto"

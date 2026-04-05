@@ -1,0 +1,221 @@
+---
+layout: default
+title: "Artículos"
+description: "Ideas, tutoriales, casos de estudio y notas técnicas sobre minería, analítica y ML."
+permalink: /articles/
+---
+
+{% assign posts_sorted = site.articles | sort: "date" | reverse %}
+
+{%- comment -%} Extraer series y tags únicos {%- endcomment -%}
+{% assign all_series = "" | split: "" %}
+{% for a in site.articles %}{% if a.series %}{% assign all_series = all_series | push: a.series %}{% endif %}{% endfor %}
+{% assign unique_series = all_series | uniq | sort %}
+
+{% assign all_tags = "" | split: "" %}
+{% for a in site.articles %}{% for t in a.tags %}{% assign all_tags = all_tags | push: t %}{% endfor %}{% endfor %}
+{% assign unique_tags = all_tags | uniq | sort %}
+
+<!-- Datos de artículos para Alpine.js -->
+<script>
+  window.__articles = [{% for post in posts_sorted %}{t:{{ post.title | jsonify }},s:{{ post.subtitle | default: "" | jsonify }},sr:{{ post.series | default: "" | jsonify }},tg:{{ post.tags | jsonify }}}{% unless forloop.last %},{% endunless %}{% endfor %}];
+</script>
+
+<section class="max-w-6xl mx-auto px-6 py-12" x-data="articleFilters()">
+
+  <!-- Header -->
+  <header class="mb-8">
+    <h1 class="text-3xl font-display font-bold">Artículos</h1>
+    <p class="text-white/60 mt-2 max-w-2xl">Ideas, tutoriales, casos de estudio y notas técnicas sobre minería, analítica y ML.</p>
+    <p class="text-sm text-white/40 mt-1">
+      {{ posts_sorted.size }} artículo{% if posts_sorted.size != 1 %}s{% endif %}
+      {% if unique_series.size > 0 %} · {{ unique_series.size }} serie{% if unique_series.size != 1 %}s{% endif %}{% endif %}
+    </p>
+  </header>
+
+  <!-- Barra de búsqueda y filtros -->
+  <div class="mb-8 rounded-2xl bg-white/5 border border-white/10 p-5 space-y-4">
+    <!-- Búsqueda -->
+    <div class="relative">
+      <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+      </svg>
+      <input type="text" x-model="search" placeholder="Buscar por título, subtítulo o tag..."
+             class="w-full rounded-xl bg-slate-800/60 border border-white/10 pl-10 pr-4 py-3
+                    text-sm text-white placeholder:text-white/40
+                    focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30
+                    focus:bg-slate-800/80 transition">
+    </div>
+
+    <!-- Filtros dropdown -->
+    <div class="flex flex-wrap items-center gap-3">
+      {% if unique_series.size > 0 %}
+      <!-- Dropdown Serie -->
+      <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+        <button @click="open = !open"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm
+                       bg-slate-800/60 border border-white/10 text-white/70
+                       hover:bg-slate-800/80 hover:text-white/90 transition cursor-pointer"
+                :class="selectedSeries !== 'Todos' && 'border-accent/40 text-white/90 bg-accent/5'">
+          <span class="text-[11px] text-white/40 uppercase tracking-wider font-semibold">Serie</span>
+          <span x-text="selectedSeries" class="font-medium"></span>
+          <svg class="h-3.5 w-3.5 text-white/40 transition-transform" :class="open && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </button>
+        <div x-show="open" x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-100"
+             x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-1"
+             class="absolute z-30 mt-1.5 w-52 rounded-xl bg-slate-800 border border-white/10 shadow-xl py-1 overflow-hidden">
+          <button @click="selectedSeries = 'Todos'; open = false"
+                  class="w-full text-left px-4 py-2.5 text-sm hover:bg-white/10 transition cursor-pointer"
+                  :class="selectedSeries === 'Todos' ? 'text-accent font-semibold bg-accent/5' : 'text-white/70'">
+            Todas las series
+          </button>
+          {% for s in unique_series %}
+          <button @click="selectedSeries = '{{ s }}'; open = false"
+                  class="w-full text-left px-4 py-2.5 text-sm hover:bg-white/10 transition cursor-pointer"
+                  :class="selectedSeries === '{{ s }}' ? 'text-accent font-semibold bg-accent/5' : 'text-white/70'">
+            {{ s }}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if unique_tags.size > 0 %}
+      <!-- Dropdown Tags -->
+      <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+        <button @click="open = !open"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm
+                       bg-slate-800/60 border border-white/10 text-white/70
+                       hover:bg-slate-800/80 hover:text-white/90 transition cursor-pointer"
+                :class="selectedTag !== 'Todos' && 'border-accent/40 text-white/90 bg-accent/5'">
+          <span class="text-[11px] text-white/40 uppercase tracking-wider font-semibold">Tag</span>
+          <span x-text="selectedTag" class="font-medium"></span>
+          <svg class="h-3.5 w-3.5 text-white/40 transition-transform" :class="open && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </button>
+        <div x-show="open" x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-100"
+             x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-1"
+             class="absolute z-30 mt-1.5 w-52 max-h-64 overflow-y-auto rounded-xl bg-slate-800 border border-white/10 shadow-xl py-1">
+          <button @click="selectedTag = 'Todos'; open = false"
+                  class="w-full text-left px-4 py-2.5 text-sm hover:bg-white/10 transition cursor-pointer"
+                  :class="selectedTag === 'Todos' ? 'text-accent font-semibold bg-accent/5' : 'text-white/70'">
+            Todos los tags
+          </button>
+          {% for t in unique_tags %}
+          <button @click="selectedTag = '{{ t }}'; open = false"
+                  class="w-full text-left px-4 py-2.5 text-sm hover:bg-white/10 transition cursor-pointer"
+                  :class="selectedTag === '{{ t }}' ? 'text-accent font-semibold bg-accent/5' : 'text-white/70'">
+            {{ t }}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Botón limpiar -->
+      <button @click="clearAll()"
+              x-show="hasActiveFilters"
+              x-transition
+              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs
+                     text-white/40 hover:text-white/70 hover:bg-white/5 transition cursor-pointer">
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+        Limpiar filtros
+      </button>
+    </div>
+  </div>
+
+  {% if posts_sorted.size == 0 %}
+    <div class="text-center py-16">
+      <svg class="mx-auto h-12 w-12 text-white/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
+      </svg>
+      <p class="text-white/50">Aún no hay artículos publicados.</p>
+    </div>
+  {% else %}
+
+    <!-- Artículo destacado (el más reciente) -->
+    {% assign featured = posts_sorted | first %}
+    <div x-show="matchIdx(0)" x-transition class="mb-8">
+      {% include components/hero-article-card.html post=featured %}
+    </div>
+
+    <!-- Grid del resto -->
+    {% if posts_sorted.size > 1 %}
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {% for post in posts_sorted offset:1 %}
+        <div x-show="matchIdx({{ forloop.index }})" x-transition>
+          {% include components/article-card.html post=post %}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  {% endif %}
+
+  <!-- Empty state: sin resultados -->
+  <div x-show="visibleCount === 0 && hasActiveFilters" x-transition class="text-center py-16">
+    <svg class="mx-auto h-16 w-16 text-white/15 mb-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+      <path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+    </svg>
+    <p class="text-white/60 text-lg font-medium mb-1">No se encontraron artículos</p>
+    <p class="text-white/40 text-sm mb-5">Intenta con otros términos o ajusta los filtros.</p>
+    <button @click="clearAll()"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm
+                   bg-accent/10 border border-accent/20 text-accent
+                   hover:bg-accent/20 transition cursor-pointer">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+      Limpiar filtros
+    </button>
+  </div>
+</section>
+
+<script>
+  function articleFilters() {
+    var data = window.__articles || [];
+    return {
+      search: '',
+      selectedSeries: 'Todos',
+      selectedTag: 'Todos',
+      _match: function(title, subtitle, series, tags) {
+        var q = this.search.toLowerCase().trim();
+        var matchSearch = !q ||
+          (title || '').toLowerCase().indexOf(q) >= 0 ||
+          (subtitle || '').toLowerCase().indexOf(q) >= 0 ||
+          (tags || []).some(function(t) { return t.toLowerCase().indexOf(q) >= 0; });
+        var matchSeries = this.selectedSeries === 'Todos' || series === this.selectedSeries;
+        var matchTag = this.selectedTag === 'Todos' || (tags || []).indexOf(this.selectedTag) >= 0;
+        return matchSearch && matchSeries && matchTag;
+      },
+      matchIdx: function(i) {
+        var a = data[i];
+        if (!a) return false;
+        return this._match(a.t, a.s, a.sr, a.tg);
+      },
+      get visibleCount() {
+        var self = this;
+        return data.filter(function(a) {
+          return self._match(a.t, a.s, a.sr, a.tg);
+        }).length;
+      },
+      get hasActiveFilters() {
+        return this.search.length > 0 || this.selectedSeries !== 'Todos' || this.selectedTag !== 'Todos';
+      },
+      clearAll: function() {
+        this.search = '';
+        this.selectedSeries = 'Todos';
+        this.selectedTag = 'Todos';
+      }
+    };
+  }
+</script>

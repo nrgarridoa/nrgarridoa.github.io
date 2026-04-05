@@ -1,0 +1,46 @@
+backend:
+  name: github
+  repo: nrgarridoa/nrgarridoa.github.io
+  branch: main
+  base_url: https://TU-OAUTH-APP.vercel.app   # ver paso 2
+  auth_endpoint: /auth
+media_folder: "assets/uploads"      # dónde se guardan los archivos en el repo
+public_folder: "/assets/uploads"    # cómo se referencian en el sitio
+publish_mode: editorial_workflow    # crea PR: revisión antes de publicar
+slug:
+  encoding: "unicode"
+  clean_accents: true
+  sanitize_replacement: "-"
+
+collections:
+  - name: "projects"
+    label: "Proyectos"
+    folder: "_projects"
+    create: true
+    format: "frontmatter"
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - { label: "Título", name: "title", widget: "string" }
+      - { label: "Subtítulo", name: "subtitle", widget: "string", required: false }
+      - { label: "Fecha", name: "date", widget: "datetime", format: "YYYY-MM-DD" }
+      - { label: "Cover (1200x630)", name: "cover", widget: "image", allow_multiple: false }
+      - { label: "Tags", name: "tags", widget: "list", default: [] }
+      - { label: "Repositorio (URL)", name: "repo", widget: "string", required: false }
+      - { label: "Demo (URL)", name: "demo", widget: "string", required: false }
+      - { label: "Cuerpo", name: "body", widget: "markdown" }
+
+  - name: "articles"
+    label: "Artículos"
+    folder: "_articles"
+    create: true
+    format: "frontmatter"
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - { label: "Título", name: "title", widget: "string" }
+      - { label: "Subtítulo", name: "subtitle", widget: "string", required: false }
+      - { label: "Fecha", name: "date", widget: "datetime", format: "YYYY-MM-DD" }
+      - { label: "Serie", name: "series", widget: "string", required: false }
+      - { label: "Tags", name: "tags", widget: "list", default: [] }
+      - { label: "Cover (hero)", name: "cover", widget: "image", required: false }
+      - { label: "Card (listado)", name: "card", widget: "image", required: false }
+      - { label: "Cuerpo", name: "body", widget: "markdown" }

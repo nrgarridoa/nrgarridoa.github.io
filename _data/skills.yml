@@ -1,0 +1,18 @@
+# ================================================================
+# skills.yml — Cards de habilidades mostradas en el index
+# ================================================================
+
+- title: Stack
+  body: "Python · ML · IA · C# · VBA · Power BI · Tableau · Dash · Streamlit · Excel · html · css"
+
+- title: Enfoque
+  body: "Analítica aplicada a la eficiencia y optimización minera."
+
+- title: Experiencia
+  body: "3 años en minería (cierre, planeamiento, topografía) y 8 años en industria."
+
+- title: Docencia
+  body: "Cursos de Python, Power BI para minería. Asistente de cátedra en la UNC."
+
+- title: Intereses
+  body: "ML, visión computacional y analítica predictiva."

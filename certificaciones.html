@@ -1,0 +1,298 @@
+---
+layout: default
+title: "Certificaciones · Nilson R. Garrido"
+description: "Colección verificable de certificaciones en Data & BI, Programación, Project Management, Agile y Minería."
+permalink: /certificaciones/
+---
+
+<section class="max-w-7xl mx-auto px-6 pt-10 pb-20" x-data="certGallery()">
+  <header class="mb-8 md:mb-10">
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-50 tracking-tight">Certificaciones</h1>
+    <p class="mt-2 text-white/70 max-w-2xl">
+      {{ site.data.certifications | size }} certificaciones verificables en 4 categorías. Usa búsqueda o filtra por categoría.
+    </p>
+  </header>
+
+  <!-- Controles -->
+  <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:20px;">
+    <!-- Search -->
+    <div style="position:relative; flex:1; min-width:250px; max-width:400px;">
+      <svg width="16" height="16" fill="none" stroke="rgba(255,255,255,0.35)" viewBox="0 0 24 24" style="position:absolute; left:14px; top:50%; transform:translateY(-50%);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input x-model="query" type="text" placeholder="Buscar por nombre o emisor..."
+             style="width:100%; padding:10px 16px 10px 40px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); font-size:14px; outline:none;"
+             onfocus="this.style.borderColor='rgba(0,150,255,0.4)'"
+             onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+    </div>
+
+    <!-- Sort (custom dropdown) -->
+    <div x-data="{ sortOpen: false }" style="position:relative;">
+      <button @click="sortOpen = !sortOpen" @click.away="sortOpen = false"
+              style="padding:10px 40px 10px 16px; border-radius:12px; background:rgba(10,15,30,0.95); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); font-size:14px; cursor:pointer; white-space:nowrap; position:relative;"
+              onmouseover="this.style.borderColor='rgba(0,150,255,0.3)'"
+              onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
+        <span x-text="order === 'desc' ? 'Año: reciente → antiguo' : 'Año: antiguo → reciente'"></span>
+        <svg width="12" height="12" fill="rgba(255,255,255,0.5)" viewBox="0 0 24 24" style="position:absolute; right:14px; top:50%; transform:translateY(-50%);"><path d="M7 10l5 5 5-5z"/></svg>
+      </button>
+      <div x-show="sortOpen" x-transition
+           style="position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:20; border-radius:12px; background:rgba(10,15,30,0.98); border:1px solid rgba(0,150,255,0.2); backdrop-filter:blur(12px); box-shadow:0 8px 24px rgba(0,0,0,0.4); padding:6px;">
+        <button @click="order='desc'; sortOpen=false"
+                :style="order === 'desc' ? 'background:rgba(0,100,255,0.12); color:rgba(0,220,255,1)' : 'background:transparent; color:rgba(255,255,255,0.7)'"
+                style="display:block; width:100%; text-align:left; padding:10px 14px; font-size:13px; border:none; cursor:pointer; transition:all 0.15s; border-radius:8px;"
+                onmouseover="this.style.background='rgba(0,100,255,0.08)'"
+                onmouseout="this.style.background=''">
+          Año: reciente → antiguo
+        </button>
+        <button @click="order='asc'; sortOpen=false"
+                :style="order === 'asc' ? 'background:rgba(0,100,255,0.12); color:rgba(0,220,255,1)' : 'background:transparent; color:rgba(255,255,255,0.7)'"
+                style="display:block; width:100%; text-align:left; padding:10px 14px; font-size:13px; border:none; cursor:pointer; transition:all 0.15s; border-radius:8px;"
+                onmouseover="this.style.background='rgba(0,100,255,0.08)'"
+                onmouseout="this.style.background=''">
+          Año: antiguo → reciente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category filters -->
+  <style>
+    .cert-filter-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .cert-filter-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.4);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-right: 4px;
+    }
+    .cert-filter {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1.5px solid rgba(255,255,255,0.1);
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(255,255,255,0.03);
+      color: rgba(255,255,255,0.5);
+    }
+    .cert-filter:hover {
+      background: rgba(255,255,255,0.08) !important;
+      border-color: rgba(255,255,255,0.25) !important;
+      color: rgba(255,255,255,0.9) !important;
+    }
+    .cert-filter.active {
+      background: rgba(0,100,255,0.15) !important;
+      border-color: rgba(0,150,255,0.5) !important;
+      color: rgba(0,220,255,1) !important;
+    }
+    .cert-filter.active:hover {
+      background: rgba(0,100,255,0.22) !important;
+    }
+    .cert-filter .cf-check {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .cert-filter.active .cf-check {
+      background: rgba(0,150,255,0.8);
+      border-color: rgba(0,150,255,0.8);
+    }
+    .cert-filter .cert-count {
+      padding: 1px 7px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+      font-size: 11px;
+      font-weight: 700;
+      color: inherit;
+    }
+    .cert-filter.active .cert-count {
+      background: rgba(0,150,255,0.2);
+    }
+  </style>
+  <div class="cert-filter-bar">
+    <span class="cert-filter-label">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+      Filtrar
+    </span>
+    <button @click="activeCategory = ''" :class="{ 'active': activeCategory === '' }" class="cert-filter">
+      <span class="cf-check">
+        <svg x-show="activeCategory === ''" width="10" height="10" fill="white" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+      </span>
+      Todos <span class="cert-count">{{ site.data.certifications | size }}</span>
+    </button>
+    {% assign categories = "Data & BI,Programación,PM & Agile,Minería" | split: "," %}
+    {% for cat in categories %}
+    {% assign cat_count = 0 %}{% for c in site.data.certifications %}{% if c.category == cat %}{% assign cat_count = cat_count | plus: 1 %}{% endif %}{% endfor %}
+    <button @click="activeCategory = '{{ cat }}'" :class="{ 'active': activeCategory === '{{ cat }}' }" class="cert-filter">
+      <span class="cf-check">
+        <svg x-show="activeCategory === '{{ cat }}'" width="10" height="10" fill="white" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+      </span>
+      {{ cat }} <span class="cert-count">{{ cat_count }}</span>
+    </button>
+    {% endfor %}
+  </div>
+
+  <!-- Grid -->
+  <div x-ref="grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:20px;">
+    {% for c in site.data.certifications %}
+    <article data-year="{{ c.year }}"
+      x-show="(query.trim() === '' || '{{ c.name | escape }}'.toLowerCase().includes(query.trim().toLowerCase()) || '{{ c.issuer | escape }}'.toLowerCase().includes(query.trim().toLowerCase())) && (activeCategory === '' || activeCategory === '{{ c.category }}')"
+      x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 scale-95"
+      x-transition:enter-end="opacity-100 scale-100"
+      style="border-radius:16px; background:linear-gradient(135deg, rgba(0,100,255,0.06) 0%, rgba(0,180,255,0.02) 100%); border:1px solid rgba(0,150,255,0.12); overflow:hidden; transition:all 0.2s; cursor:pointer;"
+      onmouseover="this.style.borderColor='rgba(0,150,255,0.3)'; this.style.transform='translateY(-2px)'"
+      onmouseout="this.style.borderColor='rgba(0,150,255,0.12)'; this.style.transform='translateY(0)'"
+      {% if c.image != "" and c.image %}
+      @click="openModal('{{ c.name | escape }}', '{{ c.issuer }}', {{ c.year }}, '{{ c.image }}', '{{ c.credential_url }}')"
+      {% endif %}
+    >
+      <!-- Image or placeholder -->
+      {% if c.image != "" and c.image %}
+      <div style="width:100%; height:180px; overflow:hidden; background:rgba(255,255,255,0.95);">
+        <img src="{{ c.image | relative_url }}" alt="Certificado {{ c.name }}"
+             style="width:100%; height:auto; object-fit:cover; object-position:top center;" loading="lazy">
+      </div>
+      {% else %}
+      <div style="width:100%; height:80px; background:linear-gradient(135deg, rgba(0,80,200,0.08), rgba(0,150,255,0.03)); display:flex; align-items:center; justify-content:center;">
+        <svg width="32" height="32" fill="none" stroke="rgba(0,180,255,0.2)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+      </div>
+      {% endif %}
+
+      <!-- Content -->
+      <div style="padding:16px 20px 20px;">
+        <h3 style="font-size:15px; font-weight:600; color:rgba(255,255,255,0.95); line-height:1.4; margin-bottom:4px;">{{ c.name }}</h3>
+        <p style="font-size:13px; color:rgba(0,180,255,0.7);">{{ c.issuer }} · {{ c.year }}</p>
+
+        <!-- Tags -->
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;">
+          <span style="padding:3px 10px; border-radius:12px; font-size:11px; background:rgba(0,150,255,0.08); border:1px solid rgba(0,150,255,0.15); color:rgba(0,180,255,0.7);">{{ c.category }}</span>
+          {% for t in c.tags %}
+          <span style="padding:3px 10px; border-radius:12px; font-size:11px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.5);">{{ t }}</span>
+          {% endfor %}
+        </div>
+
+        {% if c.credential_url != "" and c.credential_url %}
+        <a href="{{ c.credential_url }}" target="_blank" rel="noopener"
+           style="display:inline-flex; align-items:center; gap:4px; margin-top:12px; font-size:13px; color:rgba(0,180,255,0.8); text-decoration:none;"
+           onmouseover="this.style.color='rgba(0,200,255,1)'"
+           onmouseout="this.style.color='rgba(0,180,255,0.8)'"
+           onclick="event.stopPropagation()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          Ver credencial
+        </a>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+
+  <!-- Empty state -->
+  <div x-show="visibleCount === 0" style="text-align:center; padding:60px 20px; color:rgba(255,255,255,0.4);">
+    <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin:0 auto 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    <p style="font-size:18px; font-weight:600; color:rgba(255,255,255,0.6);">No se encontraron certificaciones</p>
+    <p style="font-size:14px; margin-top:4px;">Intenta con otros términos o cambia la categoría.</p>
+    <button @click="query=''; activeCategory=''" style="margin-top:16px; padding:8px 20px; border-radius:8px; border:1px solid rgba(0,150,255,0.3); background:transparent; color:rgba(0,180,255,0.8); font-size:14px; cursor:pointer;">Limpiar filtros</button>
+  </div>
+
+  <!-- Modal for image certificates -->
+  <div x-show="modalOpen" x-transition.opacity
+       @click.self="modalOpen=false"
+       @keydown.escape.window="modalOpen=false"
+       style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px);">
+    <!-- Centered wrapper -->
+    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:90%; max-width:720px;">
+      <!-- Card -->
+      <div style="border-radius:16px; background:linear-gradient(135deg, rgba(12,18,35,0.98), rgba(8,12,28,0.98)); border:1px solid rgba(0,150,255,0.15); overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.6);">
+        <!-- Close button -->
+        <button @click="modalOpen=false"
+                style="position:absolute; top:16px; right:16px; z-index:10; width:36px; height:36px; border-radius:50%; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,0.15); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;"
+                onmouseover="this.style.background='rgba(255,50,50,0.4)'; this.style.borderColor='rgba(255,50,50,0.5)'"
+                onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.borderColor='rgba(255,255,255,0.15)'">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <!-- Image -->
+        <div style="background:rgba(255,255,255,0.95); padding:20px; display:flex; align-items:center; justify-content:center;">
+          <img :src="modalImage" :alt="'Certificado ' + modalName" style="max-width:100%; max-height:60vh; object-fit:contain; border-radius:4px; box-shadow:0 4px 20px rgba(0,0,0,0.1);">
+        </div>
+        <!-- Info -->
+        <div style="padding:20px 28px 24px;">
+          <h3 style="font-size:18px; font-weight:700; color:white; margin-bottom:4px;" x-text="modalName"></h3>
+          <p style="font-size:14px; color:rgba(0,180,255,0.7);" x-text="modalIssuer + ' · ' + modalYear"></p>
+          <div x-show="modalCredentialUrl" style="margin-top:16px;">
+            <a :href="modalCredentialUrl" target="_blank" rel="noopener"
+               style="display:inline-flex; align-items:center; gap:8px; padding:10px 22px; border-radius:10px; background:linear-gradient(135deg, #0068ff, #0090ff); color:white; font-size:13px; font-weight:600; text-decoration:none; transition:all 0.2s; box-shadow:0 4px 12px rgba(0,100,255,0.3);"
+               onmouseover="this.style.boxShadow='0 6px 20px rgba(0,100,255,0.5)'; this.style.transform='translateY(-1px)'"
+               onmouseout="this.style.boxShadow='0 4px 12px rgba(0,100,255,0.3)'; this.style.transform='translateY(0)'">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              Ver credencial verificable
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+function certGallery() {
+  return {
+    query: "",
+    order: "desc",
+    activeCategory: "",
+    modalOpen: false,
+    modalName: "",
+    modalIssuer: "",
+    modalYear: "",
+    modalImage: "",
+    modalCredentialUrl: "",
+
+    init() {
+      this.$watch('order', () => this.sortCards());
+    },
+
+    sortCards() {
+      const grid = this.$refs.grid;
+      if (!grid) return;
+      const articles = Array.from(grid.querySelectorAll('article[data-year]'));
+      articles.sort((a, b) => {
+        const ya = parseInt(a.dataset.year) || 0;
+        const yb = parseInt(b.dataset.year) || 0;
+        return this.order === 'desc' ? yb - ya : ya - yb;
+      });
+      articles.forEach(el => grid.appendChild(el));
+    },
+
+    get visibleCount() {
+      return document.querySelectorAll('article[data-year]:not([style*="display: none"])').length;
+    },
+
+    openModal(name, issuer, year, image, credentialUrl) {
+      this.modalName = name;
+      this.modalIssuer = issuer;
+      this.modalYear = year;
+      this.modalImage = image;
+      this.modalCredentialUrl = credentialUrl;
+      this.modalOpen = true;
+    }
+  }
+}
+</script>

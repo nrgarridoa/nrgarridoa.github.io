@@ -1,0 +1,48 @@
+{% comment %}
+  component: project-ctas
+  description: Botones de acción para un proyecto (demo, repo, datos, links custom).
+  params: ninguno (lee de page.embed, page.repo, page.data_url, page.links)
+  usage: {% include components/project-ctas.html %}
+{% endcomment %}
+
+{% assign has_demo = page.embed and page.embed.url %}
+<div class="flex flex-wrap items-center gap-3">
+
+  {% if has_demo %}
+    {% assign e = page.embed.type | downcase %}
+    {% capture demo_label %}
+      {% if e == 'powerbi' %}Demo (Power BI)
+      {% elsif e == 'streamlit' %}Demo (Streamlit)
+      {% elsif e == 'nbviewer' %}Demo (Notebook)
+      {% elsif e == 'video' %}Ver video
+      {% elsif e == 'html' %}Demo
+      {% elsif e == 'image' %}Vista previa
+      {% else %}Demo
+      {% endif %}
+    {% endcapture %}
+
+    <a href="{{ page.embed.url }}" target="_blank" rel="noopener" class="btn-primary">
+      {{ demo_label | strip }}
+    </a>
+  {% endif %}
+
+  {% if page.repo %}
+    <a href="{{ page.repo }}" target="_blank" rel="noopener" class="btn-secondary">
+      Repositorio
+    </a>
+  {% endif %}
+
+  {% if page.data_url %}
+    <a href="{{ page.data_url }}" target="_blank" rel="noopener" class="btn-secondary">
+      Datos
+    </a>
+  {% endif %}
+
+  {% if page.links %}
+    {% for link in page.links %}
+      <a href="{{ link.url }}" target="_blank" rel="noopener" class="btn-secondary">
+        {{ link.label }}
+      </a>
+    {% endfor %}
+  {% endif %}
+</div>

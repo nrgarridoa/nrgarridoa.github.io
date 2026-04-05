@@ -1,0 +1,78 @@
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>{{ page.title | default: site.title }}</title>
+  <meta name="description" content="{{ page.description | default: site.description }}">
+  <meta name="author" content="{{ site.author.name }}">
+
+  <!-- Canonical -->
+  <link rel="canonical" href="{{ site.url }}{{ page.url | default:'/' }}">
+
+  <!-- Idioma del documento -->
+  <meta http-equiv="content-language" content="es">
+
+  <!-- CSS principal (preload + hoja) -->
+  <link rel="preload" href="/assets/css/main.css" as="style" />
+  <link rel="stylesheet" href="/assets/css/main.css">
+
+  <!-- Google Fonts optimizado -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+
+  <!-- SEO Tag (OpenGraph/Twitter/JSON-LD automáticos) -->
+  {% seo %}
+
+  <!-- Favicon / PWA -->
+  <link rel="icon" type="image/png" href="/assets/favicon/favicon-96x96.png" sizes="96x96">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg">
+  <link rel="shortcut icon" href="/assets/favicon/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="/assets/favicon/site.webmanifest">
+  <meta name="theme-color" content="#0A192F">
+
+  <!-- Alpine.js 3.14.8 + Intersect (pinned, local) -->
+  <script defer src="/vendor/alpine-intersect-3.14.8.min.js"></script>
+  <script defer src="/vendor/alpine-3.14.8.min.js"></script>
+
+  <!-- JSON-LD Person (datos estructurados) -->
+  {% if site.author %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "{{ site.author.name }}",
+    "jobTitle": "Mining Engineer · Data Analyst",
+    "description": "{{ site.description }}",
+    "email": "mailto:{{ site.author.email }}",
+    "url": "{{ site.url }}",
+    "image": "{{ site.url }}{{ site.author.avatar }}",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Lima",
+      "addressCountry": "PE"
+    },
+    "alumniOf": [
+      {
+        "@type": "CollegeOrUniversity",
+        "name": "Universidad Nacional de Cajamarca"
+      },
+      {
+        "@type": "CollegeOrUniversity",
+        "name": "SENATI"
+      }
+    ],
+    "worksFor": {
+      "@type": "Organization",
+      "name": "CODEa UNI"
+    },
+    "knowsAbout": ["Mining Engineering", "Data Analytics", "Power BI", "Python", "Machine Learning", "Tableau", "Drones", "LiDAR"],
+    "sameAs": [
+      "{{ site.author.github }}",
+      "{{ site.author.linkedin }}"
+    ]
+  }
+  </script>
+  {% endif %}
+</head>

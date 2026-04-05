@@ -1,0 +1,17 @@
+{% comment %}
+  component: section-header
+  description: Título de sección con línea gradiente decorativa.
+  params:
+    - title   (required): texto del título
+    - variant (optional): "primary" | "secondary" (default: "primary")
+      primary  = sky-400 → blue-500
+      secondary = emerald-400 → teal-500
+  usage:
+    {% include components/section-header.html title="Logros & Certificaciones" %}
+    {% include components/section-header.html title="Resultados" variant="secondary" %}
+{% endcomment %}
+
+{% assign _variant = include.variant | default: "primary" %}
+
+<h2 class="section-title">{{ include.title }}</h2>
+<div class="{% if _variant == 'secondary' %}mt-2 h-px w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500{% else %}section-line{% endif %}"></div>

@@ -1,0 +1,595 @@
+# certifications.yml — Fuente única de certificaciones y cursos
+# image: ruta a imagen del certificado (opcional, muestra placeholder si vacío)
+# credential_url: enlace de verificación (opcional)
+
+# ═══════════════ PROGRAMACIÓN ═══════════════
+
+- name: "Curso de Diseño para Programadores"
+  issuer: "Platzi"
+  year: 2026
+  category: "Programación"
+  tags: ["Diseño", "UI"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/1906-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-diseno-programadores.jpg"
+
+- name: "Fundamentos de Diseño de Interfaces UX/UI"
+  issuer: "Platzi"
+  year: 2026
+  category: "Programación"
+  tags: ["Diseño", "UX", "UI"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/5184-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-basico-ui.jpg"
+
+- name: "Curso Glosario Product Design"
+  issuer: "Platzi"
+  year: 2026
+  category: "Programación"
+  tags: ["Diseño", "Product Design"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/3107-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-glosario-product-design.jpg"
+
+- name: "Ciencia de Datos con Jupyter Notebooks y Anaconda"
+  issuer: "Platzi"
+  year: 2024
+  category: "Programación"
+  tags: ["Python", "Jupyter", "Anaconda"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/2434-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-jupyter-notebook.jpg"
+
+- name: "Curso de Python"
+  issuer: "Platzi"
+  year: 2024
+  category: "Programación"
+  tags: ["Python"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/10002-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-python.jpg"
+
+- name: "Curso de Fundamentos de Python"
+  issuer: "Platzi"
+  year: 2024
+  category: "Programación"
+  tags: ["Python"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/4227-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-python-fundamentos.jpg"
+
+- name: "Python: Comprenhensions, Funciones y Manejo de Errores"
+  issuer: "Platzi"
+  year: 2024
+  category: "Programación"
+  tags: ["Python"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/4260-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-python-funciones.jpg"
+
+- name: "Curso de Python: PIP y Entornos Virtuales"
+  issuer: "Platzi"
+  year: 2024
+  category: "Programación"
+  tags: ["Python", "PIP"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/4261-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-python-pip.jpg"
+
+- name: "Manipulación y Transformación de Datos con Pandas y Numpy"
+  issuer: "Platzi"
+  year: 2024
+  category: "Programación"
+  tags: ["Python", "Pandas", "Numpy"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/2912-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-pandas-numpy.jpg"
+
+- name: "Visualización de Datos con Matplotlib y Seaborn"
+  issuer: "Platzi"
+  year: 2024
+  category: "Programación"
+  tags: ["Python", "Matplotlib", "Seaborn"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/2913-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-matplotlib-seaborn.jpg"
+
+- name: "Curso Profesional de Git y GitHub"
+  issuer: "Platzi"
+  year: 2024
+  category: "Programación"
+  tags: ["Git", "GitHub"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/1557-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-git-github.jpg"
+
+- name: "Introducción a la Terminal y Línea de Comandos"
+  issuer: "Platzi"
+  year: 2024
+  category: "Programación"
+  tags: ["Terminal", "CLI"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/2292-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-terminal.jpg"
+
+- name: "Curso de Fundamentos de Matemáticas"
+  issuer: "Platzi"
+  year: 2024
+  category: "Programación"
+  tags: ["Matemáticas", "Data Science"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/1393-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-fundamentos-matematicas.jpg"
+
+- name: "Python Specialization"
+  issuer: "Coursera / Scrimba"
+  year: 2025
+  category: "Programación"
+  tags: ["Python"]
+  credential_url: "https://coursera.org/share/27533fea90000a0fa6f1d32611c8a626"
+  image: "/assets/cv/certs/diploma-python-specialization.jpg"
+
+- name: "Learn Python: 1"
+  issuer: "Coursera / Scrimba"
+  year: 2024
+  category: "Programación"
+  tags: ["Python"]
+  credential_url: "https://coursera.org/share/a385c71d95a4bb5fe97e30aa09944719"
+  image: "/assets/cv/certs/diploma-learn-python-1.jpg"
+
+- name: "Learn Python: 2"
+  issuer: "Coursera / Scrimba"
+  year: 2024
+  category: "Programación"
+  tags: ["Python"]
+  credential_url: "https://coursera.org/share/0aa1f7f6013296e02b3631c4d6c00a0f"
+  image: "/assets/cv/certs/diploma-learn-python-2.jpg"
+
+- name: "Learn Python: 3"
+  issuer: "Coursera / Scrimba"
+  year: 2024
+  category: "Programación"
+  tags: ["Python"]
+  credential_url: "https://coursera.org/share/1644b5a7a6b93b27923cf4061d18ebb0"
+  image: "/assets/cv/certs/diploma-learn-python-3.jpg"
+
+- name: "Python for Data Science, AI & Development"
+  issuer: "Coursera / IBM"
+  year: 2024
+  category: "Programación"
+  tags: ["Python", "Data Science", "IBM"]
+  credential_url: "https://coursera.org/share/57f71766e229dcb9f1c969dd1cc94ccd"
+  image: "/assets/cv/certs/diploma-python-for-data-science.jpg"
+
+- name: "Introducción a la Programación con Python"
+  issuer: "Coursera / Universidad Austral"
+  year: 2024
+  category: "Programación"
+  tags: ["Python"]
+  credential_url: "https://coursera.org/share/87fa2661a298a6cd9068708a90f36018"
+  image: "/assets/cv/certs/diploma-introduccion-python.jpg"
+
+- name: "Aprendizaje Automático (Machine Learning)"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Programación"
+  tags: ["Machine Learning", "Python"]
+  credential_url: "https://ise-latam.com/certificado/64a9771883a071dbf177279d"
+  image: "/assets/cv/certs/diploma-aprendizaje-automatico.png"
+
+# ═══════════════ DATA & BI ═══════════════
+
+- name: "Curso de Storytelling"
+  issuer: "Platzi"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Storytelling", "BI"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/2240-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-storytelling.jpg"
+
+- name: "Principios de Visualización de Datos para Business Intelligence"
+  issuer: "Platzi"
+  year: 2024
+  category: "Data & BI"
+  tags: ["BI", "Visualización"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/2195-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-visualizacion-datos.jpg"
+
+- name: "Business Intelligence: Utilidad y Áreas de Oportunidad"
+  issuer: "Platzi"
+  year: 2024
+  category: "Data & BI"
+  tags: ["BI"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/2359-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-business-intelligence.jpg"
+
+- name: "Análisis de datos con Power BI"
+  issuer: "Platzi"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Power BI", "BI"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/2676-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-power-bi.jpg"
+
+- name: "Tableau: Visualización de Datos y Storytelling para Negocios"
+  issuer: "Platzi"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Tableau", "BI", "Visualización"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/2197-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-tableau.jpg"
+
+- name: "Fundamentos de Ingeniería de Datos"
+  issuer: "Platzi"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Data Engineering", "BI"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/5514-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-fundamentos-ingenieria-datos.jpg"
+
+- name: "Guía para Empezar una Carrera en Data Science e Inteligencia Artificial"
+  issuer: "Platzi"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Data Science", "IA"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/2807-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-aprender-data-ia.jpg"
+
+- name: "Análisis de Negocios para Ciencia de Datos"
+  issuer: "Platzi"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Data Science", "Negocios"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/2069-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-negocios-data-science.jpg"
+
+- name: "Introducción a Excel: Fundamentos y Formatos de Hojas de Cálculo"
+  issuer: "Platzi"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Excel"]
+  credential_url: "https://platzi.com/p/NGARRIDO/curso/3639-course/diploma/detalle/"
+  image: "/assets/cv/certs/diploma-excel-intro.jpg"
+
+- name: "Introduction to Business Analysis Using Spreadsheets"
+  issuer: "Coursera"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Excel", "Análisis de negocios"]
+  credential_url: "https://coursera.org/share/94747a117e479a658e968e6eb7bc47c3"
+  image: "/assets/cv/certs/diploma-introduction-business-analysis.jpg"
+
+- name: "Power BI enfocado a Minería (Básico - Intermedio)"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Data & BI"
+  tags: ["Power BI", "Minería"]
+  credential_url: "https://ise-latam.com/certificado/654041a29ff7c338a56e1800"
+  image: "/assets/cv/certs/diploma-power-bi-basico-intermedio.png"
+
+- name: "Power BI enfocado a Minería (Intermedio - Avanzado)"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Data & BI"
+  tags: ["Power BI", "Minería", "DAX"]
+  credential_url: "https://ise-latam.com/certificado/65403dbe9ff7c338a56e17e6"
+  image: "/assets/cv/certs/diploma-power-bi-intermedio-avanzado.png"
+
+- name: "Power BI aplicado a Procesos Metalúrgicos"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Data & BI"
+  tags: ["Power BI", "Metalurgia"]
+  credential_url: "https://ise-latam.com/certificado/64a225249251e1835ce1c77a"
+  image: "/assets/cv/certs/diploma-power-bi-metalurgia.png"
+
+- name: "Introducción a Tableau"
+  issuer: "Netzun"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Tableau"]
+  credential_url: ""
+  image: "/assets/cv/certs/diploma-introduccion-tableau.jpg"
+
+- name: "Storytelling y Data Visualization"
+  issuer: "Netzun"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Storytelling", "Visualización"]
+  credential_url: ""
+  image: "/assets/cv/certs/diploma-datastorytelling-data-visualization.jpg"
+
+- name: "Power BI Básico"
+  issuer: "Netzun"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Power BI"]
+  credential_url: ""
+  image: "/assets/cv/certs/diploma-power-bi-basico.jpg"
+
+- name: "Power BI Intermedio - Avanzado"
+  issuer: "Netzun"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Power BI", "DAX"]
+  credential_url: ""
+  image: "/assets/cv/certs/diploma-power-bi-intermedio-avanzado.jpg"
+
+- name: "Power Query y Power Pivot"
+  issuer: "Netzun"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Power Query", "Power Pivot", "Excel"]
+  credential_url: ""
+  image: "/assets/cv/certs/diploma-power-query-pivot.jpg"
+
+- name: "Fundamentos de Business Intelligence con Tableau"
+  issuer: "Netzun"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Tableau", "BI"]
+  credential_url: ""
+  image: "/assets/cv/certs/diploma-bi-tableau.jpg"
+
+- name: "Tableau Intermedio - Avanzado"
+  issuer: "Netzun"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Tableau"]
+  credential_url: ""
+  image: "/assets/cv/certs/diploma-tableau-avanzado.jpg"
+
+- name: "Especialización en Power BI y Tableau"
+  issuer: "Netzun"
+  year: 2024
+  category: "Data & BI"
+  tags: ["Power BI", "Tableau", "BI"]
+  credential_url: ""
+  image: "/assets/cv/certs/diploma-power-bi-tableau.jpg"
+
+- name: "Especialización en Business Intelligence"
+  issuer: "Netzun"
+  year: 2024
+  category: "Data & BI"
+  tags: ["BI", "Power BI", "Tableau"]
+  credential_url: ""
+  image: "/assets/cv/certs/diploma-especializacion-business-intelligence.jpg"
+
+# ═══════════════ PM & AGILE ═══════════════
+
+- name: "Project Management Principles and Practices"
+  issuer: "Coursera / University of California"
+  year: 2025
+  category: "PM & Agile"
+  tags: ["PM", "Coursera"]
+  credential_url: "https://coursera.org/share/1c998095c670168a233bae2238fc0a17"
+  image: "/assets/cv/certs/diploma-project-management.jpg"
+
+- name: "Project Management Project"
+  issuer: "Coursera / University of California"
+  year: 2025
+  category: "PM & Agile"
+  tags: ["PM", "Coursera"]
+  credential_url: "https://coursera.org/share/42470d0719099548035acd82f7a70eb4"
+  image: "/assets/cv/certs/diploma-project-management-project.jpg"
+
+- name: "Initiating and Planning Projects"
+  issuer: "Coursera / University of California"
+  year: 2025
+  category: "PM & Agile"
+  tags: ["PM", "Planificación"]
+  credential_url: "https://coursera.org/share/b770822687a7c8751bce3ee737f672af"
+  image: "/assets/cv/certs/diploma-initiating-planning-projects.jpg"
+
+- name: "Budgeting and Scheduling Projects"
+  issuer: "Coursera / University of California"
+  year: 2025
+  category: "PM & Agile"
+  tags: ["PM", "Presupuesto", "Cronograma"]
+  credential_url: "https://coursera.org/share/765c48c29a6a471a4bc15243980e881f"
+  image: "/assets/cv/certs/diploma-budgeting-scheduling-projects.jpg"
+
+- name: "Managing Project Risks and Changes"
+  issuer: "Coursera / University of California"
+  year: 2025
+  category: "PM & Agile"
+  tags: ["PM", "Riesgos"]
+  credential_url: "https://coursera.org/share/b61e2ba561501b24773e4f82e366b647"
+  image: "/assets/cv/certs/diploma-managing-project-risks.jpg"
+
+- name: "Agile Leadership"
+  issuer: "Coursera / University of Colorado"
+  year: 2025
+  category: "PM & Agile"
+  tags: ["Agile", "Liderazgo"]
+  credential_url: "https://coursera.org/share/226c2a596e7f025c6b84a05a68a4ac72"
+  image: "/assets/cv/certs/diploma-agile-leader.jpg"
+
+- name: "Agile Leadership: Introduction to Change"
+  issuer: "Coursera / University of Colorado"
+  year: 2025
+  category: "PM & Agile"
+  tags: ["Agile", "Cambio"]
+  credential_url: "https://coursera.org/share/c2872fbf4385a4ad52f1d82d2264d93f"
+  image: "/assets/cv/certs/diploma-agile-leader-introduction.jpg"
+
+- name: "Agile Leader Training"
+  issuer: "Coursera / University of Colorado"
+  year: 2025
+  category: "PM & Agile"
+  tags: ["Agile", "Liderazgo"]
+  credential_url: "https://coursera.org/share/c4be966f001375c4e08987fab4b64802"
+  image: "/assets/cv/certs/diploma-agile-leader-training.jpg"
+
+- name: "Developing an Agile Team"
+  issuer: "Coursera / University of Colorado"
+  year: 2025
+  category: "PM & Agile"
+  tags: ["Agile", "Equipos"]
+  credential_url: "https://coursera.org/share/69a5ac4d48e392c3e10061d09b4d29ff"
+  image: "/assets/cv/certs/diploma-developing-agile-team.jpg"
+
+- name: "Agile Organization"
+  issuer: "Coursera / University of Colorado"
+  year: 2025
+  category: "PM & Agile"
+  tags: ["Agile", "Organización"]
+  credential_url: "https://coursera.org/share/b7a4376e5938f52ecad81311800ffd18"
+  image: "/assets/cv/certs/diploma-agile-organization.jpg"
+
+- name: "Agile Leadership Capstone"
+  issuer: "Coursera / University of Colorado"
+  year: 2025
+  category: "PM & Agile"
+  tags: ["Agile", "Capstone"]
+  credential_url: "https://coursera.org/share/897011bb9391269d45867abd7dc1318f"
+  image: "/assets/cv/certs/diploma-agile-leader-capstone.jpg"
+
+- name: "Lean Six Sigma Yellow Belt"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "PM & Agile"
+  tags: ["Lean", "Six Sigma"]
+  credential_url: "https://ise-latam.com/certificado/653ef2a1153d0acceff257f5"
+  image: "/assets/cv/certs/diploma-six-sigma-yellow-belt.png"
+
+# ═══════════════ MINERÍA ═══════════════
+
+- name: "Diseño y Control de Operaciones de Perforación y Voladura con Taladros Largos"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Voladura", "Subterránea"]
+  credential_url: "https://ise-latam.com/certificado/6576580a3653cc66ed67e45d"
+  image: "/assets/cv/certs/diploma-taladros-largos.png"
+
+- name: "Criterios de Planeamiento Operativo Subterráneo"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Planeamiento", "Subterránea"]
+  credential_url: "https://ise-latam.com/certificado/65760cb93653cc66ed67e24a"
+  image: "/assets/cv/certs/diploma-planemiento-operativo-subterraneo.png"
+
+- name: "MS Excel Aplicado a la Molienda y Clasificación de Minerales"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Excel", "Molienda", "Clasificación"]
+  credential_url: "https://ise-latam.com/certificado/657696d73653cc66ed67e622"
+  image: "/assets/cv/certs/diploma-ms-excel-molienda-minerales.png"
+
+- name: "Estabilidad de Taludes"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Geotecnia", "Taludes"]
+  credential_url: "https://ise-latam.com/certificado/653fc4a7ec1bc79f8deb3d0c"
+  image: "/assets/cv/certs/diploma-estabilidad-taludes.png"
+
+- name: "Informe Técnico Sustentatorio para Gestionar Permisos Ambientales en Minería"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Ambiental", "Permisos"]
+  credential_url: "https://ise-latam.com/certificado/6575f92a3653cc66ed67e155"
+  image: "/assets/cv/certs/diploma-permisos-ambientales.png"
+
+- name: "Perspectiva Mine to Mill en la Perforación y Voladura"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Mine to Mill", "Voladura"]
+  credential_url: "https://ise-latam.com/certificado/6575cf0e3653cc66ed67df6d"
+  image: "/assets/cv/certs/diploma-mine-to-mill-perforacion.png"
+
+- name: "Explosivos y Accesorios de Voladura"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Explosivos", "Voladura"]
+  credential_url: "https://ise-latam.com/certificado/657516d5db393fccfd5d031e"
+  image: "/assets/cv/certs/diploma-explosivos-accesorios-voladura.png"
+
+- name: "Detonadores Electrónicos y Sistemas de Iniciación para Voladuras"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Detonadores", "Voladura"]
+  credential_url: "https://ise-latam.com/certificado/6574d5acdb393fccfd5d01a7"
+  image: "/assets/cv/certs/diploma-detonadores-electronicos.png"
+
+- name: "Seguridad en la Perforación y Voladura Subterránea"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Seguridad", "Voladura", "Subterránea"]
+  credential_url: "https://ise-latam.com/certificado/6564dadbb34b9d46fffb5ad0"
+  image: "/assets/cv/certs/diploma-seguridad-pervol-subterranea.png"
+
+- name: "Perforación y Voladura en Minería Subterránea"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Voladura", "Subterránea"]
+  credential_url: "https://ise-latam.com/certificado/653faa2becf6ed21b5ad6e80"
+  image: "/assets/cv/certs/diploma-pervol-subterranea.png"
+
+- name: "Perforación y Voladura en Minería Superficial"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Voladura", "Tajo abierto"]
+  credential_url: "https://ise-latam.com/certificado/63d018606261c536398ac788"
+  image: "/assets/cv/certs/diploma-perforacion-voladura-superficial.png"
+
+- name: "Dispatch en Gran Minería: Sistema de Gestión de Flota en Minas a Tajo Abierto"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Dispatch", "Flota", "Tajo abierto"]
+  credential_url: "https://ise-latam.com/certificado/653ef8659a300f67b85fc181"
+  image: "/assets/cv/certs/diploma-dispatch-superficial.png"
+
+- name: "Short Term Mine Planning in Open Pit"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Planeamiento", "Tajo abierto"]
+  credential_url: "https://ise-latam.com/certificado/64a9c30d91bdd9c2c26b4fc1"
+  image: "/assets/cv/certs/diploma-short-term-planning.png"
+
+- name: "Planeamiento a Largo Plazo en Tajo Abierto"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Planeamiento", "Tajo abierto"]
+  credential_url: "https://ise-latam.com/certificado/640d15a9dd8bc45d1ecccd2e"
+  image: "/assets/cv/certs/diploma-planeamiento-largo-plazo.png"
+
+- name: "Geoestadística y Estimación de Recursos"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Geoestadística", "Recursos"]
+  credential_url: "https://ise-latam.com/certificado/64a2158d3050c0bd1e423ac9"
+  image: "/assets/cv/certs/diploma-geoestadistica-estimacion-recursos.png"
+
+- name: "Gestión Integral de Operaciones Mineras Subterráneas"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Operaciones", "Subterránea"]
+  credential_url: "https://ise-latam.com/certificado/640e48caa919b7ee68f47063"
+  image: "/assets/cv/certs/diploma-gestion-operaciones-subteraneas.png"
+
+- name: "Detoxificación de Cianuro"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Metalurgia", "Cianuro"]
+  credential_url: "https://ise-latam.com/certificado/640df231037928d043e7dff8"
+  image: "/assets/cv/certs/diploma-detoxificacion-cianuro.png"
+
+- name: "Diseño, Gestión y Control de Proyectos de Exploración"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Exploración", "Gestión"]
+  credential_url: "https://ise-latam.com/certificado/640d35d7dd8bc45d1ecccde5"
+  image: "/assets/cv/certs/diploma-control-proyectos-exploracion.png"
+
+- name: "Seguridad Minera"
+  issuer: "iSE-Latam"
+  year: 2023
+  category: "Minería"
+  tags: ["Seguridad"]
+  credential_url: "https://ise-latam.com/certificado/63cbe896b1747844ae65c6b1"
+  image: "/assets/cv/certs/diploma-seguridad-minera.png"

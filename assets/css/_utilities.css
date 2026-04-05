@@ -1,0 +1,14 @@
+/* ================================================================
+   _utilities.css — Utilidades custom adicionales a Tailwind
+   ================================================================ */
+
+@layer utilities {
+  /* Ocultar scrollbar (carrusel de skills) */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
