@@ -41,9 +41,9 @@ tech_cards:
 
 # Recursos (con íconos por tipo)
 resources:
-  - { type: "notebook", label: "Notebook Jupyter", url: "https://nbviewer.org/github/nrgarridoa/article-vibraciones-ppv/blob/main/notebooks/vibraciones-ppv.ipynb" }
-  - { type: "data",     label: "Dataset CSV",      url: "https://github.com/nrgarridoa/article-vibraciones-ppv/raw/main/data/raw/blasting_vibration_data.csv" }
-  - { type: "repo",     label: "Repositorio",      url: "https://github.com/nrgarridoa/article-vibraciones-ppv" }
+  - { type: "notebook", label: "Notebook Jupyter", url: "https://nbviewer.org/github/nrgarridoa/talleres-mineria-python/blob/main/vibraciones-ppv/notebooks/vibraciones-ppv.ipynb" }
+  - { type: "data",     label: "Dataset CSV",      url: "https://github.com/nrgarridoa/talleres-mineria-python/raw/main/vibraciones-ppv/data/raw/blasting_vibration_data.csv" }
+  - { type: "repo",     label: "Repositorio",      url: "https://github.com/nrgarridoa/talleres-mineria-python" }
 
 # Comentarios
 comments: true

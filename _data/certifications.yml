@@ -114,7 +114,7 @@
   category: "Programación"
   tags: ["Python"]
   credential_url: "https://coursera.org/share/27533fea90000a0fa6f1d32611c8a626"
-  image: "/assets/cv/certs/diploma-python-specialization.jpg"
+  image: "/assets/cv/certs/diploma-python-specialization.png"
 
 - name: "Learn Python: 1"
   issuer: "Coursera / Scrimba"
