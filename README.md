@@ -28,48 +28,37 @@ Ingeniero de Minas egresado en primer puesto (UNC) y Administrador Industrial (S
 
 **[nrgarridoa.github.io](https://nrgarridoa.github.io)**
 
-<table>
-<tr>
-<td width="380"><a href="https://nrgarridoa.github.io/projects/"><img src="readme-assets/proyectos.png" width="100%" alt="Sección Proyectos"></a></td>
-<td valign="middle">
+### Proyectos
 
-**Proyectos**
+<a href="https://nrgarridoa.github.io/projects/"><img src="readme-assets/proyectos.png" width="760" alt="Sección Proyectos"></a>
+
 Dashboards interactivos, herramientas de análisis y soluciones data-driven aplicadas a operaciones mineras — Power BI, Python, Machine Learning.
-[Ver proyectos →](https://nrgarridoa.github.io/projects/)
 
-</td>
-</tr>
-<tr>
-<td width="380"><a href="https://nrgarridoa.github.io/articles/"><img src="readme-assets/articulos.png" width="100%" alt="Sección Artículos"></a></td>
-<td valign="middle">
+[![Ver proyectos](https://img.shields.io/badge/Ver%20proyectos%20→-0068FF?style=for-the-badge)](https://nrgarridoa.github.io/projects/)
 
-**Artículos técnicos**
+### Artículos técnicos
+
+<a href="https://nrgarridoa.github.io/articles/"><img src="readme-assets/articulos.png" width="760" alt="Sección Artículos"></a>
+
 Tutoriales reproducibles con código, datos y notebooks. Desde clasificar mineral y estéril con regresión logística hasta predecir vibraciones por voladura con Scikit-learn.
-[Ver artículos →](https://nrgarridoa.github.io/articles/)
 
-</td>
-</tr>
-<tr>
-<td width="380"><a href="https://nrgarridoa.github.io/cv/"><img src="readme-assets/cv.png" width="100%" alt="CV interactivo"></a></td>
-<td valign="middle">
+[![Ver artículos](https://img.shields.io/badge/Ver%20art%C3%ADculos%20→-0068FF?style=for-the-badge)](https://nrgarridoa.github.io/articles/)
 
-**CV interactivo**
+### CV interactivo
+
+<a href="https://nrgarridoa.github.io/cv/"><img src="readme-assets/cv.png" width="760" alt="CV interactivo"></a>
+
 +10 años de experiencia, 7 empresas, formación académica, certificaciones verificables y desarrollo profesional.
-[Ver CV →](https://nrgarridoa.github.io/cv/)
 
-</td>
-</tr>
-<tr>
-<td width="380"><a href="https://nrgarridoa.github.io/certificaciones/"><img src="readme-assets/certificaciones.png" width="100%" alt="Certificaciones"></a></td>
-<td valign="middle">
+[![Ver CV](https://img.shields.io/badge/Ver%20CV%20→-0068FF?style=for-the-badge)](https://nrgarridoa.github.io/cv/)
 
-**Certificaciones**
+### Certificaciones
+
+<a href="https://nrgarridoa.github.io/certificaciones/"><img src="readme-assets/certificaciones.png" width="760" alt="Certificaciones"></a>
+
 73+ certificaciones verificables en Data & BI, Programación, Project Management, Agile y Minería — Platzi, Coursera, iSE-Latam, Netzun.
-[Ver certificaciones →](https://nrgarridoa.github.io/certificaciones/)
 
-</td>
-</tr>
-</table>
+[![Ver certificaciones](https://img.shields.io/badge/Ver%20certificaciones%20→-0068FF?style=for-the-badge)](https://nrgarridoa.github.io/certificaciones/)
 
 ---
 
