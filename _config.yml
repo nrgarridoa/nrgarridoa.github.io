@@ -72,3 +72,4 @@ exclude:
   - LICENSE
   - .editorconfig
   - .nvmrc
+  - readme-assets
