@@ -9,16 +9,18 @@
 
 Ingeniero de Minas egresado en primer puesto (UNC) y Administrador Industrial (SENATI), con enfoque en analítica de datos, automatización de procesos y gestión de operaciones mineras. Experiencia en gran minería (Newmont Yanacocha, Gold Fields, Silver Mountain, Chinalco, Rio Tinto), piloto/operador RPAS acreditado por la DGAC (Perú) y desarrollo de plataformas digitales para la industria minera.
 
-<img src="readme-assets/hero.png" width="760" alt="Construyo soluciones data-driven para la industria minera">
+<a href="https://nrgarridoa.github.io"><img src="readme-assets/hero.png" width="760" alt="Construyo soluciones data-driven para la industria minera"></a>
 
 ---
 
 ## Algunos logros
 
-- Lideré la auditoría y reconciliación de mineral del Proyecto Toromocho para Chinalco, integrando GPS de flota, modelos de bloques y el sistema de despacho Minestar en 8 ratios reportados en Power BI.
-- Piloteé un dron a más de 4,500 msnm en la Mina Reliquias (Silver Mountain Resources), documentando la evolución constructiva de infraestructura crítica sin incidentes de seguridad.
-- Hice crecer CODEa UNI de 3 a 16 personas como Jefe de Proyectos — ganador de Startup Perú 11G (ProInnovate) y Acelera 3G (Incuba UNT), con bootcamps de Minería y Metalurgia oficializados por el MINEM.
-- Supervisé el mapeo LiDAR con dron Elios 3 de labores subterráneas artesanales para Rio Tinto (Proyecto Mara), sin exponer personal a riesgo de ingreso.
+<table>
+<tr><td width="220"><b>Chinalco · Proyecto Toromocho</b></td><td>Lideré la auditoría y reconciliación de mineral: GPS de flota + modelos de bloques + Minestar → 8 ratios reportados en Power BI.</td></tr>
+<tr><td><b>Silver Mountain · Mina Reliquias</b></td><td>Piloteé un dron a +4,500 msnm documentando la evolución constructiva de infraestructura crítica, sin incidentes de seguridad.</td></tr>
+<tr><td><b>CODEa UNI</b></td><td>Hice crecer el equipo de 3 a 16 personas como Jefe de Proyectos — ganador de Startup Perú 11G y Acelera 3G, bootcamps oficializados por el MINEM.</td></tr>
+<tr><td><b>Rio Tinto · Proyecto Mara</b></td><td>Supervisé el mapeo LiDAR con dron Elios 3 de labores subterráneas artesanales, sin exponer personal a riesgo de ingreso.</td></tr>
+</table>
 
 ---
 
@@ -26,29 +28,48 @@ Ingeniero de Minas egresado en primer puesto (UNC) y Administrador Industrial (S
 
 **[nrgarridoa.github.io](https://nrgarridoa.github.io)**
 
-### Proyectos
+<table>
+<tr>
+<td width="380"><a href="https://nrgarridoa.github.io/projects/"><img src="readme-assets/proyectos.png" width="100%" alt="Sección Proyectos"></a></td>
+<td valign="middle">
 
-<img src="readme-assets/proyectos.png" width="760" alt="Vista de la sección Proyectos del portafolio">
-
+**Proyectos**
 Dashboards interactivos, herramientas de análisis y soluciones data-driven aplicadas a operaciones mineras — Power BI, Python, Machine Learning.
+[Ver proyectos →](https://nrgarridoa.github.io/projects/)
 
-### Artículos técnicos
+</td>
+</tr>
+<tr>
+<td width="380"><a href="https://nrgarridoa.github.io/articles/"><img src="readme-assets/articulos.png" width="100%" alt="Sección Artículos"></a></td>
+<td valign="middle">
 
-<img src="readme-assets/articulos.png" width="760" alt="Vista de la sección Artículos del portafolio">
-
+**Artículos técnicos**
 Tutoriales reproducibles con código, datos y notebooks. Desde clasificar mineral y estéril con regresión logística hasta predecir vibraciones por voladura con Scikit-learn.
+[Ver artículos →](https://nrgarridoa.github.io/articles/)
 
-### CV interactivo
+</td>
+</tr>
+<tr>
+<td width="380"><a href="https://nrgarridoa.github.io/cv/"><img src="readme-assets/cv.png" width="100%" alt="CV interactivo"></a></td>
+<td valign="middle">
 
-<img src="readme-assets/cv.png" width="760" alt="Vista del CV interactivo del portafolio">
-
+**CV interactivo**
 +10 años de experiencia, 7 empresas, formación académica, certificaciones verificables y desarrollo profesional.
+[Ver CV →](https://nrgarridoa.github.io/cv/)
 
-### Certificaciones
+</td>
+</tr>
+<tr>
+<td width="380"><a href="https://nrgarridoa.github.io/certificaciones/"><img src="readme-assets/certificaciones.png" width="100%" alt="Certificaciones"></a></td>
+<td valign="middle">
 
-<img src="readme-assets/certificaciones.png" width="760" alt="Vista de la sección Certificaciones del portafolio">
-
+**Certificaciones**
 73+ certificaciones verificables en Data & BI, Programación, Project Management, Agile y Minería — Platzi, Coursera, iSE-Latam, Netzun.
+[Ver certificaciones →](https://nrgarridoa.github.io/certificaciones/)
+
+</td>
+</tr>
+</table>
 
 ---
 
