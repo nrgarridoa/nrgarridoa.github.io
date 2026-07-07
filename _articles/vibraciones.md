@@ -11,6 +11,7 @@ card: /assets/articles/vibraciones/card.jpg
 
 # Metadatos / filtros
 series: "Vibraciones"
+series_order: 1
 tags: [Python, Blasting, PPV, USBM]
 reading_time: "25 min"
 

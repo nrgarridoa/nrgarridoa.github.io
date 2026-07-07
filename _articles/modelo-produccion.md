@@ -11,6 +11,7 @@ card: /assets/articles/modelo-produccion/card.jpg
 
 # Metadatos / filtros
 series: "Planeamiento minero"
+series_order: 1
 tags: [Python, Planeamiento, Producción, Cut-off, Monte Carlo]
 reading_time: "20 min"
 

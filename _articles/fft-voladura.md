@@ -11,12 +11,13 @@ card: /assets/articles/fft-voladura/card.jpg
 
 # Metadatos / filtros
 series: "Vibraciones"
+series_order: 3
 tags: [Python, Vibraciones, FFT, Fourier, DIN 4150]
 reading_time: "22 min"
 
 # Resumen destacado
 summary: >
-  <p>Tercera parte de la serie de vibraciones. Tras la <strong>magnitud</strong> (Parte 1) y el <strong>mapa</strong> (Parte 2), llega la <strong>frecuencia</strong>. Tomamos la forma de onda de un sismógrafo, la descomponemos con <strong>Fourier/FFT</strong>, la <strong>filtramos</strong>, identificamos su <strong>frecuencia dominante</strong> y decidimos el cumplimiento contra la curva normativa (DIN 4150-3). El cierre: un evento que por magnitud parece cumplir, pero por su baja frecuencia dominante no cumple.</p>
+  <p>Tercera parte de la serie de vibraciones. Tras <em>Predicción de vibraciones con Scikit-learn</em> (magnitud) y <em>Mapa de isolíneas de PPV</em> (dónde), llega la <strong>frecuencia</strong>. Tomamos la forma de onda de un sismógrafo, la descomponemos con <strong>Fourier/FFT</strong>, la <strong>filtramos</strong>, identificamos su <strong>frecuencia dominante</strong> y decidimos el cumplimiento contra la curva normativa (DIN 4150-3). El cierre: un evento que por magnitud parece cumplir, pero por su baja frecuencia dominante no cumple.</p>
   <p></p>
   <div class="ppv-note">El PPV dice <strong>cuánto</strong> vibra; la frecuencia dice <strong>cuánto daña</strong>.</div>
 
@@ -60,7 +61,7 @@ giscus:
 <a id="contexto" class="anchor-clean"></a>
 ## 1) El PPV dice cuánto, la frecuencia dice cuánto daña
 
-En la [Parte 1](/articles/vibraciones/) predijimos la **magnitud** de la vibración (el PPV) y en la [Parte 2](/articles/ppv-isolineas/) la mapeamos sobre el plano. Falta la otra mitad del problema, la que el Parte 1 dejó anotada como pendiente: la **frecuencia**.
+En [Predicción de vibraciones con Scikit-learn](/articles/vibraciones/) predijimos la **magnitud** de la vibración (el PPV) y en [Mapa de isolíneas de PPV sobre el plano de mina](/articles/ppv-isolineas/) la mapeamos sobre el plano. Falta la otra mitad del problema, que quedó anotada como pendiente: la **frecuencia**.
 
 Un geófono no mide un número: registra una **señal en el tiempo**, la velocidad de partícula del suelo durante los milisegundos que dura el evento. El PPV es apenas el **pico** de esa traza. Reducir toda la onda a su pico descarta una variable que la ingeniería de daño considera tan importante como la amplitud: su **contenido en frecuencia**.
 
@@ -277,7 +278,7 @@ def limite_din(f):
 - La **FFT** entrega el espectro; la **ventana de Hann** controla la fuga y afina los picos. Nyquist (`fs/2`) y la resolución (`Δf = fs/N`) fijan lo que se puede resolver.
 - El **filtrado pasa-banda de fase cero** (2 a 250 Hz) remueve deriva y ruido: el PPV cae de 13.2 a 12.0 mm/s. Juzgar sobre la traza cruda habría dado un falso positivo de excedencia.
 - La **frecuencia dominante** (9 Hz) cae en la banda de resonancia residencial. Contra el límite plano el evento cumple; contra la **curva DIN 4150-3** excede por 2.4 veces. La frecuencia decide.
-- Este taller cierra la trilogía de vibraciones: **magnitud** (Parte 1), **distribución espacial** (Parte 2) y **contenido en frecuencia** (Parte 3). Un límite de voladura sin frecuencia está incompleto.
+- Este taller cierra la trilogía de vibraciones: **magnitud** (*Predicción de vibraciones con Scikit-learn*), **distribución espacial** (*Mapa de isolíneas de PPV*) y **contenido en frecuencia** (este artículo). Un límite de voladura sin frecuencia está incompleto.
 
 
 <a id="refs" class="anchor-clean"></a>

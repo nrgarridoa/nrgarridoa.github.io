@@ -11,6 +11,7 @@ card: /assets/articles/mineral-esteril/card.jpg
 
 # Metadatos / filtros
 series: "Ore Control"
+series_order: 1
 tags: [Python, Machine Learning, Ley de corte, Porfido]
 reading_time: "20 min"
 

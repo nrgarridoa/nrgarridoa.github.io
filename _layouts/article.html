@@ -29,7 +29,7 @@ layout: default
     <!-- Serie indicator -->
     {% if page.series %}
       {%- comment -%} Calcular posición en la serie {%- endcomment -%}
-      {%- assign serie_articles = site.articles | where: "series", page.series | sort: "date" -%}
+      {%- assign serie_articles = site.articles | where: "series", page.series | sort: "series_order" -%}
       {%- assign serie_total = serie_articles.size -%}
       {%- assign serie_pos = 0 -%}
       {%- for sa in serie_articles -%}
@@ -218,7 +218,7 @@ layout: default
 
   <!-- Navegación de serie (prev/next) -->
   {% if page.series %}
-    {%- assign serie_articles = site.articles | where: "series", page.series | sort: "date" -%}
+    {%- assign serie_articles = site.articles | where: "series", page.series | sort: "series_order" -%}
     {%- if serie_articles.size > 1 -%}
       {%- assign prev_article = nil -%}
       {%- assign next_article = nil -%}

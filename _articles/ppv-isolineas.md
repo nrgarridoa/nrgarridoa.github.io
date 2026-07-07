@@ -11,6 +11,7 @@ card: /assets/articles/ppv-isolineas/card.jpg
 
 # Metadatos / filtros
 series: "Vibraciones"
+series_order: 2
 tags: [Python, Blasting, PPV, Matplotlib, Plotly]
 reading_time: "22 min"
 
@@ -36,7 +37,7 @@ contents:
 
 # Cards técnicas
 tech_cards:
-  - { title: "Entrada", body: "Ley del sitio K = 1065, β = 1.6185 (Parte 1) + carga por retardo." }
+  - { title: "Entrada", body: "Ley del sitio K = 1065, β = 1.6185 (Predicción de vibraciones) + carga por retardo." }
   - { title: "Salida", body: <div class="ppv-card__value">Isolíneas PPV(x,y)</div> }
   - { title: "Stack", body: "Python · NumPy · pandas · Matplotlib · Plotly" }
 
@@ -106,7 +107,7 @@ La herramienta que responde a esto es un mapa de **isolíneas de PPV** (curvas d
     </li>
     <li>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Diferenciar el mapa esperado (media) del conservador (P95) usando la dispersión del Parte 1.
+      Diferenciar el mapa esperado (media) del conservador (P95) usando la dispersión de <em>Predicción de vibraciones con Scikit-learn</em>.
     </li>
     <li>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -135,7 +136,7 @@ Un disparo de producción no es un punto: es un **polígono de taladros** (el *r
 
 ### 2.3) Incertidumbre: mapa medio y mapa P95
 
-El Parte 1 mostró que los residuos del ajuste son **normales en log₁₀** con desviación σ ≈ 0.110. La PPV real de un disparo se dispersa alrededor de la predicción media, así que para diseño **conservador** no se usa la media sino la **banda superior de predicción**. El percentil 95 unilateral es un factor multiplicativo constante sobre el mapa medio:
+[Predicción de vibraciones con Scikit-learn](/articles/vibraciones/) mostró que los residuos del ajuste son **normales en log₁₀** con desviación σ ≈ 0.110. La PPV real de un disparo se dispersa alrededor de la predicción media, así que para diseño **conservador** no se usa la media sino la **banda superior de predicción**. El percentil 95 unilateral es un factor multiplicativo constante sobre el mapa medio:
 
 <div class="callout-info">
   <div class="callout-icon">{% include icons/lightbulb.svg class="h-5 w-5" %} El factor conservador</div>
@@ -190,7 +191,7 @@ Definimos un sector de rajo sintético en una **grilla local en metros**: el con
 |---|---|
 | Extensión del plano | 0 – 1050 m (X) × 0 – 780 m (Y) |
 | Carga por retardo `W` | 500 kg (disparo de producción) |
-| Ley del sitio (Parte 1) | K = 1065.44 mm/s · β = 1.6185 · σ<sub>log</sub> = 0.110 |
+| Ley del sitio (Predicción de vibraciones) | K = 1065.44 mm/s · β = 1.6185 · σ<sub>log</sub> = 0.110 |
 
 ### 3.2) Receptores y límites
 
