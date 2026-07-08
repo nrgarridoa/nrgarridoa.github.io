@@ -5,8 +5,8 @@ subtitle: "Disponibilidad de flota, Gantt día/noche y pérdidas de producción 
 date: 2026-07-06
 tags: [Python, Dash, Plotly, Minería, Mantenimiento, Dashboard]
 stack: [Python, Dash, Plotly, Pandas, Render]
-cover: /assets/projects/simultaneidad-palas/cover.png
-thumbnail: /assets/projects/simultaneidad-palas/thumb.png
+cover: /assets/projects/simultaneidad-palas/social-preview.png
+thumbnail: /assets/projects/simultaneidad-palas/social-preview.png
 org: "Proyecto personal"
 roles: ["Data Analyst", "Mining Engineer"]
 repo: "https://github.com/nrgarridoa/simultaneidad_palas"
@@ -16,7 +16,7 @@ embed:
   type: html
   url: "https://simultaneidad-palas.onrender.com"
   aspect_ratio: "16/9"
-  poster: "/assets/projects/simultaneidad-palas/preview.png"
+  poster: "/assets/projects/simultaneidad-palas/social-preview.png"
 
 data_overview: >
   Datos sintéticos (seed=42) de una flota de 15 palas (10 P&H 4100XPC, 5 EX5600-6) en tajo abierto durante el año 2025 completo: cerca de 113,800 eventos operativos individuales (estado, subtipo, turno, duración, producción y toneladas perdidas) y 5,475 resúmenes diarios por pala.

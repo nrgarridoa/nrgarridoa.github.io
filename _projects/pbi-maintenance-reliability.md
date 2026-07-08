@@ -5,8 +5,8 @@ subtitle: "Dashboard interactivo para el análisis de disponibilidad, fallas, co
 date: 2026-05-06
 tags: [Power BI, DAX, Python, Minería, Mantenimiento, Confiabilidad, Weibull, MTBF, Dashboard]
 stack: [Power BI, DAX, Python, Star Schema]
-cover: /assets/projects/maintenance/cover.png
-thumbnail: /assets/projects/maintenance/thumb.png
+cover: /assets/projects/maintenance/social-preview.png
+thumbnail: /assets/projects/maintenance/social-preview.png
 org: "Proyecto personal"
 roles: ["Data Analyst", "Reliability Engineer"]
 repo: "https://github.com/nrgarridoa/powerbi-maintenance-reliability"
