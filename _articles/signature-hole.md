@@ -266,6 +266,10 @@ Una signature medida en campo alimenta la superposición, el barrido encuentra e
 <a id="refs" class="anchor-clean"></a>
 ## 10) Referencias
 
+El método completo de este artículo —medir una signature, copiarla y retardarla, sumar linealmente— es el que formalizan Anderson (2008) e Hinzen (1988). El siguiente esquema lo resume de punta a punta:
+
+![Esquema del método signature hole en tres pasos: arriba, la señal medida en campo de un solo taladro; en medio, esa misma señal copiada y retardada entre taladros según el diseño de secuencia; abajo, la suma lineal de las copias, que predice la onda del disparo completo](/assets/articles/signature-hole/fig-esquema-superposicion.png)
+
 <div class="references" markdown="1">
 
 Anderson, D. A. (2008). **Signature hole blast vibration control - twenty years hence and beyond.** Proceedings of the Annual Conference on Explosives and Blasting Technique, ISEE. Formaliza el modelado por superposición de la onda de un taladro para diseñar secuencias de baja vibración.

@@ -13,7 +13,7 @@ card: /assets/articles/airblast/card.jpg
 series: "Vibraciones"
 series_order: 5
 tags: [Python, Vibraciones, Voladura, Airblast, DIN 4150, Viento]
-reading_time: "22 min"
+reading_time: "25 min"
 
 # Resumen destacado
 summary: >
@@ -28,6 +28,7 @@ contents:
   - { anchor: "#datos", title: "Datos: receptores y voladura" }
   - { anchor: "#impl", title: "Implementación en Python" }
   - { anchor: "#atenuacion", title: "Atenuación y cumplimiento" }
+  - { anchor: "#cumplimiento", title: "El mapa de cumplimiento" }
   - { anchor: "#inversion", title: "La inversión térmica" }
   - { anchor: "#viento", title: "El efecto del viento" }
   - { anchor: "#conclusiones", title: "Conclusiones" }
@@ -189,8 +190,35 @@ Trazamos el nivel en aire libre contra la distancia, con los umbrales de daño y
 El airblast **cae rápido**: el **daño** (133 dB) solo es posible dentro de **77 m** del disparo, y las **quejas** (115 dB) dentro de **378 m**. El poblado, a 1500 m, recibe **99 dB** en aire libre: lo oye, pero está muy por debajo del umbral de quejas. En un día normal, no hay problema.
 
 
+<a id="cumplimiento" class="anchor-clean"></a>
+## 6) Del punto a la carga: el mapa de cumplimiento
+
+La curva anterior responde para **una carga fija** (500 kg) y **dos receptores**. La pregunta que de verdad hace el área de perforación y voladura es la inversa: *dado un receptor a cierta distancia, ¿cuánta carga por retardo puedo disparar sin cruzar el umbral?* Para eso hay que traer de vuelta la distancia escalada cúbica (`D / W^⅓`) y generalizar el modelo a **cualquier carga**, no solo a 500 kg:
+
+```python
+D_REF, W_REF = 100.0, 500.0   # calibracion: 130 dB a 100 m con 500 kg
+
+def L_aire_libre_W(D, W):
+    return L_REF - 20*ALFA*np.log10(D/D_REF) + (20*ALFA/3)*np.log10(W/W_REF)
+
+def L_inversion_W(D, W):
+    libre = L_aire_libre_W(D, W)
+    skip_level = L_aire_libre_W(D_SKIP, W)
+    return np.where(D > D_SKIP, skip_level - DECAY_DUCT*np.log10(D/D_SKIP), libre)
+```
+
+Barriendo distancia y carga a la vez (en vez de un solo receptor) obtenemos un mapa de cumplimiento completo, con los umbrales de daño y quejas como curvas de nivel:
+
+![Mapa de cumplimiento del airblast: dos paneles en escala log-log, distancia (50 a 3000 m) contra carga por retardo (10 a 2000 kg), con curvas de nivel en 133 dB (daño) y 115 dB (quejas). En aire libre la curva de quejas es una diagonal simple; bajo inversión térmica la misma curva se quiebra y se desplaza hacia distancias mayores más allá de los 250 m del ducto, reduciendo la carga admisible a igual distancia](/assets/articles/airblast/fig-cumplimiento.png)
+
+<div class="callout-success">
+  <div class="callout-icon">{% include icons/check-circle.svg class="h-5 w-5" %} De un cálculo puntual a una regla de diseño</div>
+  El mapa reemplaza "¿cumple este disparo?" por <strong>"¿qué combinaciones de distancia y carga cumplen?"</strong>. En aire libre, la curva de 115 dB es una diagonal recta en escala log-log: el límite de carga crece con el cubo de la distancia. Bajo inversión, la misma curva se <strong>quiebra</strong> en el <code>D_skip</code> (250 m) y se aplana: más allá de ese punto, alejarse ya no compra tanto margen como en aire libre, porque el ducto reduce la pérdida con la distancia. El mismo mapa sirve para cualquier receptor nuevo, sin recalcular caso por caso.
+</div>
+
+
 <a id="inversion" class="anchor-clean"></a>
-## 6) La inversión térmica: el airblast viaja lejos
+## 7) La inversión térmica: el airblast viaja lejos
 
 El escenario cambia bajo una inversión. El ducto atrapa el sonido y reduce su pérdida más allá del `D_skip`.
 
@@ -207,7 +235,7 @@ Puesto lado a lado, el contraste entre los dos receptores es la clave de lectura
 
 
 <a id="viento" class="anchor-clean"></a>
-## 7) El modelo no es isotrópico: el efecto del viento
+## 8) El modelo no es isotrópico: el efecto del viento
 
 Los modelos anteriores solo dependen de la distancia: predicen el mismo nivel en cualquier dirección alrededor del disparo. En la práctica, el sonido viaja mejor **a favor del viento** que en contra — el mismo efecto de refracción que la inversión térmica, pero horizontal y de menor magnitud. Un factor direccional simple lo captura:
 
@@ -232,7 +260,7 @@ Ninguno de los dos efectos atmosféricos importa por separado en un día normal 
 
 
 <a id="conclusiones" class="anchor-clean"></a>
-## 8) Conclusiones
+## 9) Conclusiones
 
 - El **airblast** es la segunda emisión de la voladura, por el aire. Rara vez daña, pero **molesta** a niveles mucho menores: es sobre todo un problema de relación con la comunidad.
 - Se mide en **dB lineales** (escala logarítmica: +6 dB duplica la presión) y atenúa con distancia escalada **cúbica**, no cuadrada como la vibración del suelo. Cae rápido: **daño solo dentro de 77 m**, **quejas dentro de 378 m** en aire libre.
@@ -243,7 +271,11 @@ Ninguno de los dos efectos atmosféricos importa por separado en un día normal 
 
 
 <a id="refs" class="anchor-clean"></a>
-## 9) Referencias
+## 10) Referencias
+
+La refracción atmosférica que describe la Sección 7 es un mecanismo estándar en la literatura de monitoreo de airblast (Dowding, 1985; McKenzie, 1990). El siguiente esquema resume la idea física detrás de esas referencias:
+
+![Esquema de refracción atmosférica del sonido: en atmósfera normal la temperatura decrece con la altura y el sonido se refracta hacia arriba, dejando una zona de sombra cerca del suelo; en inversión térmica la temperatura aumenta con la altura cerca del suelo y el sonido se refracta hacia abajo, quedando atrapado en un ducto que lo lleva lejos con poca pérdida](/assets/articles/airblast/fig-esquema-inversion.png)
 
 <div class="references" markdown="1">
 
