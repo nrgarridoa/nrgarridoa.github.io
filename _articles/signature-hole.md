@@ -12,8 +12,8 @@ card: /assets/articles/signature-hole/card.jpg
 # Metadatos / filtros
 series: "Vibraciones"
 series_order: 4
-tags: [Python, Vibraciones, Voladura, Retardos, Detonador electrónico]
-reading_time: "20 min"
+tags: [Python, Vibraciones, Voladura, Retardos, Detonador electrónico, FFT]
+reading_time: "24 min"
 
 # Resumen destacado
 summary: >
@@ -30,6 +30,7 @@ contents:
   - { anchor: "#superposicion", title: "La superposición en acción" }
   - { anchor: "#barrido", title: "Barrido de retardos" }
   - { anchor: "#scatter", title: "El límite real: el scatter" }
+  - { anchor: "#comb", title: "Vista en frecuencia: el filtro peine" }
   - { anchor: "#conclusiones", title: "Conclusiones" }
   - { anchor: "#refs", title: "Referencias" }
 
@@ -221,20 +222,49 @@ El óptimo supone que cada taladro detona exactamente a su tiempo. En la realida
 </div>
 
 
+<a id="comb" class="anchor-clean"></a>
+## 8) Vista en frecuencia: por qué el retardo filtra
+
+El barrido de la Sección 6 responde *cuál* retardo minimiza el PPV, pero no *por qué* ese valor y no otro cercano. La [Parte 3](/articles/fft-voladura/) mostró que toda vibración tiene contenido en frecuencia; la superposición de taladros, vista con Fourier, es literalmente un **filtro peine**: refuerza unas frecuencias y cancela otras según el retardo.
+
+```python
+def espectro(x):
+    X = np.fft.rfft(x)
+    freqs = np.fft.rfftfreq(len(x), d=1/FS)
+    return freqs, np.abs(X)
+
+# Barremos el retardo y guardamos el espectro completo de cada conjunto
+delays_fino = np.linspace(1, 25, 220)
+espectros = [espectro(onda_conjunto(d))[1] for d in delays_fino]
+```
+
+Graficando la magnitud del espectro del conjunto para cada retardo obtenemos un mapa retardo-frecuencia: las franjas diagonales son la firma del filtro peine.
+
+![Mapa retardo-frecuencia del espectro del conjunto: franjas diagonales de refuerzo (verde/amarillo) y cancelación (morado oscuro); la línea de 22 Hz —frecuencia dominante del taladro— cruza una banda de refuerzo a 8 ms y una banda de cancelación muy cerca de 15 ms](/assets/articles/signature-hole/fig-comb.png)
+
+<div class="callout-info">
+  <div class="callout-icon">{% include icons/lightbulb.svg class="h-5 w-5" %} El óptimo no es arbitrario</div>
+  A <strong>8 ms</strong>, la línea de 22 Hz cruza una banda de <strong>refuerzo</strong>: el retardo típico, sin saberlo, amplifica justo la frecuencia dominante del taladro. A <strong>~15 ms</strong>, esa misma línea cae casi exactamente sobre una banda de <strong>cancelación</strong>. El barrido de PPV (Sección 6) y el mapa espectral llegan al mismo número por caminos distintos: minimizar el PPV en el tiempo equivale a buscar el retardo que cancela la frecuencia donde el taladro concentra su energía.
+</div>
+
+Esto también explica por qué el óptimo es una banda angosta y no una meseta: los retardos vecinos (12 ms, 18 ms) caen en otras bandas de cancelación del mismo peine, pero con menos margen, porque el amortiguamiento de la signature reparte algo de energía alrededor de los 22 Hz. El dominio del tiempo (PPV) y el de la frecuencia (cumplimiento normativo de la Parte 3) son, en el fondo, la misma decisión mirada desde dos ángulos.
+
+
 <a id="conclusiones" class="anchor-clean"></a>
-## 8) Conclusiones
+## 9) Conclusiones
 
 - La vibración de una voladura es la **superposición** de la onda de cada taladro desfasada por su retardo. El PPV depende del **tiempo**, no solo de la carga y la distancia.
 - Con la misma malla y explosivo, el PPV varía **más de diez veces** con la secuencia: de 3.6 a más de 45 mm/s. El tiempo es la palanca más barata del diseño de voladura.
 - Re-temporizar del retardo típico (8 ms) al **óptimo (15 ms)** baja el PPV un **47 %**, sin tocar el explosivo. El piso teórico es el de un solo taladro.
 - El **scatter del detonador** es el límite real: el pirotécnico (σ 2.5 ms) borra la optimización (P95 7 mm/s, peor que sin optimizar); solo el **electrónico** (σ 0.2 ms) realiza la reducción.
+- Visto en **frecuencia**, el retardo típico (8 ms) refuerza la frecuencia dominante del taladro (22 Hz) y el óptimo (15 ms) la cancela — el mismo resultado que entrega el barrido de PPV, confirmado desde el dominio espectral que abrió la Parte 3.
 - El modelo de **signature hole** convierte el diseño de secuencia en una decisión cuantitativa, trazable y verificable antes de disparar.
 
-Una signature medida en campo alimenta la superposición, el barrido encuentra el retardo óptimo y el Monte Carlo del scatter dice si el detonador disponible puede realizarlo.
+Una signature medida en campo alimenta la superposición, el barrido encuentra el retardo óptimo, su espectro explica el porqué, y el Monte Carlo del scatter dice si el detonador disponible puede realizarlo.
 
 
 <a id="refs" class="anchor-clean"></a>
-## 9) Referencias
+## 10) Referencias
 
 <div class="references" markdown="1">
 

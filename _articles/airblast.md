@@ -12,8 +12,8 @@ card: /assets/articles/airblast/card.jpg
 # Metadatos / filtros
 series: "Vibraciones"
 series_order: 5
-tags: [Python, Vibraciones, Voladura, Airblast, DIN 4150]
-reading_time: "18 min"
+tags: [Python, Vibraciones, Voladura, Airblast, DIN 4150, Viento]
+reading_time: "22 min"
 
 # Resumen destacado
 summary: >
@@ -29,6 +29,7 @@ contents:
   - { anchor: "#impl", title: "Implementación en Python" }
   - { anchor: "#atenuacion", title: "Atenuación y cumplimiento" }
   - { anchor: "#inversion", title: "La inversión térmica" }
+  - { anchor: "#viento", title: "El efecto del viento" }
   - { anchor: "#conclusiones", title: "Conclusiones" }
   - { anchor: "#refs", title: "Referencias" }
 
@@ -205,18 +206,44 @@ Puesto lado a lado, el contraste entre los dos receptores es la clave de lectura
 ![Nivel de airblast por receptor en aire libre y bajo inversión térmica: la caseta de operaciones (150 m) se mantiene en 125 dB en ambos escenarios porque está dentro del radio del ducto; el poblado (1500 m) sube de 99 a 117 dB bajo inversión, cruzando el umbral de quejas de 115 dB](/assets/articles/airblast/fig-receptores.png)
 
 
+<a id="viento" class="anchor-clean"></a>
+## 7) El modelo no es isotrópico: el efecto del viento
+
+Los modelos anteriores solo dependen de la distancia: predicen el mismo nivel en cualquier dirección alrededor del disparo. En la práctica, el sonido viaja mejor **a favor del viento** que en contra — el mismo efecto de refracción que la inversión térmica, pero horizontal y de menor magnitud. Un factor direccional simple lo captura:
+
+```python
+DL_VIENTO = 5.0  # dB, amplificacion/atenuacion maxima por efecto de viento
+
+def L_direccional(L_base, theta, theta_viento=0.0):
+    """theta=theta_viento -> a favor del viento (maximo); theta opuesto -> en contra (minimo)."""
+    return L_base + DL_VIENTO * np.cos(theta - theta_viento)
+```
+
+Aplicamos el factor sobre los dos escenarios ya calculados (aire libre e inversión) para el poblado, barriendo la dirección 0-360°:
+
+![Nivel de airblast en el poblado según la dirección del viento, en coordenadas polares: en aire libre el círculo completo (94 a 104 dB) queda siempre bajo el umbral de quejas; bajo inversión térmica el nivel varía de 112 dB en contra del viento a 122 dB a favor del viento, cruzando el umbral de 115 dB según la dirección](/assets/articles/airblast/fig-viento.png)
+
+<div class="callout-warning">
+  <div class="callout-icon">{% include icons/alert-triangle.svg class="h-5 w-5" %} La dirección decide, pero solo bajo inversión</div>
+  En <strong>aire libre</strong>, el viento mueve el nivel del poblado entre <strong>94 y 104 dB</strong>: nunca se acerca al umbral de 115 dB, la dirección no importa. Bajo <strong>inversión térmica</strong> el rango es <strong>112 a 122 dB</strong> — <strong>cruza el umbral en ambos sentidos</strong>. Disparar con el poblado a favor del viento empeora una condición que ya era de riesgo (122 dB); disparar con el poblado a contraviento la revierte (112 dB, de vuelta en cumplimiento). Bajo inversión, la dirección del viento no es un detalle: es la diferencia entre cumplir y no cumplir.
+</div>
+
+Ninguno de los dos efectos atmosféricos importa por separado en un día normal y sin viento a favor. Es la combinación —inversión que atrapa el sonido, viento que lo empuja hacia el receptor— la que produce el peor escenario, y ninguno de los dos aparece en un modelo que solo mira la distancia.
+
+
 <a id="conclusiones" class="anchor-clean"></a>
-## 7) Conclusiones
+## 8) Conclusiones
 
 - El **airblast** es la segunda emisión de la voladura, por el aire. Rara vez daña, pero **molesta** a niveles mucho menores: es sobre todo un problema de relación con la comunidad.
 - Se mide en **dB lineales** (escala logarítmica: +6 dB duplica la presión) y atenúa con distancia escalada **cúbica**, no cuadrada como la vibración del suelo. Cae rápido: **daño solo dentro de 77 m**, **quejas dentro de 378 m** en aire libre.
 - La **atmósfera** es el comodín: una **inversión térmica** forma un ducto que lleva el airblast lejos. El poblado a 1500 m pasa de **99 dB** (cómodo) a **117 dB** (quejas), **+18 dB**, sin cambiar la carga ni la distancia.
 - Por eso el control de airblast agrega una regla propia: **no disparar bajo inversión térmica**, y monitorear el airblast, no solo la vibración del terreno.
+- El **viento** por sí solo no decide nada en aire libre (el poblado se mueve entre 94 y 104 dB, lejos de los 115 dB de quejas), pero bajo **inversión térmica** la dirección del viento determina si el poblado queda en 112 dB (sin quejas) o en 122 dB (quejas seguras): la atmósfera y la dirección actúan juntas, no por separado.
 - Cierra la serie de vibraciones cubriendo la emisión que suele originar las quejas: magnitud, mapa, frecuencia, timing y, ahora, **aire**.
 
 
 <a id="refs" class="anchor-clean"></a>
-## 8) Referencias
+## 9) Referencias
 
 <div class="references" markdown="1">
 
