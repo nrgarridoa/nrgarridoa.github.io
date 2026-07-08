@@ -2,7 +2,7 @@
 layout: article
 title: "Signature hole: optimizar los retardos para bajar la vibración"
 subtitle: "Superposición de ondas para minimizar el PPV, y por qué solo el detonador electrónico lo consigue."
-date: 2026-07-05
+date: 2026-07-06
 
 # Hero + card
 cover: "/assets/articles/signature-hole/cover.jpg"

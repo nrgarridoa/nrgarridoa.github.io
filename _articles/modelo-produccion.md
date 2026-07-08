@@ -2,7 +2,7 @@
 layout: article
 title: "Tu primer modelo de producción minera en Python"
 subtitle: "Tonelaje, ley y recuperación: el balance metalúrgico que sostiene el reporte mensual."
-date: 2026-07-05
+date: 2026-07-04
 
 # Hero + card
 cover: "/assets/articles/modelo-produccion/cover.jpg"

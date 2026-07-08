@@ -2,7 +2,7 @@
 layout: article
 title: "Clasificar mineral y estéril con regresión logística"
 subtitle: "Tutorial reproducible: de Cu y Mo a una decisión de ley de corte."
-date: 2026-07-04
+date: 2026-07-01
 
 # Hero + card
 cover: "/assets/articles/mineral-esteril/cover.jpg"

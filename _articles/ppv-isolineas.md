@@ -2,7 +2,7 @@
 layout: article
 title: "Mapa de isolíneas de PPV sobre el plano de mina"
 subtitle: "Cartografía de la vibración por voladura y evaluación de cumplimiento normativo, con matplotlib y plotly."
-date: 2026-07-05
+date: 2026-07-03
 
 # Hero + card
 cover: "/assets/articles/ppv-isolineas/cover.jpg"

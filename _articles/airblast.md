@@ -2,7 +2,7 @@
 layout: article
 title: "Sobrepresión de aire (airblast): la otra emisión de la voladura"
 subtitle: "Nivel en dB, atenuación cúbica y la inversión térmica que lleva el ruido lejos del disparo."
-date: 2026-07-05
+date: 2026-07-07
 
 # Hero + card
 cover: "/assets/articles/airblast/cover.jpg"
