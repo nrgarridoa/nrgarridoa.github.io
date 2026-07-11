@@ -6,7 +6,7 @@ date: 2026-07-06
 tags: [Python, Dash, Plotly, Minería, Mantenimiento, Dashboard]
 stack: [Python, Dash, Plotly, Pandas, Render]
 cover: /assets/projects/simultaneidad-palas/social-preview.png
-thumbnail: /assets/projects/simultaneidad-palas/social-preview.png
+thumbnail: /assets/projects/simultaneidad-palas/thumb.png
 org: "Proyecto personal"
 roles: ["Data Analyst", "Mining Engineer"]
 repo: "https://github.com/nrgarridoa/simultaneidad_palas"

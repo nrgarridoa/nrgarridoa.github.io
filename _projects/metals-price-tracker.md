@@ -6,7 +6,7 @@ date: 2026-07-07
 tags: [Python, Streamlit, Plotly, Finanzas, Commodities, Dashboard]
 stack: [Python, Streamlit, Plotly, yfinance, Pandas, SQLite]
 cover: /assets/projects/metals-price-tracker/social-preview.png
-thumbnail: /assets/projects/metals-price-tracker/social-preview.png
+thumbnail: /assets/projects/metals-price-tracker/thumb.png
 org: "Proyecto personal"
 roles: ["Data Analyst", "Python Developer"]
 repo: "https://github.com/nrgarridoa/metals_price_tracker"

@@ -6,7 +6,7 @@ date: 2026-05-06
 tags: [Power BI, DAX, Power Query, Minería, Voladura, MWD, Geología, Dashboard]
 stack: [Power BI, DAX, Power Query, Star Schema]
 cover: /assets/projects/durezas/social-preview.png
-thumbnail: /assets/projects/durezas/social-preview.png
+thumbnail: /assets/projects/durezas/thumb.png
 org: "Proyecto personal"
 roles: ["Data Analyst", "Mining Engineer"]
 repo: "https://github.com/nrgarridoa/powerbi-control-durezas"
