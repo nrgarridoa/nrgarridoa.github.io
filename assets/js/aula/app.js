@@ -3,12 +3,13 @@
 // Estructura pública de los cursos: /aula/catalog.json (generada por Jekyll).
 // Contenido privado (videos, materiales, evaluaciones), alumnos, progreso y
 // certificados: Firestore (ver /firestore.rules).
-import { firebaseConfig, ADMIN_EMAIL } from './firebase-config.js';
+import { firebaseConfig, ADMIN_EMAIL, NOTIFY_URL } from './firebase-config.js';
 
 const FB = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const root = document.getElementById('aula-root');
 const DEMO = ['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).has('demo');
 const PASS_DEFAULT = 70;
+const NOTIFY = DEMO ? (new URLSearchParams(location.search).get('notify') || '') : NOTIFY_URL;
 
 /* ---------- utilidades ---------- */
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -90,6 +91,7 @@ async function firebaseApi() {
       }
     },
     signOut: () => A.signOut(auth),
+    idToken: async () => (auth.currentUser ? auth.currentUser.getIdToken() : ''),
     getEnrollment: (e) => read(F.doc(db, 'enrollments', e)),
     getPrivate: (c) => read(F.doc(db, 'courses', c)).catch(() => null),
     getProgress: (e, c) => read(F.doc(db, 'users', e, 'progress', c)).catch(() => null),
@@ -142,7 +144,7 @@ function demoApi() {
   }
   return {
     onAuth: (cb) => setTimeout(() => cb(user), 50),
-    signIn: async () => {}, signOut: async () => location.reload(),
+    signIn: async () => {}, signOut: async () => location.reload(), idToken: async () => 'demo',
     getEnrollment: async (e) => enr[e] || null,
     getPrivate: async (c) => priv[c] || null,
     getProgress: async (e, c) => prog[e + '|' + c] || null,
@@ -167,7 +169,7 @@ function demoApi() {
 }
 
 /* ---------- estado y modelo de progreso ---------- */
-const S = { api: null, user: null, isAdmin: false, enr: null, catalog: [], priv: {}, prog: {}, certs: [], myApps: [], pending: 0, admin: null, error: '', graded: null, quizMsg: '' };
+const S = { api: null, user: null, isAdmin: false, enr: null, catalog: [], priv: {}, prog: {}, certs: [], myApps: [], pending: 0, flash: '', admin: null, error: '', graded: null, quizMsg: '' };
 const quizzesOf = (cid) => S.priv[cid]?.quizzes || {};
 const hasQuiz = (cid, mid) => (quizzesOf(cid)[mid]?.questions || []).length > 0;
 const passOf = (cid) => S.priv[cid]?.pass || PASS_DEFAULT;
@@ -199,6 +201,15 @@ async function loadUserData() {
   S.certs = await S.api.listMyCerts(S.user.email);
   S.myApps = (!S.isAdmin && !(S.enr?.courses || []).length) ? await S.api.listMyApps(S.user.email) : [];
   if (S.isAdmin) await refreshPending();
+}
+// Pide al script de Apps Script que envíe un correo. Devuelve true si se envió.
+async function notify(payload) {
+  if (!NOTIFY) return null;
+  try {
+    const idToken = await S.api.idToken();
+    const r = await fetch(NOTIFY, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...payload, idToken }) });
+    return !!(await r.json()).ok;
+  } catch { return false; }
 }
 async function refreshPending() {
   S.pending = (await S.api.listApps().catch(() => [])).filter((a) => a.status === 'pending').length;
@@ -427,6 +438,8 @@ function adminView() {
         <button data-act="cert-delete" data-code="${esc(ct.code)}" class="text-red-300 hover:text-red-200">${issued ? 'Revocar' : 'Rechazar'}</button></td></tr>`;
   }).join('');
 
+  const flash = S.flash ? `<div class="mb-6 rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">${esc(S.flash)}</div>` : '';
+  S.flash = '';
   const appCard = (a) => `<div class="${card} p-4">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div><div class="font-medium text-sm">${esc(a.name)} <span class="text-xs text-white/50">· ${esc(a.ownerEmail)}</span></div>
@@ -459,6 +472,7 @@ function adminView() {
 
   return `${topbar('admin')}
   <h1 class="text-2xl font-display font-bold mb-6">Administración</h1>
+  ${flash}
   <section class="${card} p-5 mb-8">
     <h2 class="font-semibold">Postulaciones ${pendingApps.length ? `<span class="ml-2 rounded-md bg-amber-400/90 text-slate-900 text-[11px] font-semibold px-2 py-0.5">${pendingApps.length} pendientes</span>` : ''}</h2>
     <p class="mt-1 text-xs text-white/50">Llegan desde el formulario de la vitrina. Al aprobar, el postulante queda inscrito con su cuenta de Google.</p>
@@ -650,6 +664,10 @@ root.addEventListener('click', async (e) => {
       const courses = [...new Set([...(en?.courses || []), ap.courseId])];
       await S.api.saveEnrollment(ap.ownerEmail, { name: en?.name || ap.name, courses, active: true, ...(en ? {} : { createdAt: new Date().toISOString() }) });
       await S.api.updateApp(ap.code, { status: 'approved', reviewedAt: new Date().toISOString() });
+      const sent = await notify({ action: 'approved', to: ap.ownerEmail, name: ap.name, course: ap.courseTitle });
+      S.flash = sent === null ? `${ap.name} quedó inscrito/a. Los correos automáticos no están activados.`
+        : sent ? `${ap.name} quedó inscrito/a y se le envió el correo de aprobación.`
+        : `${ap.name} quedó inscrito/a, pero no se pudo enviar el correo de aprobación. Avísale tú.`;
       S.admin = null; await refreshPending(); await render();
     }
     if (act === 'app-reject') {

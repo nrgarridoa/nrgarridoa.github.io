@@ -14,3 +14,7 @@ export const ADMIN_EMAIL = "ngarridoa18_1@unc.edu.pe";
 
 // Contacto para solicitar acceso.
 export const CONTACT_EMAIL = "ngarridoa18_1@unc.edu.pe";
+
+// URL de la aplicación web de Google Apps Script que envía los correos (ver apps-script/LEEME.md).
+// Vacía = no se envían correos y el resto del aula funciona igual.
+export const NOTIFY_URL = "";

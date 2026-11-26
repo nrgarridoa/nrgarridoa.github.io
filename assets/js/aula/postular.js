@@ -2,7 +2,7 @@
 // La persona inicia sesión con Google y la postulación se guarda en Firestore
 // (colección "applications"), donde se revisa desde el panel de administración del aula.
 // Firebase se carga bajo demanda, al abrir el formulario.
-import { firebaseConfig } from './firebase-config.js';
+import { firebaseConfig, NOTIFY_URL } from './firebase-config.js';
 
 const FB = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const norm = (e) => String(e || '').trim().toLowerCase();
@@ -49,6 +49,14 @@ window.aulaApply ||= {
       ownerEmail: email, name: name.trim(), courseId, courseTitle,
       profile: profile.trim(), goal: goal.trim(), status: 'pending', createdAt: new Date().toISOString(),
     });
+    // Aviso por correo al administrador (si está configurado). No bloquea ni afecta la postulación.
+    if (NOTIFY_URL) {
+      try {
+        const idToken = await auth.currentUser.getIdToken();
+        fetch(NOTIFY_URL, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'new_application', name: name.trim(), course: courseTitle, idToken }) }).catch(() => {});
+      } catch { /* sin aviso */ }
+    }
     return { ok: true };
   },
 };
