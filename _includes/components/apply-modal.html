@@ -77,7 +77,7 @@
     <div x-show="!user" class="mt-6">
       <p class="text-sm text-white/70">Para postular necesitas una cuenta de Google. Tu postulación quedará asociada a ella, y es la cuenta con la que ingresarás al aula si es aprobada.</p>
       <button type="button" @click="login()" class="mt-4 inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white"
-              style="background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 2px 8px rgba(0,194,255,0.25);">Continuar con Google</button>
+              style="background:linear-gradient(135deg, #0068FF, #00D2FF); box-shadow:0 2px 8px rgba(0,194,255,0.25);">Continuar con Google</button>
       <p x-show="error" x-text="error" class="mt-3 text-sm text-amber-300" style="display:none"></p>
     </div>
 
@@ -110,7 +110,7 @@
       </div>
       <p x-show="error" x-text="error" class="text-sm text-amber-300" style="display:none"></p>
       <button type="submit" :disabled="busy" class="inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-              style="background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 2px 8px rgba(0,194,255,0.25);"
+              style="background:linear-gradient(135deg, #0068FF, #00D2FF); box-shadow:0 2px 8px rgba(0,194,255,0.25);"
               x-text="busy ? 'Enviando…' : 'Enviar postulación'"></button>
     </form>
 

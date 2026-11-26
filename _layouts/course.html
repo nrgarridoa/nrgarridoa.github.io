@@ -4,43 +4,76 @@ layout: default
 
 {% assign _img = page.cover | default: site.assets.default_course_cover %}
 {% assign _n_sessions = 0 %}
-{% for m in page.modules %}{% assign _n_sessions = _n_sessions | plus: m.sessions.size %}{% endfor %}
+{% assign _total_min = 0 %}
+{% for m in page.modules %}
+  {% assign _n_sessions = _n_sessions | plus: m.sessions.size %}
+  {% for s in m.sessions %}{% assign _mins = s.duration | split: ' ' | first | plus: 0 %}{% assign _total_min = _total_min | plus: _mins %}{% endfor %}
+{% endfor %}
+{% assign _features = page.features %}
+{% unless _features %}
+  {% assign _features = "Acceso al aula virtual con seguimiento de tu progreso|Notas personales en cada sesión|Certificado de finalización verificable" | split: "|" %}
+{% endunless %}
+{% assign _others = site.courses | where_exp: 'c','c.status != "draft"' | where_exp: 'c','c.status != "hidden"' | sort: 'order' %}
 
-<div class="max-w-6xl mx-auto px-6 py-10">
-  <nav class="text-sm text-white/50 mb-6" aria-label="Breadcrumb">
+<div class="max-w-6xl mx-auto px-6 pt-8 pb-28 lg:pb-14">
+  <nav class="text-sm text-white/50 mb-8" aria-label="Breadcrumb">
     <a href="{{ '/cursos/' | relative_url }}" class="hover:text-white/80">Cursos</a>
     <span class="mx-2">/</span>
     <span class="text-white/70">{{ page.title }}</span>
   </nav>
 
-  <header class="mb-8 max-w-3xl">
-    {% if page.status == "in_development" %}
-      <span class="inline-block mb-3 rounded-md bg-amber-400/90 text-slate-900 text-xs font-semibold px-2 py-0.5">En desarrollo</span>
-    {% endif %}
-    <h1 class="text-3xl md:text-4xl font-extrabold leading-tight">{{ page.title }}</h1>
-    <p class="mt-3 text-white/80">{{ page.subtitle }}</p>
-    <div class="mt-4 flex flex-wrap gap-2">
-      {% for t in page.tools %}
-        <span class="inline-flex items-center rounded-lg bg-white/5 px-2.5 py-1 text-xs text-white/80">{{ t }}</span>
-      {% endfor %}
-    </div>
-  </header>
+  <!-- HERO -->
+  <section class="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] items-center">
+    <div>
+      <div class="flex flex-wrap items-center gap-3">
+        {% if page.category or page.area %}
+          <span class="text-xs uppercase tracking-[0.18em] text-sky-300/80 font-semibold">{{ page.category }}{% if page.category and page.area %} · {% endif %}{{ page.area }}</span>
+        {% endif %}
+        {% if page.status == "in_development" %}
+          <span class="rounded-md bg-amber-400/90 text-slate-900 text-[11px] font-semibold px-2 py-0.5">En desarrollo</span>
+        {% endif %}
+      </div>
+      <h1 class="mt-3 text-3xl md:text-5xl font-extrabold leading-[1.1] tracking-tight">{{ page.title }}</h1>
+      <p class="mt-4 text-lg text-white/75 max-w-xl">{{ page.subtitle }}</p>
 
-  <div class="grid gap-10 lg:grid-cols-[1fr_340px] items-start">
-    <!-- COLUMNA PRINCIPAL -->
-    <div class="min-w-0">
+      <dl class="mt-7 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl">
+        <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5"><dt class="text-[11px] uppercase tracking-wider text-white/40">Nivel</dt><dd class="mt-0.5 text-sm font-semibold">{{ page.level }}</dd></div>
+        <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5"><dt class="text-[11px] uppercase tracking-wider text-white/40">Duración</dt><dd class="mt-0.5 text-sm font-semibold">{{ page.hours }} horas</dd></div>
+        <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5"><dt class="text-[11px] uppercase tracking-wider text-white/40">Módulos</dt><dd class="mt-0.5 text-sm font-semibold">{{ page.modules.size }}</dd></div>
+        <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5"><dt class="text-[11px] uppercase tracking-wider text-white/40">Sesiones</dt><dd class="mt-0.5 text-sm font-semibold">{{ _n_sessions }}</dd></div>
+      </dl>
+
+      <div class="mt-7 flex flex-wrap items-center gap-3">
+        <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-apply', { detail: { course: {{ page.slug | jsonify | escape }} } }))"
+                class="inline-flex items-center rounded-lg px-6 py-3 text-sm font-semibold text-white"
+                style="background:linear-gradient(135deg, #0068FF, #00D2FF); box-shadow:0 2px 8px rgba(0,194,255,0.25);">Postular a este curso</button>
+        <a href="#temario" class="inline-flex items-center rounded-lg border border-white/15 px-5 py-3 text-sm text-white/80 hover:text-white hover:border-white/30 transition">Ver temario</a>
+      </div>
+      {% if page.status == "in_development" %}
+        <p class="mt-4 text-sm text-amber-300/90">Curso en desarrollo: las sesiones se irán publicando progresivamente.</p>
+      {% endif %}
+    </div>
+
+    <div class="relative">
+      <div class="absolute -inset-4 rounded-[2rem] opacity-40 blur-2xl" style="background:radial-gradient(60% 60% at 50% 50%, rgba(0,104,255,.55), transparent);"></div>
       <img src="{{ _img | relative_url }}" alt="{{ page.title | escape }}" width="1200" height="630"
-           class="w-full rounded-2xl border border-white/10 object-cover">
+           class="relative w-full rounded-2xl border border-white/10 object-cover shadow-soft">
+    </div>
+  </section>
+
+  <div class="mt-14 grid gap-10 lg:grid-cols-[1fr_330px] items-start">
+    <!-- COLUMNA PRINCIPAL -->
+    <div class="min-w-0 space-y-14">
 
       {% if content and content != "" %}
-      <section class="mt-10">
+      <section>
         {% include components/section-header.html title="Sobre el curso" %}
         <div class="prose prose-invert max-w-none mt-4">{{ content }}</div>
       </section>
       {% endif %}
 
       {% if page.outcomes %}
-      <section class="mt-10">
+      <section>
         {% include components/section-header.html title="Lo que aprenderás" %}
         <ul class="mt-4 grid gap-3 md:grid-cols-2">
           {% for o in page.outcomes %}
@@ -54,37 +87,47 @@ layout: default
       {% endif %}
 
       <!-- TEMARIO -->
-      <section class="mt-10" x-data="{ open: 1 }">
-        {% include components/section-header.html title="Temario" %}
-        <p class="mt-3 text-sm text-white/60">{{ page.modules.size }} módulos · {{ _n_sessions }} sesiones · {{ page.hours }} horas</p>
+      <section id="temario" class="scroll-mt-24"
+               x-data="{ open: { 1: true }, n: {{ page.modules.size }}, all(v) { for (let i = 1; i <= this.n; i++) this.open[i] = v } }">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            {% include components/section-header.html title="Temario" %}
+            <p class="mt-3 text-sm text-white/60">{{ page.modules.size }} módulos · {{ _n_sessions }} sesiones{% if _total_min > 0 %}{% assign _h = _total_min | divided_by: 60 %}{% assign _r = _total_min | modulo: 60 %} · {% if _h > 0 %}{{ _h }} h {% endif %}{% if _r > 0 %}{{ _r }} min{% endif %} de contenido{% endif %}</p>
+          </div>
+          <div class="flex gap-4 text-sm">
+            <button type="button" @click="all(true)" class="text-white/60 hover:text-white underline-offset-4 hover:underline">Expandir todo</button>
+            <button type="button" @click="all(false)" class="text-white/60 hover:text-white underline-offset-4 hover:underline">Contraer todo</button>
+          </div>
+        </div>
 
-        <div class="mt-4 space-y-3">
+        <div class="mt-5 space-y-3">
           {% for m in page.modules %}
+          {% assign _mi = forloop.index %}
+          {% assign _mt = 0 %}
+          {% for s in m.sessions %}{% assign _mm = s.duration | split: ' ' | first | plus: 0 %}{% assign _mt = _mt | plus: _mm %}{% endfor %}
           <div class="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
-            <button type="button" @click="open = (open === {{ forloop.index }} ? 0 : {{ forloop.index }})"
-                    :aria-expanded="open === {{ forloop.index }}"
-                    class="w-full flex items-center justify-between gap-4 px-4 py-3 text-left hover:bg-white/5 transition">
-              <span>
-                <span class="block text-xs text-white/50">Módulo {{ forloop.index }}</span>
-                <span class="block font-semibold">{{ m.title }}</span>
+            <button type="button" @click="open[{{ _mi }}] = !open[{{ _mi }}]" :aria-expanded="!!open[{{ _mi }}]"
+                    class="w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-white/5 transition">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-sm font-bold text-white/80">{{ _mi }}</span>
+              <span class="min-w-0 flex-1">
+                <span class="block font-semibold leading-snug">{{ m.title }}</span>
+                <span class="block text-xs text-white/50 mt-0.5">{{ m.sessions.size }} sesiones{% if _mt > 0 %} · {{ _mt }} min{% endif %}</span>
               </span>
-              <span class="flex items-center gap-3 shrink-0 text-xs text-white/50">
-                {{ m.sessions.size }} sesiones
-                <span class="transition-transform" :class="open === {{ forloop.index }} ? 'rotate-90' : ''">{% include icons/chevron-right.svg class="h-4 w-4" %}</span>
-              </span>
+              <span class="shrink-0 text-white/50 transition-transform" :class="open[{{ _mi }}] ? 'rotate-90' : ''">{% include icons/chevron-right.svg class="h-4 w-4" %}</span>
             </button>
-            <div x-show="open === {{ forloop.index }}" style="display:none" class="border-t border-white/10 px-4 py-3">
+            <div x-show="open[{{ _mi }}]" style="display:none" class="border-t border-white/10 px-4 py-4">
               {% if m.summary %}<p class="text-sm text-white/70 mb-3">{{ m.summary }}</p>{% endif %}
               <ol class="space-y-2">
                 {% for s in m.sessions %}
-                <li class="flex items-start justify-between gap-4 rounded-lg bg-white/5 px-3 py-2">
-                  <div class="min-w-0">
+                <li class="flex items-start gap-3 rounded-lg bg-white/5 px-3 py-2.5">
+                  <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full {% if s.status == 'soon' %}bg-amber-300/70{% else %}bg-sky-400{% endif %}"></span>
+                  <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium">{{ s.title }}</p>
                     {% if s.summary %}<p class="text-xs text-white/60 mt-0.5">{{ s.summary }}</p>{% endif %}
                   </div>
                   <div class="shrink-0 text-right text-xs">
                     {% if s.duration %}<span class="block text-white/60">{{ s.duration }}</span>{% endif %}
-                    {% if s.status == "soon" %}<span class="block mt-1 text-amber-300/90">Próximamente</span>{% endif %}
+                    {% if s.status == "soon" %}<span class="block mt-0.5 text-amber-300/90">Próximamente</span>{% endif %}
                   </div>
                 </li>
                 {% endfor %}
@@ -96,62 +139,118 @@ layout: default
       </section>
 
       {% if page.audience or page.prerequisites %}
-      <section class="mt-10 grid gap-8 md:grid-cols-2">
+      <section class="grid gap-8 md:grid-cols-2">
         {% if page.audience %}
         <div>
           {% include components/section-header.html title="¿A quién va dirigido?" %}
-          <p class="mt-4 text-sm text-white/80">{{ page.audience }}</p>
+          <p class="mt-4 text-sm text-white/80 leading-relaxed">{{ page.audience }}</p>
         </div>
         {% endif %}
         {% if page.prerequisites %}
         <div>
           {% include components/section-header.html title="Requisitos" variant="secondary" %}
-          <ul class="mt-4 space-y-2 text-sm text-white/80 list-disc list-inside">
-            {% for r in page.prerequisites %}<li>{{ r }}</li>{% endfor %}
+          <ul class="mt-4 space-y-2 text-sm text-white/80">
+            {% for r in page.prerequisites %}
+              <li class="flex gap-2.5"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400"></span><span>{{ r }}</span></li>
+            {% endfor %}
           </ul>
         </div>
         {% endif %}
       </section>
       {% endif %}
 
+      <!-- CÓMO ACCEDER -->
+      <section>
+        {% include components/section-header.html title="Cómo acceder" %}
+        <ol class="mt-5 grid gap-4 md:grid-cols-3">
+          <li class="rounded-xl border border-white/10 bg-white/5 p-4">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white" style="background:linear-gradient(135deg, #0068FF, #00D2FF);">1</span>
+            <p class="mt-3 font-semibold">Postula</p>
+            <p class="mt-1 text-sm text-white/65">Con tu cuenta de Google y tu perfil de LinkedIn. Cuéntame qué esperas aplicar.</p>
+          </li>
+          <li class="rounded-xl border border-white/10 bg-white/5 p-4">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white" style="background:linear-gradient(135deg, #0068FF, #00D2FF);">2</span>
+            <p class="mt-3 font-semibold">Revisión</p>
+            <p class="mt-1 text-sm text-white/65">Reviso tu perfil y asigno los cupos según el interés de cada postulante. Te aviso por correo.</p>
+          </li>
+          <li class="rounded-xl border border-white/10 bg-white/5 p-4">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white" style="background:linear-gradient(135deg, #0068FF, #00D2FF);">3</span>
+            <p class="mt-3 font-semibold">Aprende</p>
+            <p class="mt-1 text-sm text-white/65">Ingresa al aula con la misma cuenta de Google y avanza a tu ritmo.</p>
+          </li>
+        </ol>
+      </section>
+
       <!-- INSTRUCTOR -->
-      <section class="mt-10">
+      <section>
         {% include components/section-header.html title="Instructor" %}
-        <div class="mt-4 flex items-center gap-4">
-          <img src="{{ site.author.avatar | relative_url }}" alt="{{ site.author.name }}"
-               class="h-14 w-14 rounded-full object-cover ring-2 ring-white/10">
-          <div class="leading-tight">
-            <div class="font-semibold">{{ site.author.name }}</div>
-            <div class="text-sm text-white/60">{{ site.author.position }}</div>
+        <div class="mt-5 flex flex-wrap items-center gap-5 rounded-2xl border border-white/10 bg-white/5 p-5">
+          <img src="{{ site.author.avatar | relative_url }}" alt="{{ site.author.name }}" class="h-16 w-16 rounded-full object-cover ring-2 ring-white/15">
+          <div class="min-w-0 flex-1">
+            <div class="text-lg font-semibold leading-tight">{{ site.author.name }}</div>
+            <div class="mt-1 text-sm text-white/60">{{ site.author.position }}</div>
+            <div class="mt-3 flex flex-wrap gap-2 text-sm">
+              <a href="{{ '/cv/' | relative_url }}" class="rounded-lg border border-white/15 px-3 py-1.5 text-white/80 hover:text-white hover:border-white/30 transition">Ver trayectoria</a>
+              {% if site.author.linkedin %}<a href="{{ site.author.linkedin }}" target="_blank" rel="noopener" class="rounded-lg border border-white/15 px-3 py-1.5 text-white/80 hover:text-white hover:border-white/30 transition">LinkedIn</a>{% endif %}
+            </div>
           </div>
         </div>
       </section>
     </div>
 
     <!-- BARRA LATERAL -->
-    <aside class="lg:sticky lg:top-24 rounded-2xl border border-white/10 bg-white/5 p-5">
-      <dl class="space-y-3 text-sm">
-        <div class="flex justify-between gap-4"><dt class="text-white/50">Nivel</dt><dd class="text-right">{{ page.level }}</dd></div>
-        <div class="flex justify-between gap-4"><dt class="text-white/50">Duración</dt><dd class="text-right">{{ page.hours }} horas</dd></div>
-        <div class="flex justify-between gap-4"><dt class="text-white/50">Contenido</dt><dd class="text-right">{{ page.modules.size }} módulos · {{ _n_sessions }} sesiones</dd></div>
-        <div class="flex justify-between gap-4"><dt class="text-white/50">Modalidad</dt><dd class="text-right">{{ page.modality }}</dd></div>
-        <div class="flex justify-between gap-4"><dt class="text-white/50">Acceso</dt><dd class="text-right">{{ page.access }}</dd></div>
-      </dl>
-
-      {% if page.status == "in_development" %}
-        <p class="mt-5 text-xs text-amber-300/90">Curso en desarrollo: las sesiones se irán publicando progresivamente.</p>
-      {% endif %}
-
-      <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-apply', { detail: { course: {{ page.slug | jsonify | escape }} } }))"
-         class="mt-5 flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white"
-         style="background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 2px 8px rgba(0,194,255,0.25);">
-        Postular a este curso
-      </button>
-      <p class="mt-3 text-xs text-white/50">Los cupos se asignan según el perfil y el interés de cada postulante.</p>
-      <a href="{{ '/aula/' | relative_url }}" class="mt-4 flex items-center justify-center rounded-lg border border-white/15 px-4 py-2 text-sm text-white/80 hover:text-white hover:border-white/30 transition">Ya tengo acceso: entrar al aula</a>
+    <aside class="lg:sticky lg:top-24 space-y-4">
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-white/50">Este curso incluye</h2>
+        <ul class="mt-4 space-y-3 text-sm text-white/80">
+          {% for f in _features %}
+            <li class="flex gap-3"><span class="mt-0.5 text-emerald-400">{% include icons/check-circle.svg class="h-4 w-4" %}</span><span>{{ f }}</span></li>
+          {% endfor %}
+        </ul>
+        <dl class="mt-5 space-y-2.5 border-t border-white/10 pt-4 text-sm">
+          <div class="flex justify-between gap-4"><dt class="text-white/50">Modalidad</dt><dd class="text-right">{{ page.modality }}</dd></div>
+          <div class="flex justify-between gap-4"><dt class="text-white/50">Acceso</dt><dd class="text-right">{{ page.access }}</dd></div>
+        </dl>
+        <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-apply', { detail: { course: {{ page.slug | jsonify | escape }} } }))"
+                class="mt-5 flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white"
+                style="background:linear-gradient(135deg, #0068FF, #00D2FF); box-shadow:0 2px 8px rgba(0,194,255,0.25);">Postular a este curso</button>
+        <p class="mt-3 text-xs text-white/50">Los cupos se asignan según el perfil y el interés de cada postulante.</p>
+      </div>
+      <a href="{{ '/aula/' | relative_url }}" class="flex items-center justify-center rounded-lg border border-white/15 px-4 py-2.5 text-sm text-white/80 hover:text-white hover:border-white/30 transition">Ya tengo acceso: entrar al aula</a>
     </aside>
   </div>
+
+  <!-- OTROS CURSOS -->
+  {% if _others.size > 1 %}
+  <section class="mt-16">
+    {% include components/section-header.html title="Otros cursos" %}
+    <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% assign _shown = 0 %}
+      {% for c in _others %}
+        {% if c.slug != page.slug and _shown < 3 %}
+          {% include components/course-card.html item=c %}
+          {% assign _shown = _shown | plus: 1 %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 </div>
+
+<!-- Barra de postulación fija en móvil -->
+<div class="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-white/10 px-4 py-3 backdrop-blur" style="background:rgba(10,25,47,.92);">
+  <div class="mx-auto flex max-w-6xl items-center gap-3">
+    <div class="min-w-0 flex-1">
+      <p class="text-[11px] uppercase tracking-wider text-white/40">Acceso por postulación</p>
+      <p class="truncate text-sm font-semibold">{{ page.title }}</p>
+    </div>
+    <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-apply', { detail: { course: {{ page.slug | jsonify | escape }} } }))"
+            class="shrink-0 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
+            style="background:linear-gradient(135deg, #0068FF, #00D2FF);">Postular</button>
+  </div>
+</div>
+
+{% include components/apply-modal.html %}
 
 <script type="application/ld+json">
 {
@@ -163,5 +262,3 @@ layout: default
   "inLanguage": "es"
 }
 </script>
-
-{% include components/apply-modal.html %}

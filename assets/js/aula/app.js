@@ -18,6 +18,12 @@ const norm = (e) => String(e || '').trim().toLowerCase();
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' }); } catch { return ''; } };
 const ICON = {
+  lock: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>',
+  chev: '<svg class="chev h-4 w-4 shrink-0 text-white/40 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+  clock: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  arrowL: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>',
+  arrowR: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+  ext: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></svg>',
   check: '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>',
   file: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg>',
   quiz: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-.8.6-1.5 1-1.5 2M12 17h.01"/></svg>',
@@ -217,14 +223,15 @@ async function refreshPending() {
 
 /* ---------- vistas ---------- */
 const btnPrimary = 'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white';
-const gradient = 'background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 2px 8px rgba(0,194,255,0.25);';
+const gradient = 'background:linear-gradient(135deg, #0068FF, #00D2FF); box-shadow:0 2px 8px rgba(0,194,255,0.25);';
 const card = 'rounded-2xl border border-white/10 bg-white/5';
-const bar = (n) => `<div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full rounded-full" style="width:${n}%; background:linear-gradient(90deg, var(--accent), var(--accent2));"></div></div>`;
+const bar = (n) => `<div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full rounded-full" style="width:${n}%; background:linear-gradient(90deg, #0068FF, #00D2FF);"></div></div>`;
 
 function topbar(active) {
   const link = (href, label, key) => `<a href="${href}" class="px-3 py-1.5 rounded-lg text-sm ${active === key ? 'bg-white/10 text-white' : 'text-white/70 hover:text-white hover:bg-white/5'}">${label}</a>`;
   return `<div class="flex flex-wrap items-center justify-between gap-3 mb-8 pb-4 border-b border-white/10">
     <nav class="flex items-center gap-1">
+      <span class="mr-3 hidden text-xs font-semibold uppercase tracking-[0.18em] text-sky-300/80 sm:inline">Aula virtual</span>
       ${link('#/', 'Mis cursos', 'home')}
       ${S.isAdmin ? link('#/admin', 'Administración' + (S.pending ? ` <span class="ml-1 rounded-md bg-amber-400/90 text-slate-900 text-[11px] font-semibold px-1.5 py-0.5">${S.pending}</span>` : ''), 'admin') : ''}
     </nav>
@@ -265,20 +272,58 @@ function certBlock(c, p) {
   return '';
 }
 
+// Curso con actividad más reciente (para "Continúa donde lo dejaste").
+function lastActive(cs) {
+  let best = null, bt = -1;
+  for (const c of cs) {
+    const p = S.prog[c.id] || {};
+    if (!p.last && !doneCount(c, p)) continue;
+    const t = (p.updatedAt && (p.updatedAt.seconds || p.updatedAt)) || 0;
+    if (best === null || t > bt) { best = c; bt = t; }
+  }
+  return best;
+}
+
 function homeView() {
   const cs = myCourses();
+  const first = esc((S.user.name || '').split(' ')[0]);
+  const issued = S.certs.filter((x) => x.status === 'issued');
+  const totalDone = cs.reduce((n, c) => n + doneCount(c, S.prog[c.id] || {}), 0);
+  const totalAll = cs.reduce((n, c) => n + trackable(c).length, 0);
+  const stat = (label, value, sub) => `<div class="${card} px-4 py-3"><p class="text-[11px] uppercase tracking-wider text-white/40">${label}</p>
+    <p class="mt-1 text-2xl font-display font-bold">${value}</p><p class="text-xs text-white/50">${sub}</p></div>`;
+
+  const cur = lastActive(cs);
+  let hero = '';
+  if (cur) {
+    const p = S.prog[cur.id] || {};
+    const ls = seqOf(cur).find((s) => s.id === p.last);
+    const n = pct(cur, p);
+    hero = `<section class="${card} mb-8 grid overflow-hidden md:grid-cols-[300px_1fr]">
+      <img src="${esc(cur.cover)}" alt="" class="h-full min-h-[150px] w-full object-cover object-left">
+      <div class="flex flex-col justify-center p-6">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300/80">Continúa donde lo dejaste</p>
+        <h2 class="mt-1 text-xl font-bold">${esc(cur.title)}</h2>
+        ${ls ? `<p class="mt-1 text-sm text-white/60">Última sesión: ${esc(ls.title)}</p>` : ''}
+        <div class="mt-4 max-w-md"><div class="mb-1.5 flex justify-between text-xs text-white/60"><span>${doneCount(cur, p)} de ${trackable(cur).length} actividades</span><span>${n}%</span></div>${bar(n)}</div>
+        <a href="#/c/${esc(cur.id)}/${esc(p.last || '')}" class="${btnPrimary} mt-5 self-start px-6" style="${gradient}">Continuar</a>
+      </div></section>`;
+  }
+
   const cards = cs.map((c) => {
     const p = S.prog[c.id] || {};
     const seq = trackable(c);
     const target = p.last || (seq[0] || seqOf(c)[0])?.id || '';
     const n = pct(c, p);
-    return `<article class="${card} overflow-hidden flex flex-col">
-      <img src="${esc(c.cover)}" alt="" class="w-full h-40 object-cover" loading="lazy">
-      <div class="p-4 flex flex-col flex-1">
+    const chip = n === 100 ? '<span class="absolute left-3 top-3 rounded-md bg-emerald-500/90 px-2 py-0.5 text-[11px] font-semibold text-white">Completado</span>'
+      : c.status === 'in_development' ? '<span class="absolute left-3 top-3 rounded-md bg-amber-400/90 px-2 py-0.5 text-[11px] font-semibold text-slate-900">En desarrollo</span>' : '';
+    return `<article class="${card} flex flex-col overflow-hidden">
+      <div class="relative"><img src="${esc(c.cover)}" alt="" class="aspect-[1200/630] w-full object-cover" loading="lazy">${chip}</div>
+      <div class="flex flex-1 flex-col p-4">
         <h3 class="font-semibold">${esc(c.title)}</h3>
-        <p class="mt-1 text-sm text-white/70 line-clamp-2">${esc(c.subtitle)}</p>
+        <p class="mt-1 line-clamp-2 text-sm text-white/70">${esc(c.subtitle)}</p>
         <div class="mt-4">
-          <div class="flex justify-between text-xs text-white/60 mb-1"><span>${doneCount(c, p)} de ${seq.length} actividades</span><span>${n}%</span></div>
+          <div class="mb-1.5 flex justify-between text-xs text-white/60"><span>${doneCount(c, p)} de ${seq.length} actividades</span><span>${n}%</span></div>
           ${bar(n)}
         </div>
         <a href="#/c/${esc(c.id)}/${esc(target)}" class="${btnPrimary} mt-4" style="${gradient}">${n === 0 ? 'Comenzar' : n === 100 ? 'Repasar' : 'Continuar'}</a>
@@ -286,35 +331,57 @@ function homeView() {
       </div>
     </article>`;
   }).join('');
+
+  const certs = issued.length ? `<section class="mt-10"><h2 class="text-sm font-semibold uppercase tracking-wider text-white/50">Mis certificados</h2>
+    <ul class="mt-3 grid gap-3 sm:grid-cols-2">${issued.map((ct) => `<li class="${card} flex items-center justify-between gap-3 px-4 py-3">
+      <div class="min-w-0"><p class="truncate text-sm font-medium">${esc(ct.courseTitle)}</p><p class="text-xs text-white/50">Emitido el ${esc(fmtDate(ct.issuedAt))}</p></div>
+      <a href="/certificado/?c=${encodeURIComponent(ct.code)}" target="_blank" rel="noopener" class="shrink-0 rounded-lg border border-emerald-400/50 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/25">Ver</a></li>`).join('')}</ul></section>` : '';
+
   return `${topbar('home')}
-    <header class="mb-6"><h1 class="text-2xl font-display font-bold">Mis cursos</h1>
-    <p class="text-sm text-white/60 mt-1">Hola, ${esc((S.user.name || '').split(' ')[0])}. Retoma donde lo dejaste.</p></header>
-    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">${cards}</div>`;
+    <header class="mb-6"><h1 class="text-2xl font-display font-bold">Hola, ${first}</h1>
+    <p class="mt-1 text-sm text-white/60">Este es tu espacio de aprendizaje.</p></header>
+    <div class="mb-8 grid grid-cols-3 gap-3">
+      ${stat('Cursos', cs.length, 'asignados')}
+      ${stat('Actividades', totalDone, `de ${totalAll} completadas`)}
+      ${stat('Certificados', issued.length, 'emitidos')}
+    </div>
+    ${hero}
+    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-white/50">Mis cursos</h2>
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">${cards}</div>
+    ${certs}`;
 }
 
 function sidebarHtml(c, cur, p) {
   const seq = seqOf(c);
-  const mods = c.modules.map((m) => {
+  const mods = c.modules.map((m, mi) => {
     const items = seq.filter((s) => s.mid === m.id);
+    const track = items.filter((s) => s.status !== 'soon');
+    const md = track.filter((s) => isDone(p, s)).length;
+    const full = track.length > 0 && md === track.length;
     const hasCur = items.some((s) => s.id === cur.id);
     const lis = items.map((s) => {
       const done = isDone(p, s);
       const soon = s.status === 'soon';
       const isCur = s.id === cur.id;
       const q = s.type === 'quiz';
-      return `<li><a href="#/c/${esc(c.id)}/${esc(s.id)}" class="flex items-start gap-3 rounded-lg px-3 py-2 text-sm ${isCur ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}">
-        <span class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-white/30'}">${done ? ICON.check : ''}</span>
-        <span class="min-w-0"><span class="block ${q ? 'text-sky-200' : ''}">${q ? ICON.quiz.replace('class="', 'class="inline mr-1 -mt-0.5 ') : ''}${esc(s.title)}</span><span class="block text-xs text-white/40">${esc(s.duration || '')}${soon ? ' · Próximamente' : ''}</span></span></a></li>`;
+      const state = soon ? `<span class="mt-0.5 text-white/30">${ICON.lock.replace('h-4 w-4', 'h-3.5 w-3.5')}</span>`
+        : done ? `<span class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">${ICON.check}</span>`
+        : `<span class="mt-0.5 h-4 w-4 shrink-0 rounded-full border ${isCur ? 'border-sky-300' : 'border-white/30'}"></span>`;
+      return `<li><a href="#/c/${esc(c.id)}/${esc(s.id)}" ${isCur ? 'aria-current="page"' : ''} class="flex items-start gap-3 rounded-lg px-3 py-2 text-sm transition ${isCur ? 'bg-accent/15 font-medium text-white ring-1 ring-accent/40' : soon ? 'text-white/40' : 'text-white/70 hover:bg-white/5 hover:text-white'}">
+        ${state}
+        <span class="min-w-0 flex-1"><span class="block leading-snug ${q ? 'text-sky-200' : ''}">${q ? ICON.quiz.replace('class="', 'class="mr-1 inline -mt-0.5 ') : ''}${esc(s.title)}</span>
+        <span class="block text-xs text-white/40">${esc(s.duration || '')}${soon ? ' · Próximamente' : ''}</span></span></a></li>`;
     }).join('');
-    const track = items.filter((s) => s.status !== 'soon');
-    const md = track.filter((s) => isDone(p, s)).length;
-    return `<details class="group rounded-xl border border-white/10 bg-white/5" ${hasCur ? 'open' : ''}>
-      <summary class="cursor-pointer list-none px-4 py-3"><span class="block text-xs text-white/50">${esc(m.id.replace('m', 'Módulo '))} · ${md}/${track.length}</span><span class="block font-semibold text-sm">${esc(m.title)}</span></summary>
-      <ul class="px-2 pb-2 space-y-1">${lis}</ul></details>`;
+    return `<details class="overflow-hidden rounded-xl border border-white/10 bg-white/5" ${hasCur ? 'open' : ''}>
+      <summary class="flex cursor-pointer list-none items-center gap-3 px-3.5 py-3 hover:bg-white/5">
+        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${full ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/70'}">${full ? ICON.check : mi + 1}</span>
+        <span class="min-w-0 flex-1"><span class="block text-sm font-semibold leading-snug">${esc(m.title)}</span>
+        <span class="mt-0.5 block text-xs text-white/45">${md} de ${track.length} completadas</span></span>
+        ${ICON.chev}
+      </summary>
+      <ul class="space-y-0.5 px-2 pb-2">${lis}</ul></details>`;
   }).join('');
-  const n = pct(c, p);
-  return `<div class="${card} p-4 mb-3"><div class="flex justify-between text-xs text-white/60 mb-1"><span>Tu progreso</span><span>${n}%</span></div>${bar(n)}</div>
-    <div class="space-y-2">${mods}</div>`;
+  return `<div class="space-y-2.5">${mods}</div>`;
 }
 
 function quizMain(c, cur, p) {
@@ -347,6 +414,18 @@ function quizMain(c, cur, p) {
     </div>`;
 }
 
+// Etiqueta corta según el destino de un material.
+function matMeta(url) {
+  try {
+    const u = new URL(url); const h = u.hostname.replace(/^www\./, '');
+    if (/(^|\.)(drive|docs)\.google\.com$/.test(h)) return 'Drive';
+    if (/colab\.research\.google\.com$/.test(h)) return 'Colab';
+    if (/github\.com$/.test(h)) return 'GitHub';
+    if (/\.pdf$/i.test(u.pathname)) return 'PDF';
+    return h;
+  } catch { return 'Enlace'; }
+}
+
 function courseView(cid, sid) {
   const c = S.catalog.find((x) => x.id === cid);
   if (!c || !myCourses().includes(c)) return `${topbar('home')}<p class="text-white/70">No tienes acceso a este curso. <a class="underline" href="#/">Volver</a></p>`;
@@ -355,45 +434,75 @@ function courseView(cid, sid) {
   const cur = all.find((s) => s.id === sid) || all.find((s) => s.id === p.last) || trackable(c)[0] || all[0];
   const idx = all.indexOf(cur);
   const prev = all[idx - 1], next = all[idx + 1];
-  const nav = `<div class="flex gap-2">
-      ${prev ? `<a href="#/c/${esc(cid)}/${esc(prev.id)}" class="rounded-lg border border-white/15 px-4 py-2 text-sm text-white/80 hover:text-white hover:border-white/30">← Anterior</a>` : ''}
-      ${next ? `<a href="#/c/${esc(cid)}/${esc(next.id)}" class="rounded-lg border border-white/15 px-4 py-2 text-sm text-white/80 hover:text-white hover:border-white/30">Siguiente →</a>` : ''}</div>`;
+  const prevHref = prev ? `#/c/${cid}/${prev.id}` : '', nextHref = next ? `#/c/${cid}/${next.id}` : '';
+  const total = trackable(c).length, done = doneCount(c, p), n = pct(c, p);
+
+  const navBtn = 'inline-flex items-center gap-2 rounded-lg border border-white/15 px-3.5 py-2 text-sm text-white/80 transition hover:border-white/30 hover:text-white';
+  const actionBar = (center) => `<div class="sticky bottom-3 z-10 mt-8"><div class="flex items-center gap-2 rounded-2xl border border-white/10 px-2.5 py-2.5 shadow-soft backdrop-blur" style="background:rgba(13,31,58,.92);">
+      ${prev ? `<a href="${prevHref}" title="Anterior (←)" class="${navBtn}">${ICON.arrowL}<span class="hidden sm:inline">Anterior</span></a>` : `<span class="${navBtn} pointer-events-none opacity-30">${ICON.arrowL}<span class="hidden sm:inline">Anterior</span></span>`}
+      <div class="flex flex-1 justify-center">${center}</div>
+      ${next ? `<a href="${nextHref}" title="Siguiente (→)" class="${navBtn}"><span class="hidden sm:inline">Siguiente</span>${ICON.arrowR}</a>` : `<span class="${navBtn} pointer-events-none opacity-30"><span class="hidden sm:inline">Siguiente</span>${ICON.arrowR}</span>`}
+    </div></div>`;
 
   let main;
   if (cur.type === 'quiz') {
-    main = `${quizMain(c, cur, p)}<div class="mt-8">${nav}</div>`;
+    main = `${quizMain(c, cur, p)}${actionBar('')}`;
   } else {
     const ov = S.priv[cid]?.sessions?.[cur.id] || {};
     const video = parseVideo(ov.video);
     const res = (ov.resources || []).filter((r) => r && r.url);
     const soon = cur.status === 'soon';
-    const done = !!p.done?.[cur.id];
-    const videoHtml = video ? `<div class="mt-5 aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black">
-        <iframe src="${esc(video.src)}" title="${esc(cur.title)}" class="h-full w-full" allow="autoplay; encrypted-media; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>` : '';
+    const isDone = !!p.done?.[cur.id];
+
+    const media = soon
+      ? `<div class="${card} mt-6 flex flex-col items-center px-6 py-14 text-center"><span class="text-white/40">${ICON.lock.replace('h-4 w-4', 'h-7 w-7')}</span>
+          <p class="mt-3 font-semibold">Esta sesión se publicará próximamente</p><p class="mt-1 text-sm text-white/60">Podrás verla aquí en cuanto esté disponible.</p></div>`
+      : video ? `<div class="mt-6 aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black shadow-soft">
+          <iframe src="${esc(video.src)}" title="${esc(cur.title)}" class="h-full w-full" allow="autoplay; encrypted-media; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>` : '';
+
     const resHtml = res.length ? `<ul class="mt-3 space-y-2">${res.map((r) => `<li><a href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener noreferrer"
-        class="flex items-center gap-3 ${card} px-4 py-3 text-sm hover:bg-white/10"><span class="text-sky-300">${ICON.file}</span><span class="flex-1">${esc(r.label || 'Material')}</span><span class="text-xs text-white/50">Abrir</span></a></li>`).join('')}</ul>`
-      : `<p class="mt-3 text-sm text-white/50">${soon ? 'Esta sesión se publicará próximamente.' : 'Aún no hay materiales publicados para esta sesión.'}</p>`;
-    main = `<p class="text-xs text-white/50">${esc(cur.mtitle)}${cur.duration ? ' · ' + esc(cur.duration) : ''}</p>
-      <h1 class="mt-1 text-2xl font-display font-bold">${esc(cur.title)}</h1>
-      ${cur.summary ? `<p class="mt-2 text-white/70 text-sm">${esc(cur.summary)}</p>` : ''}
-      ${videoHtml}
-      <h2 class="mt-6 text-sm font-semibold uppercase tracking-wider text-white/50">Materiales</h2>
-      ${resHtml}
-      <h2 class="mt-8 text-sm font-semibold uppercase tracking-wider text-white/50">Mis notas <span id="note-status" class="ml-2 normal-case tracking-normal font-normal text-white/40"></span></h2>
-      <textarea id="note" rows="5" placeholder="Escribe tus apuntes de esta sesión…" class="mt-3 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30">${esc(p.notes?.[cur.id] || '')}</textarea>
-      <div class="mt-6 flex flex-wrap items-center justify-between gap-3">${nav}
-        ${soon ? '' : `<button data-act="toggle-done" class="${btnPrimary} ${done ? 'border border-emerald-400/50 bg-emerald-500/20 text-emerald-200' : ''}" ${done ? '' : `style="${gradient}"`}>${done ? '✓ Completada (clic para desmarcar)' : 'Marcar como completada'}</button>`}
-      </div>`;
+        class="group flex items-center gap-3 ${card} px-4 py-3 text-sm transition hover:border-white/25 hover:bg-white/10">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-400/10 text-sky-300">${ICON.file}</span>
+        <span class="min-w-0 flex-1"><span class="block truncate font-medium">${esc(r.label || 'Material')}</span><span class="block text-xs text-white/45">${esc(matMeta(r.url))}</span></span>
+        <span class="flex shrink-0 items-center gap-1 text-xs text-white/50 group-hover:text-white/80">Abrir ${ICON.ext}</span></a></li>`).join('')}</ul>`
+      : `<p class="mt-3 rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/50">Aún no hay materiales publicados para esta sesión.</p>`;
+
+    const doneBtn = soon ? '' : isDone
+      ? `<button data-act="toggle-done" title="Clic para desmarcar" class="${btnPrimary} border border-emerald-400/50 bg-emerald-500/20 text-emerald-200">✓ Completada</button>`
+      : `<button data-act="toggle-done" class="${btnPrimary}" style="${gradient}"><span class="sm:hidden">Completar</span><span class="hidden sm:inline">Marcar como completada</span></button>`;
+
+    main = `<div class="flex flex-wrap items-center gap-2 text-xs text-white/50">
+        <span>${esc(cur.mtitle)}</span>${cur.duration ? `<span>·</span><span class="inline-flex items-center gap-1">${ICON.clock}${esc(cur.duration)}</span>` : ''}
+        ${isDone ? '<span class="rounded-md bg-emerald-500/20 px-2 py-0.5 font-semibold text-emerald-300">Completada</span>' : ''}
+      </div>
+      <h1 class="mt-2 text-2xl font-display font-bold leading-tight sm:text-3xl">${esc(cur.title)}</h1>
+      ${cur.summary ? `<p class="mt-2 text-white/70">${esc(cur.summary)}</p>` : ''}
+      ${media}
+      ${soon ? '' : `<div class="mt-8 grid gap-6 lg:grid-cols-5">
+        <div class="lg:col-span-3"><h2 class="text-sm font-semibold uppercase tracking-wider text-white/50">Materiales</h2>${resHtml}</div>
+        <div class="lg:col-span-2"><h2 class="text-sm font-semibold uppercase tracking-wider text-white/50">Mis notas <span id="note-status" class="ml-2 font-normal normal-case tracking-normal text-white/40"></span></h2>
+          <textarea id="note" rows="7" placeholder="Escribe tus apuntes de esta sesión…" class="mt-3 w-full resize-y rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white placeholder-white/30 focus:border-white/30 focus:outline-none">${esc(p.notes?.[cur.id] || '')}</textarea></div>
+      </div>`}
+      ${actionBar(doneBtn)}`;
   }
 
-  const certBanner = isComplete(c, p) ? `<div class="${card} p-4 mb-4 flex flex-wrap items-center justify-between gap-3"><p class="text-sm text-emerald-200">Completaste el curso.</p><div class="w-full sm:w-64">${certBlock(c, p).replace('mt-3 ', '')}</div></div>` : '';
+  const cb = isComplete(c, p) ? certBlock(c, p).replace('mt-3 ', '') : '';
+  const certBanner = isComplete(c, p) ? `<div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4">
+      <div><p class="font-semibold text-emerald-200">¡Completaste el curso!</p><p class="text-sm text-emerald-100/70">Terminaste todas las actividades.</p></div>
+      ${cb ? `<div class="w-full sm:w-60">${cb}</div>` : ''}</div>` : '';
 
+  const side = sidebarHtml(c, cur, p);
   return `${topbar('home')}
-  <nav class="text-sm text-white/50 mb-4"><a href="#/" class="hover:text-white/80">Mis cursos</a> <span class="mx-2">/</span> <span class="text-white/70">${esc(c.title)}</span></nav>
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div class="min-w-0"><a href="#/" class="text-sm text-white/50 hover:text-white/80">← Mis cursos</a>
+      <p class="mt-1 truncate font-display text-lg font-bold sm:text-xl">${esc(c.title)}</p></div>
+    <div class="w-full sm:w-72"><div class="mb-1.5 flex justify-between text-xs text-white/60"><span>${done} de ${total} actividades</span><span>${n}%</span></div>${bar(n)}</div>
+  </div>
   ${certBanner}
-  <div class="grid gap-6 lg:grid-cols-[340px_1fr] items-start">
-    <aside class="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto order-2 lg:order-1">${sidebarHtml(c, cur, p)}</aside>
-    <section class="min-w-0 order-1 lg:order-2" data-session="${esc(cur.id)}" data-course="${esc(cid)}" data-type="${cur.type}">${main}</section>
+  <details class="${card} mb-5 lg:hidden"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold"><span>Contenido del curso</span><span class="text-xs font-normal text-white/50">${done}/${total}</span></summary><div class="px-3 pb-3">${side}</div></details>
+  <div class="grid items-start gap-8 lg:grid-cols-[320px_1fr]">
+    <aside class="hidden pr-1 lg:sticky lg:top-24 lg:block lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">${side}</aside>
+    <section class="min-w-0" data-session="${esc(cur.id)}" data-course="${esc(cid)}" data-type="${cur.type}" data-prev="${esc(prevHref)}" data-next="${esc(nextHref)}">${main}</section>
   </div>`;
 }
 
@@ -709,6 +818,15 @@ root.addEventListener('click', async (e) => {
     if (act === 'signin') { S.error = 'No se pudo iniciar sesión: ' + (err.message || err); await render(); }
     else alert('Error: ' + (err.message || err));
   }
+});
+
+// Atajos: flechas izquierda/derecha para cambiar de sesión.
+window.addEventListener('keydown', (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest('input, textarea, select, [contenteditable]')) return;
+  const sec = root.querySelector('[data-session]');
+  if (!sec) return;
+  if (e.key === 'ArrowRight' && sec.dataset.next) location.hash = sec.dataset.next;
+  if (e.key === 'ArrowLeft' && sec.dataset.prev) location.hash = sec.dataset.prev;
 });
 
 window.addEventListener('hashchange', () => { S.graded = null; S.quizMsg = ''; render(); });
