@@ -28,6 +28,14 @@ const CONFIG = {
   MAX_NOTICES_PER_USER_PER_HOUR: 3,
   MAX_NOTICES_PER_HOUR: 30,
   // Colores de marca.
+  // Proyecto de Firebase (para comprobar la inscripción del alumno).
+  FIREBASE_PROJECT_ID: 'aula-nrgarridoa',
+  // Archivos del aula (clases, presentaciones, descargas), guardados en Drive.
+  // Clave = id del curso. folderName = carpeta del curso en "Mi unidad" de la cuenta dueña del script;
+  // folderId (opcional) la fija por id y evita buscarla por nombre.
+  COURSE_FILES: {
+    'python-geologia': { folderName: 'Python aplicado a la geología', folderId: '' },
+  },
   NAVY: '#0A192F',
   ACCENT: '#0068FF',
 };
@@ -43,6 +51,8 @@ function doPost(e) {
     } else if (req.action === 'new_application') {
       checkRate_(user.email);
       sendNotice_(user.email, req);
+    } else if (req.action === 'file') {
+      return json_(serveFile_(user, req));
     } else {
       throw new Error('Acción no válida');
     }
@@ -63,6 +73,78 @@ function verifyFirebaseUser_(idToken) {
   const u = (JSON.parse(res.getContentText()).users || [])[0];
   if (!u || !u.email || !u.emailVerified) throw new Error('Cuenta no verificada');
   return { email: String(u.email).toLowerCase() };
+}
+
+/* --------------------- Archivos del aula (Drive) --------------------- */
+
+// Nombre lógico (lo que pide el aula) -> ruta dentro de la carpeta de la cápsula.
+const FILE_KINDS = {
+  clase: { path: 'aula/clase.html', mime: 'text/html' },
+  soluciones: { path: 'aula/soluciones.html', mime: 'text/html' },
+  presentacion: { path: 'aula/presentacion.pdf', mime: 'application/pdf' },
+  notebook: { path: 'notebook.ipynb', mime: 'application/x-ipynb+json' },
+  pptx: { path: 'presentacion.pptx', mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
+};
+// Archivo suelto en la raíz del curso (por ejemplo el paquete para ejecutar los notebooks).
+const ROOT_KINDS = { paquete: { path: 'paquete_curso.zip', mime: 'application/zip' } };
+
+/** Entrega un archivo del curso solo a quien está inscrito (o es el administrador). */
+function serveFile_(user, req) {
+  const courseId = String(req.courseId || '');
+  const course = CONFIG.COURSE_FILES[courseId];
+  if (!course) throw new Error('Curso sin archivos');
+  if (user.email !== CONFIG.ADMIN_EMAIL.toLowerCase()) requireEnrollment_(user.email, courseId, req.idToken);
+
+  const kind = String(req.kind || '');
+  let spec, folder = String(req.folder || '');
+  if (ROOT_KINDS[kind]) { spec = ROOT_KINDS[kind]; folder = ''; }
+  else {
+    spec = FILE_KINDS[kind];
+    if (!spec) throw new Error('Archivo no válido');
+    if (!/^modulo_\d{2}_[a-z0-9_]+\/c\d+\.\d+_[a-z0-9_]+$/.test(folder)) throw new Error('Carpeta no válida');
+  }
+  const rel = (folder ? folder + '/' : '') + spec.path;
+  const cache = CacheService.getScriptCache();
+  const ckey = 'f:' + courseId + ':' + rel;
+  let file = null;
+  const cached = cache.get(ckey);
+  if (cached) { try { file = DriveApp.getFileById(cached); } catch (e) { file = null; } }
+  if (!file) {
+    file = findFile_(course, rel);
+    if (!file) throw new Error('Archivo no disponible todavía');
+    cache.put(ckey, file.getId(), 21600);
+  }
+  return { ok: true, mime: spec.mime, b64: Utilities.base64Encode(file.getBlob().getBytes()) };
+}
+
+/** Comprueba, con la propia sesión del alumno, que su inscripción activa incluye el curso. */
+function requireEnrollment_(email, courseId, idToken) {
+  const url = 'https://firestore.googleapis.com/v1/projects/' + CONFIG.FIREBASE_PROJECT_ID +
+    '/databases/(default)/documents/enrollments/' + encodeURIComponent(email);
+  const res = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + idToken }, muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error('Sin acceso al curso');
+  const f = JSON.parse(res.getContentText()).fields || {};
+  const active = !f.active || f.active.booleanValue !== false;
+  const list = ((f.courses && f.courses.arrayValue && f.courses.arrayValue.values) || []).map(function (v) { return v.stringValue; });
+  if (!active || list.indexOf(courseId) < 0) throw new Error('Sin acceso al curso');
+}
+
+function findFile_(course, rel) {
+  let dir;
+  if (course.folderId) dir = DriveApp.getFolderById(course.folderId);
+  else {
+    const it = DriveApp.getFoldersByName(course.folderName);
+    if (!it.hasNext()) return null;
+    dir = it.next();
+  }
+  const parts = rel.split('/');
+  for (let i = 0; i < parts.length - 1; i++) {
+    const it = dir.getFoldersByName(parts[i]);
+    if (!it.hasNext()) return null;
+    dir = it.next();
+  }
+  const fit = dir.getFilesByName(parts[parts.length - 1]);
+  return fit.hasNext() ? fit.next() : null;
 }
 
 /* ------------------------------ Envíos ------------------------------ */
@@ -247,6 +329,7 @@ function json_(obj) {
 function autorizar() {
   MailApp.getRemainingDailyQuota();
   UrlFetchApp.fetch('https://www.google.com');
+  DriveApp.getRootFolder();   // permiso de lectura de Drive (archivos del aula)
   Logger.log('Permisos concedidos. Cuota diaria de correos restante: ' + MailApp.getRemainingDailyQuota());
 }
 

@@ -175,7 +175,7 @@ function demoApi() {
 }
 
 /* ---------- estado y modelo de progreso ---------- */
-const S = { api: null, user: null, isAdmin: false, enr: null, catalog: [], priv: {}, prog: {}, certs: [], myApps: [], pending: 0, flash: '', admin: null, error: '', graded: null, quizMsg: '' };
+const S = { api: null, user: null, isAdmin: false, enr: null, catalog: [], priv: {}, prog: {}, certs: [], myApps: [], pending: 0, flash: '', admin: null, error: '', graded: null, quizMsg: '', files: {}, pdf: null };
 const quizzesOf = (cid) => S.priv[cid]?.quizzes || {};
 const hasQuiz = (cid, mid) => (quizzesOf(cid)[mid]?.questions || []).length > 0;
 const passOf = (cid) => S.priv[cid]?.pass || PASS_DEFAULT;
@@ -219,6 +219,116 @@ async function notify(payload) {
 }
 async function refreshPending() {
   S.pending = (await S.api.listApps().catch(() => [])).filter((a) => a.status === 'pending').length;
+}
+
+/* ---------- archivos del curso (Drive, vía Apps Script) y visor ---------- */
+const KINDS = { clase: 'aula/clase.html', soluciones: 'aula/soluciones.html', presentacion: 'aula/presentacion.pdf', notebook: 'notebook.ipynb', pptx: 'presentacion.pptx', paquete: 'paquete_curso.zip' };
+const FILES_ON = DEMO ? new URLSearchParams(location.search).has('files') : !!NOTIFY_URL;
+const b64ToBytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+
+async function fetchFile(cid, folder, kind) {
+  const key = `${cid}|${folder}|${kind}`;
+  if (S.files[key]) return S.files[key];
+  let bytes;
+  if (DEMO) {
+    const base = new URLSearchParams(location.search).get('files');
+    const r = await fetch(`${base}/${kind === 'paquete' ? '' : folder + '/'}${KINDS[kind]}`);
+    if (!r.ok) throw new Error('Archivo no disponible todavía');
+    bytes = new Uint8Array(await r.arrayBuffer());
+  } else {
+    const idToken = await S.api.idToken();
+    const r = await fetch(NOTIFY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'file', courseId: cid, folder, kind, idToken }) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'No se pudo cargar el archivo');
+    bytes = b64ToBytes(j.b64);
+  }
+  if (Object.keys(S.files).length > 12) S.files = {};
+  return (S.files[key] = bytes);
+}
+
+const VTABS = [['clase', 'Clase'], ['presentacion', 'Presentación'], ['soluciones', 'Soluciones']];
+function viewerHtml(cid, cur) {
+  const tab = 'rounded-lg px-3.5 py-2 text-sm font-medium transition';
+  const dl = 'inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs text-white/75 hover:border-white/30 hover:text-white';
+  return `<div id="viewer" class="mt-6" data-cid="${esc(cid)}" data-folder="${esc(cur.folder)}">
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">${VTABS.map(([k, l]) => `<button type="button" data-act="vtab" data-tab="${k}" class="${tab} text-white/70 hover:text-white">${l}</button>`).join('')}</div>
+      <span class="flex-1"></span>
+      <button type="button" data-act="vdl" data-kind="notebook" class="${dl}">${ICON.file}Notebook (.ipynb)</button>
+      <button type="button" data-act="vdl" data-kind="pptx" class="${dl}">${ICON.file}Presentación (.pptx)</button>
+      <button type="button" data-act="vdl" data-kind="paquete" class="${dl}">${ICON.file}Paquete del curso (.zip)</button>
+      <button type="button" data-act="vfull" class="${dl}">Pantalla completa</button>
+    </div>
+    <p id="vnote" class="mt-3 hidden text-xs text-white/45"></p>
+    <div id="vbody" class="mt-3 overflow-hidden rounded-2xl border border-white/10 shadow-soft" style="min-height:240px;background:#0d1f3a"></div>
+  </div>`;
+}
+
+async function showTab(tab) {
+  const v = document.getElementById('viewer'); if (!v) return;
+  const body = document.getElementById('vbody'), note = document.getElementById('vnote');
+  const token = (body.dataset.token = String(Date.now()) + Math.random());
+  v.querySelectorAll('[data-act=vtab]').forEach((b) => {
+    const on = b.dataset.tab === tab;
+    b.classList.toggle('text-white', on); b.classList.toggle('text-white/70', !on); b.style.background = on ? 'linear-gradient(135deg, #0068FF, #00D2FF)' : '';
+  });
+  note.classList.toggle('hidden', tab === 'presentacion');
+  note.classList.toggle('text-amber-200/80', tab === 'soluciones'); note.classList.toggle('text-white/45', tab !== 'soluciones');
+  note.textContent = tab === 'soluciones' ? 'Revisa las soluciones después de intentar los ejercicios por tu cuenta: es la forma de que se quede.'
+    : tab === 'clase' ? 'Para ejecutar los ejercicios en tu computadora, descarga el notebook y el paquete del curso (datos y herramientas) y sigue la cápsula 0.1.' : '';
+  body.innerHTML = '<p class="flex items-center justify-center px-6 py-16 text-sm text-white/60">Cargando…</p>';
+  try {
+    const bytes = await fetchFile(v.dataset.cid, v.dataset.folder, tab);
+    if (body.dataset.token !== token) return;
+    if (tab === 'presentacion') await showPdf(body, bytes, token);
+    else {
+      const f = document.createElement('iframe');
+      f.title = tab === 'clase' ? 'Clase' : 'Soluciones'; f.className = 'block w-full bg-white'; f.style.height = '78vh';
+      f.setAttribute('sandbox', 'allow-popups allow-popups-to-escape-sandbox');   // sin scripts ni acceso al aula
+      f.srcdoc = new TextDecoder('utf-8').decode(bytes);
+      body.innerHTML = ''; body.appendChild(f);
+    }
+  } catch (e) {
+    if (body.dataset.token === token) body.innerHTML = `<p class="px-6 py-14 text-center text-sm text-white/60">${esc(e.message || 'No se pudo cargar')}</p>`;
+  }
+}
+
+let pdfjs;
+async function showPdf(body, bytes, token) {
+  pdfjs ||= await import(new URL('../../vendor/pdfjs/pdf.min.mjs', import.meta.url).href);
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('../../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
+  const doc = await pdfjs.getDocument({ data: bytes.slice() }).promise;
+  if (body.dataset.token !== token) return;
+  S.pdf = { doc, n: 1 };
+  const btn = 'rounded-lg border border-white/15 px-3 py-1.5 text-sm text-white/80 hover:border-white/30 hover:text-white';
+  body.innerHTML = `<div id="slides" class="flex flex-col" style="background:#0d1f3a">
+      <div class="relative bg-black"><canvas id="slide-canvas" class="block w-full"></canvas></div>
+      <div class="flex items-center justify-center gap-3 px-3 py-3">
+        <button type="button" data-act="slide-prev" class="${btn}">Anterior</button>
+        <span id="slide-count" class="min-w-[5rem] text-center text-sm text-white/70"></span>
+        <button type="button" data-act="slide-next" class="${btn}">Siguiente</button>
+      </div></div>`;
+  await drawSlide();
+}
+async function drawSlide() {
+  const P = S.pdf, cv = document.getElementById('slide-canvas'); if (!P || !cv) return;
+  P.n = Math.min(Math.max(P.n, 1), P.doc.numPages);
+  const page = await P.doc.getPage(P.n);
+  const vp1 = page.getViewport({ scale: 1 });
+  const w = cv.parentElement.clientWidth || 800, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const vp = page.getViewport({ scale: (w / vp1.width) * dpr });
+  cv.width = vp.width; cv.height = vp.height;
+  await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+  const c = document.getElementById('slide-count'); if (c) c.textContent = `${P.n} / ${P.doc.numPages}`;
+}
+function initViewer() { if (document.getElementById('viewer')) showTab('clase'); }
+async function downloadKind(cid, folder, kind) {
+  const bytes = await fetchFile(cid, folder, kind);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes]));
+  a.download = kind === 'paquete' ? `${cid}.zip` : folder.split('/').pop() + (kind === 'pptx' ? '.pptx' : '.ipynb');
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
 /* ---------- vistas ---------- */
@@ -374,7 +484,7 @@ function sidebarHtml(c, cur, p) {
     }).join('');
     return `<details class="overflow-hidden rounded-xl border border-white/10 bg-white/5" ${hasCur ? 'open' : ''}>
       <summary class="flex cursor-pointer list-none items-center gap-3 px-3.5 py-3 hover:bg-white/5">
-        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${full ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/70'}">${full ? ICON.check : mi + 1}</span>
+        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${full ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/70'}">${full ? ICON.check : mi + (c.moduleStart ?? 1)}</span>
         <span class="min-w-0 flex-1"><span class="block text-sm font-semibold leading-snug">${esc(m.title)}</span>
         <span class="mt-0.5 block text-xs text-white/45">${md} de ${track.length} completadas</span></span>
         ${ICON.chev}
@@ -478,6 +588,7 @@ function courseView(cid, sid) {
       <h1 class="mt-2 text-2xl font-display font-bold leading-tight sm:text-3xl">${esc(cur.title)}</h1>
       ${cur.summary ? `<p class="mt-2 text-white/70">${esc(cur.summary)}</p>` : ''}
       ${media}
+      ${!soon && cur.folder && FILES_ON ? viewerHtml(cid, cur) : ''}
       ${soon ? '' : `<div class="mt-8 grid gap-6 lg:grid-cols-5">
         <div class="lg:col-span-3"><h2 class="text-sm font-semibold uppercase tracking-wider text-white/50">Materiales</h2>${resHtml}</div>
         <div class="lg:col-span-2"><h2 class="text-sm font-semibold uppercase tracking-wider text-white/50">Mis notas <span id="note-status" class="ml-2 font-normal normal-case tracking-normal text-white/40"></span></h2>
@@ -710,7 +821,7 @@ function adminView() {
       }).join('');
       return `<details class="overflow-hidden rounded-xl border border-white/10 bg-white/5" ${mi === 0 ? 'open' : ''}>
         <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-3 hover:bg-white/5">
-          <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-white/70">${mi + 1}</span>
+          <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-white/70">${mi + (course.moduleStart ?? 1)}</span>
           <span class="min-w-0 flex-1"><span class="block text-sm font-semibold">${esc(m.title)}</span>
           <span class="block text-xs text-white/45">${covM} de ${m.sessions.length} sesiones con contenido · ${hasQ ? 'con evaluación' : 'sin evaluación'}</span></span>${ICON.chev}</summary>
         <div class="space-y-3 border-t border-white/10 p-4">${sess}
@@ -754,6 +865,7 @@ async function render() {
     } else if (r.v === 'course') {
       if (!(r.cid in S.priv)) S.priv[r.cid] = (await S.api.getPrivate(r.cid)) || {};
       root.innerHTML = courseView(r.cid, r.sid);
+      initViewer();
       const sec = root.querySelector('[data-session]');
       if (sec) {
         const p = S.prog[r.cid] || (S.prog[r.cid] = {});
@@ -840,6 +952,15 @@ root.addEventListener('click', async (e) => {
   if (!b) return;
   const act = b.dataset.act;
   try {
+    if (act === 'vtab') { showTab(b.dataset.tab); return; }
+    if (act === 'vfull') { const t = document.getElementById('vbody'); if (document.fullscreenElement) document.exitFullscreen(); else t.requestFullscreen?.(); return; }
+    if (act === 'vdl') {
+      const v = document.getElementById('viewer'), old = b.innerHTML;
+      b.disabled = true; b.textContent = 'Descargando…';
+      try { await downloadKind(v.dataset.cid, v.dataset.folder, b.dataset.kind); } catch (err) { alert(err.message || 'No se pudo descargar'); }
+      b.disabled = false; b.innerHTML = old; return;
+    }
+    if (act === 'slide-prev' || act === 'slide-next') { if (S.pdf) { S.pdf.n += act === 'slide-next' ? 1 : -1; await drawSlide(); } return; }
     if (act === 'signin') { S.error = ''; await S.api.signIn(); }
     if (act === 'signout') { await S.api.signOut(); }
     if (act === 'toggle-done') {

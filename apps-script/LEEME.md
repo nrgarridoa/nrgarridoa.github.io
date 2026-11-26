@@ -1,4 +1,4 @@
-# Notificaciones por correo (Google Apps Script)
+# Correos y archivos del aula (Google Apps Script)
 
 Envía por correo (1) la aprobación al postulante y (2) un aviso al administrador por cada postulación nueva.
 No se publica en el sitio: es solo el código que se pega en Google Apps Script.
@@ -26,3 +26,14 @@ editar (lápiz) → Versión: Nueva versión → Implementar**. La URL no cambia
 - El script verifica la sesión de Firebase de quien lo llama: las aprobaciones solo las puede pedir `ADMIN_EMAIL`.
 - Si la clave web de Firebase se restringe por referente HTTP en Google Cloud, hay que permitir también
   las llamadas del servidor, porque el script la usa sin referente.
+
+## Archivos del aula (clases, presentaciones, descargas)
+
+El mismo script entrega al aula los archivos del curso guardados en Drive. Antes de enviar nada comprueba la sesión
+de Firebase y que el alumno tenga el curso en su inscripción activa (lee su propio documento `enrollments/{correo}`
+con su token). Los archivos no necesitan compartirse: solo tiene que poder leerlos la cuenta dueña del script.
+
+- `CONFIG.COURSE_FILES` indica la carpeta del curso en Drive (por nombre, o por id con `folderId`).
+- Cada cápsula tiene `aula/clase.html`, `aula/soluciones.html`, `aula/presentacion.pdf` (se generan con
+  `export_aula.py` del curso), además de `notebook.ipynb` y `presentacion.pptx`. En la raíz va `paquete_curso.zip`.
+- Tras editar `Code.gs`: ejecutar `autorizar` (pide el permiso de Drive) y publicar una versión nueva.
