@@ -108,7 +108,7 @@ layout: default
           <div class="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
             <button type="button" @click="open[{{ _mi }}] = !open[{{ _mi }}]" :aria-expanded="!!open[{{ _mi }}]"
                     class="w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-white/5 transition">
-              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-sm font-bold text-white/80">{{ _mi }}</span>
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-sm font-bold text-white/80">{% if page.module_start %}{{ forloop.index0 }}{% else %}{{ _mi }}{% endif %}</span>
               <span class="min-w-0 flex-1">
                 <span class="block font-semibold leading-snug">{{ m.title }}</span>
                 <span class="block text-xs text-white/50 mt-0.5">{{ m.sessions.size }} sesiones{% if _mt > 0 %} · {{ _mt }} min{% endif %}</span>
