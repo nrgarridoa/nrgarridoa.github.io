@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Cursos"
-description: "Cursos aplicados de Nilson Garrido con aula virtual de acceso restringido: temarios, sesiones y modalidad."
+description: "Cursos aplicados de Nilson Garrido con aula virtual: temarios, sesiones y modalidad."
 permalink: /cursos/
 ---
 
@@ -29,47 +29,40 @@ permalink: /cursos/
                && (!this.q.trim() || it.t.includes(this.q.trim().toLowerCase()));
            },
            get n() { return this.items.filter((_, i) => this.ok(i)).length },
+           get filtered() { return this.q.trim() !== '' || this.cat !== 'Todos' || this.area !== 'Todos' },
            reset() { this.q = ''; this.cat = 'Todos'; this.area = 'Todos'; }
          }">
 
   <header class="mb-8 max-w-3xl">
     <h1 class="text-3xl font-display font-bold">Cursos</h1>
-    <p class="text-white/70 mt-2">Formación técnica y aplicada, con contenido en un aula virtual de acceso restringido.</p>
+    <p class="text-white/70 mt-2">Formación técnica y aplicada, con contenido y práctica en un aula virtual.</p>
   </header>
 
   {% if items.size > 0 %}
   <!-- Filtros -->
-  <div class="mb-8 rounded-2xl bg-white/5 border border-white/10 p-5 space-y-4">
-    <div class="flex flex-wrap items-center gap-3">
-      <label for="cq" class="sr-only">Buscar cursos</label>
-      <input id="cq" type="search" x-model="q" placeholder="Buscar por tema o herramienta…"
-             class="w-full sm:w-72 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder-white/40 focus:outline-none focus:border-white/30">
-      <span class="text-sm text-white/50 sm:ml-auto" x-text="n + (n === 1 ? ' curso' : ' cursos')"></span>
-    </div>
+  <div class="mb-8 flex flex-wrap items-center gap-3">
+    <label for="cq" class="sr-only">Buscar cursos</label>
+    <input id="cq" type="search" x-model="q" placeholder="Buscar por tema o herramienta…"
+           class="w-full sm:w-64 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder-white/40 focus:outline-none focus:border-white/30">
 
     {% if cats.size > 1 %}
-    <div class="flex flex-wrap items-center gap-3">
-      <span class="text-xs text-white/40 uppercase tracking-wider font-semibold w-28 shrink-0">Herramienta</span>
-      <button @click="cat='Todos'" :class="cat==='Todos' ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white/90'"
-              class="px-3.5 py-1.5 rounded-lg text-sm font-medium border transition">Todas</button>
-      {% for t in cats %}
-        <button @click="cat={{ t | jsonify | escape }}" :class="cat==={{ t | jsonify | escape }} ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white/90'"
-                class="px-3.5 py-1.5 rounded-lg text-sm font-medium border transition">{{ t }}</button>
-      {% endfor %}
-    </div>
+    <label for="cc" class="sr-only">Herramienta</label>
+    <select id="cc" x-model="cat" class="rounded-lg border border-white/10 bg-base px-3 py-2 text-sm text-white/90 focus:outline-none focus:border-white/30">
+      <option value="Todos">Todas las herramientas</option>
+      {% for t in cats %}<option value="{{ t | escape }}">{{ t }}</option>{% endfor %}
+    </select>
     {% endif %}
 
     {% if areas.size > 1 %}
-    <div class="flex flex-wrap items-center gap-3">
-      <span class="text-xs text-white/40 uppercase tracking-wider font-semibold w-28 shrink-0">Área</span>
-      <button @click="area='Todos'" :class="area==='Todos' ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white/90'"
-              class="px-3.5 py-1.5 rounded-lg text-sm font-medium border transition">Todas</button>
-      {% for t in areas %}
-        <button @click="area={{ t | jsonify | escape }}" :class="area==={{ t | jsonify | escape }} ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white/90'"
-                class="px-3.5 py-1.5 rounded-lg text-sm font-medium border transition">{{ t }}</button>
-      {% endfor %}
-    </div>
+    <label for="ca" class="sr-only">Área</label>
+    <select id="ca" x-model="area" class="rounded-lg border border-white/10 bg-base px-3 py-2 text-sm text-white/90 focus:outline-none focus:border-white/30">
+      <option value="Todos">Todas las áreas</option>
+      {% for t in areas %}<option value="{{ t | escape }}">{{ t }}</option>{% endfor %}
+    </select>
     {% endif %}
+
+    <button x-show="filtered" @click="reset()" style="display:none" class="text-sm text-white/60 underline hover:text-white">Limpiar</button>
+    <span class="text-sm text-white/50 sm:ml-auto" x-text="n + (n === 1 ? ' curso' : ' cursos')"></span>
   </div>
   {% endif %}
 

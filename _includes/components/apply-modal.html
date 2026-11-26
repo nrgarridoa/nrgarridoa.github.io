@@ -1,43 +1,56 @@
 {% comment %}
   component: apply-modal
-  description: Formulario de postulación a un curso. Arma un borrador de correo (Gmail o app de correo)
-               con los datos del postulante; no requiere servidor.
+  description: Formulario de postulación a un curso. La persona inicia sesión con Google y la
+               postulación llega al panel de administración del aula (Firestore).
   uso: incluir una vez por página y abrir con
-       window.dispatchEvent(new CustomEvent('open-apply', { detail: { course: 'Título del curso' } }))
+       window.dispatchEvent(new CustomEvent('open-apply', { detail: { course: 'slug-del-curso' } }))
 {% endcomment %}
 
 {% assign _opts = site.courses | where_exp: 'c','c.status != "draft"' | where_exp: 'c','c.status != "hidden"' | sort: 'order' %}
 
 <script>
+  const APPLY_COURSES = { {% for c in _opts %}{{ c.slug | jsonify }}: {{ c.title | jsonify }}{% unless forloop.last %}, {% endunless %}{% endfor %} };
+
   function applyForm() {
     return {
-      open: false, sent: false, error: '',
-      to: {{ site.author.email | jsonify }},
-      f: { course: '', name: '', gmail: '', profile: '', goal: '' },
-      show(course) {
-        this.sent = false; this.error = '';
-        if (course) this.f.course = course;
+      open: false, user: null, busy: false, state: '', error: '', sub: false, courses: APPLY_COURSES,
+      f: { course: '', name: '', profile: '', goal: '' },
+      api() {
+        return window.aulaApply ? Promise.resolve(window.aulaApply)
+          : new Promise((r) => window.addEventListener('aula-apply-ready', () => r(window.aulaApply), { once: true }));
+      },
+      show(id) {
+        this.state = ''; this.error = '';
+        if (id) this.f.course = id;
         this.open = true;
+        this.api().then((a) => {
+          if (a.preload) a.preload();
+          if (!this.sub) { this.sub = true; a.onUser((u) => { this.user = u; if (u && !this.f.name) this.f.name = u.name || ''; }); }
+        });
         this.$nextTick(() => this.$refs.first && this.$refs.first.focus());
       },
-      subject() { return 'Postulación: ' + (this.f.course || 'curso'); },
-      body() {
-        return 'Hola Nilson,\n\nQuiero postular al curso "' + this.f.course + '".\n\n'
-          + 'Nombre: ' + this.f.name.trim() + '\n'
-          + 'Cuenta de Gmail para el aula: ' + this.f.gmail.trim() + '\n\n'
-          + 'Mi perfil (ocupación, empresa o universidad, experiencia):\n' + this.f.profile.trim() + '\n\n'
-          + 'Qué espero aplicar con el curso:\n' + this.f.goal.trim() + '\n\nGracias.';
+      async login() {
+        this.error = '';
+        try { await (await this.api()).signIn(); }
+        catch (e) { this.error = 'No se pudo iniciar sesión con Google. Revisa que el navegador permita la ventana emergente.'; }
       },
-      mailto() { return 'mailto:' + this.to + '?subject=' + encodeURIComponent(this.subject()) + '&body=' + encodeURIComponent(this.body()); },
-      gmail() { return 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(this.to) + '&su=' + encodeURIComponent(this.subject()) + '&body=' + encodeURIComponent(this.body()); },
+      async logout() { await (await this.api()).signOut(); },
       valid() {
         const f = this.f;
-        if (!f.course || !f.name.trim() || !f.profile.trim() || !f.goal.trim()) { this.error = 'Completa todos los campos.'; return false; }
-        if (!/^[^\s@]+@gmail\.com$/i.test(f.gmail.trim())) { this.error = 'Indica la cuenta de Gmail con la que ingresarás al aula.'; return false; }
+        if (!f.course || f.name.trim().length < 2 || f.profile.trim().length < 2 || f.goal.trim().length < 2) { this.error = 'Completa todos los campos.'; return false; }
+        if (f.profile.length > 1000 || f.goal.length > 1000) { this.error = 'Los textos no pueden superar los 1000 caracteres.'; return false; }
         this.error = ''; return true;
       },
-      send() { if (!this.valid()) return; window.open(this.gmail(), '_blank', 'noopener'); this.sent = true; },
-      fallback(e) { if (!this.valid()) e.preventDefault(); else this.sent = true; },
+      async send() {
+        if (!this.valid() || this.busy) return;
+        this.busy = true;
+        try {
+          const r = await (await this.api()).submit({ courseId: this.f.course, courseTitle: this.courses[this.f.course], name: this.f.name, profile: this.f.profile, goal: this.f.goal });
+          this.state = r.existing ? 'exists' : 'sent';
+        } catch (e) {
+          this.error = 'No se pudo enviar la postulación. Inténtalo nuevamente en unos minutos.';
+        } finally { this.busy = false; }
+      },
     };
   }
 </script>
@@ -55,41 +68,55 @@
     <h2 id="apply-title" class="text-xl font-display font-bold">Postular a un curso</h2>
     <p class="mt-1 text-sm text-white/60">Los cupos se asignan según el perfil y el interés de cada postulante.</p>
 
-    <form class="mt-5 space-y-4" @submit.prevent="send()" @input="error = ''" @change="error = ''">
+    <!-- 1. Sesión con Google -->
+    <div x-show="!user" class="mt-6">
+      <p class="text-sm text-white/70">Para postular necesitas una cuenta de Google. Tu postulación quedará asociada a ella, y es la cuenta con la que ingresarás al aula si es aprobada.</p>
+      <button type="button" @click="login()" class="mt-4 inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white"
+              style="background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 2px 8px rgba(0,194,255,0.25);">Continuar con Google</button>
+      <p x-show="error" x-text="error" class="mt-3 text-sm text-amber-300" style="display:none"></p>
+    </div>
+
+    <!-- 2. Formulario -->
+    <form x-show="user && !state" style="display:none" class="mt-5 space-y-4" @submit.prevent="send()" @input="error = ''" @change="error = ''">
+      <p class="text-xs text-white/50">Postulando como <strong class="text-white/80" x-text="user && user.email"></strong> ·
+        <button type="button" @click="logout()" class="underline hover:text-white">cambiar cuenta</button></p>
       <div>
         <label class="text-xs text-white/50" for="ap-course">Curso</label>
         <select id="ap-course" x-model="f.course" x-ref="first" class="mt-1 w-full rounded-lg border border-white/10 bg-base px-3 py-2 text-sm">
           <option value="">Selecciona un curso</option>
-          {% for c in _opts %}<option value="{{ c.title | escape }}">{{ c.title }}</option>{% endfor %}
+          <template x-for="(title, id) in courses" :key="id"><option :value="id" x-text="title"></option></template>
         </select>
       </div>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label class="text-xs text-white/50" for="ap-name">Nombre completo</label>
-          <input id="ap-name" type="text" x-model="f.name" autocomplete="name" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
-        </div>
-        <div>
-          <label class="text-xs text-white/50" for="ap-gmail">Gmail para el aula</label>
-          <input id="ap-gmail" type="email" x-model="f.gmail" autocomplete="email" placeholder="tucuenta@gmail.com" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
-        </div>
+      <div>
+        <label class="text-xs text-white/50" for="ap-name">Nombre completo</label>
+        <input id="ap-name" type="text" x-model="f.name" maxlength="120" autocomplete="name" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
       </div>
       <div>
         <label class="text-xs text-white/50" for="ap-profile">Tu perfil</label>
-        <textarea id="ap-profile" rows="3" x-model="f.profile" placeholder="Ocupación, empresa o universidad, años de experiencia…" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm"></textarea>
+        <textarea id="ap-profile" rows="3" x-model="f.profile" maxlength="1000" placeholder="Ocupación, empresa o universidad, años de experiencia…" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm"></textarea>
       </div>
       <div>
         <label class="text-xs text-white/50" for="ap-goal">¿Qué esperas aplicar con el curso?</label>
-        <textarea id="ap-goal" rows="3" x-model="f.goal" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm"></textarea>
+        <textarea id="ap-goal" rows="3" x-model="f.goal" maxlength="1000" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm"></textarea>
       </div>
-
       <p x-show="error" x-text="error" class="text-sm text-amber-300" style="display:none"></p>
-
-      <div class="flex flex-wrap items-center gap-3">
-        <button type="submit" class="inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white"
-                style="background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 2px 8px rgba(0,194,255,0.25);">Preparar postulación en Gmail</button>
-        <a :href="mailto()" @click="fallback($event)" class="text-xs text-white/60 underline hover:text-white">Usar otra aplicación de correo</a>
-      </div>
-      <p x-show="sent" class="text-sm text-emerald-300" style="display:none">Se preparó el mensaje. Envíalo desde tu correo para completar la postulación.</p>
+      <button type="submit" :disabled="busy" class="inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              style="background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 2px 8px rgba(0,194,255,0.25);"
+              x-text="busy ? 'Enviando…' : 'Enviar postulación'"></button>
     </form>
+
+    <!-- 3. Resultado -->
+    <div x-show="state === 'sent'" style="display:none" class="mt-6">
+      <p class="text-emerald-300 font-semibold">Postulación enviada</p>
+      <p class="mt-2 text-sm text-white/70">Revisaré tu perfil. Si es aprobada, podrás ingresar al <a href="{{ '/aula/' | relative_url }}" class="underline">aula virtual</a> con tu cuenta de Google y verás el curso en "Mis cursos".</p>
+      <button type="button" @click="open = false" class="mt-4 rounded-lg border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/10">Cerrar</button>
+    </div>
+    <div x-show="state === 'exists'" style="display:none" class="mt-6">
+      <p class="text-amber-300 font-semibold">Ya postulaste a este curso</p>
+      <p class="mt-2 text-sm text-white/70">Tu postulación sigue su proceso. Puedes ver su estado ingresando al <a href="{{ '/aula/' | relative_url }}" class="underline">aula virtual</a> con la misma cuenta.</p>
+      <button type="button" @click="open = false" class="mt-4 rounded-lg border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/10">Cerrar</button>
+    </div>
   </div>
 </div>
+
+<script type="module" src="{{ '/assets/js/aula/postular.js' | relative_url }}"></script>

@@ -3,7 +3,7 @@
 // Estructura pública de los cursos: /aula/catalog.json (generada por Jekyll).
 // Contenido privado (videos, materiales, evaluaciones), alumnos, progreso y
 // certificados: Firestore (ver /firestore.rules).
-import { firebaseConfig, ADMIN_EMAIL, CONTACT_EMAIL } from './firebase-config.js';
+import { firebaseConfig, ADMIN_EMAIL } from './firebase-config.js';
 
 const FB = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const root = document.getElementById('aula-root');
@@ -103,6 +103,10 @@ async function firebaseApi() {
     listCerts: () => certs(F.collection(db, 'certificates')),
     updateCert: (code, patch) => F.setDoc(F.doc(db, 'certificates', code), patch, { merge: true }),
     deleteCert: (code) => F.deleteDoc(F.doc(db, 'certificates', code)),
+    listMyApps: (e) => certs(F.query(F.collection(db, 'applications'), F.where('ownerEmail', '==', e))).catch(() => []),
+    listApps: () => certs(F.collection(db, 'applications')),
+    updateApp: (id, patch) => F.setDoc(F.doc(db, 'applications', id), patch, { merge: true }),
+    deleteApp: (id) => F.deleteDoc(F.doc(db, 'applications', id)),
   };
 }
 
@@ -131,6 +135,11 @@ function demoApi() {
   }
   const certs = [];
   if (qs.has('pending')) certs.push({ code: 'NG-DEMO-PEND-0001', ownerEmail: 'maria@gmail.com', name: 'María Pérez', courseId: 'pbi-mineria', courseTitle: 'Power BI para Minería', hours: 24, status: 'pending', requestedAt: new Date().toISOString() });
+  const apps = [];
+  if (qs.has('apps')) {
+    apps.push({ code: 'ana@gmail.com__pbi-mineria', ownerEmail: 'ana@gmail.com', name: 'Ana Torres', courseId: 'pbi-mineria', courseTitle: 'Power BI para Minería', profile: 'Analista de planeamiento en una minera de Arequipa, 3 años de experiencia con Excel avanzado.', goal: 'Automatizar los reportes semanales de producción.', status: 'pending', createdAt: new Date().toISOString() });
+    apps.push({ code: 'luis@gmail.com__python-mineria', ownerEmail: 'luis@gmail.com', name: 'Luis Rojas', courseId: 'python-mineria', courseTitle: 'Python para Minería', profile: 'Estudiante de Ingeniería de Minas, 9.º ciclo.', goal: 'Aplicar Python en mi tesis de voladura.', status: 'pending', createdAt: new Date().toISOString() });
+  }
   return {
     onAuth: (cb) => setTimeout(() => cb(user), 50),
     signIn: async () => {}, signOut: async () => location.reload(),
@@ -150,11 +159,15 @@ function demoApi() {
     listCerts: async () => certs.slice(),
     updateCert: async (code, patch) => { Object.assign(certs.find((c) => c.code === code), patch); },
     deleteCert: async (code) => { certs.splice(certs.findIndex((c) => c.code === code), 1); },
+    listMyApps: async (e) => apps.filter((a) => a.ownerEmail === e),
+    listApps: async () => apps.slice(),
+    updateApp: async (id, patch) => { Object.assign(apps.find((a) => a.code === id), patch); },
+    deleteApp: async (id) => { apps.splice(apps.findIndex((a) => a.code === id), 1); },
   };
 }
 
 /* ---------- estado y modelo de progreso ---------- */
-const S = { api: null, user: null, isAdmin: false, enr: null, catalog: [], priv: {}, prog: {}, certs: [], admin: null, error: '', graded: null, quizMsg: '' };
+const S = { api: null, user: null, isAdmin: false, enr: null, catalog: [], priv: {}, prog: {}, certs: [], myApps: [], pending: 0, admin: null, error: '', graded: null, quizMsg: '' };
 const quizzesOf = (cid) => S.priv[cid]?.quizzes || {};
 const hasQuiz = (cid, mid) => (quizzesOf(cid)[mid]?.questions || []).length > 0;
 const passOf = (cid) => S.priv[cid]?.pass || PASS_DEFAULT;
@@ -184,6 +197,11 @@ async function loadUserData() {
     S.prog[c.id] = (await S.api.getProgress(S.user.email, c.id)) || {};
   }));
   S.certs = await S.api.listMyCerts(S.user.email);
+  S.myApps = (!S.isAdmin && !(S.enr?.courses || []).length) ? await S.api.listMyApps(S.user.email) : [];
+  if (S.isAdmin) await refreshPending();
+}
+async function refreshPending() {
+  S.pending = (await S.api.listApps().catch(() => [])).filter((a) => a.status === 'pending').length;
 }
 
 /* ---------- vistas ---------- */
@@ -197,7 +215,7 @@ function topbar(active) {
   return `<div class="flex flex-wrap items-center justify-between gap-3 mb-8 pb-4 border-b border-white/10">
     <nav class="flex items-center gap-1">
       ${link('#/', 'Mis cursos', 'home')}
-      ${S.isAdmin ? link('#/admin', 'Administración', 'admin') : ''}
+      ${S.isAdmin ? link('#/admin', 'Administración' + (S.pending ? ` <span class="ml-1 rounded-md bg-amber-400/90 text-slate-900 text-[11px] font-semibold px-1.5 py-0.5">${S.pending}</span>` : ''), 'admin') : ''}
     </nav>
     <div class="flex items-center gap-3 text-sm">
       ${S.user.photo ? `<img src="${esc(S.user.photo)}" referrerpolicy="no-referrer" alt="" class="h-8 w-8 rounded-full ring-1 ring-white/20">` : ''}
@@ -220,8 +238,10 @@ function loginView() {
 function noAccessView() {
   return `${topbar('home')}<div class="max-w-xl ${card} p-8">
     <h1 class="text-xl font-bold">Tu cuenta aún no tiene cursos asignados</h1>
-    <p class="mt-2 text-sm text-white/70">Ingresaste como <strong>${esc(S.user.email)}</strong>. Si crees que debería tener acceso, escribe a
-      <a class="underline" href="mailto:${esc(CONTACT_EMAIL)}?subject=${encodeURIComponent('Acceso al aula virtual')}">${esc(CONTACT_EMAIL)}</a> indicando esta cuenta y el curso.</p>
+    <p class="mt-2 text-sm text-white/70">Ingresaste como <strong>${esc(S.user.email)}</strong>.</p>
+    ${S.myApps.length ? `<h2 class="mt-5 text-sm font-semibold uppercase tracking-wider text-white/50">Tus postulaciones</h2>
+      <ul class="mt-2 space-y-2">${S.myApps.map((a) => `<li class="flex items-center justify-between gap-3 rounded-lg bg-white/5 px-3 py-2 text-sm"><span>${esc(a.courseTitle)}</span><span class="text-xs ${a.status === 'rejected' ? 'text-red-300' : 'text-amber-300'}">${a.status === 'rejected' ? 'No seleccionada' : a.status === 'approved' ? 'Aprobada' : 'En revisión'}</span></li>`).join('')}</ul>`
+      : `<p class="mt-3 text-sm text-white/70">Si quieres acceder a un curso, envía tu postulación desde la sección de cursos con esta misma cuenta.</p>`}
     <a href="/cursos/" class="inline-flex mt-5 rounded-lg border border-white/15 px-4 py-2 text-sm text-white/80 hover:text-white">Ver cursos</a>
   </div>`;
 }
@@ -375,7 +395,9 @@ async function loadAdmin() {
     (progress[e.email] ||= {})[cid] = (await S.api.getProgress(e.email, cid)) || {};
   })));
   const certs = (await S.api.listCerts()).sort((a, b) => String(b.requestedAt).localeCompare(String(a.requestedAt)));
-  S.admin = { enrollments, progress, certs, courseId: S.admin?.courseId || S.catalog[0]?.id };
+  const apps = (await S.api.listApps()).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  S.pending = apps.filter((a) => a.status === 'pending').length;
+  S.admin = { enrollments, progress, certs, apps, courseId: S.admin?.courseId || S.catalog[0]?.id };
 }
 
 function adminView() {
@@ -405,6 +427,19 @@ function adminView() {
         <button data-act="cert-delete" data-code="${esc(ct.code)}" class="text-red-300 hover:text-red-200">${issued ? 'Revocar' : 'Rechazar'}</button></td></tr>`;
   }).join('');
 
+  const appCard = (a) => `<div class="${card} p-4">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div><div class="font-medium text-sm">${esc(a.name)} <span class="text-xs text-white/50">· ${esc(a.ownerEmail)}</span></div>
+          <div class="text-xs text-sky-300/80 mt-0.5">${esc(a.courseTitle)} · ${esc(fmtDate(a.createdAt))}</div></div>
+        <div class="text-xs whitespace-nowrap">
+          ${a.status === 'pending' ? `<button data-act="app-approve" data-code="${esc(a.code)}" class="text-emerald-300 hover:text-emerald-200 mr-3">Aprobar e inscribir</button><button data-act="app-reject" data-code="${esc(a.code)}" class="text-red-300 hover:text-red-200 mr-3">Rechazar</button>`
+            : `<span class="${a.status === 'approved' ? 'text-emerald-300' : 'text-white/40'} mr-3">${a.status === 'approved' ? 'Aprobada' : 'Rechazada'}</span>`}
+          <button data-act="app-delete" data-code="${esc(a.code)}" class="text-white/40 hover:text-white/70">Eliminar</button></div></div>
+      <p class="mt-3 text-xs text-white/50">Perfil</p><p class="text-sm text-white/80 whitespace-pre-line">${esc(a.profile)}</p>
+      <p class="mt-2 text-xs text-white/50">Qué espera aplicar</p><p class="text-sm text-white/80 whitespace-pre-line">${esc(a.goal)}</p></div>`;
+  const pendingApps = A.apps.filter((a) => a.status === 'pending');
+  const doneApps = A.apps.filter((a) => a.status !== 'pending');
+
   const course = S.catalog.find((c) => c.id === A.courseId);
   const pv = S.priv[A.courseId] || {};
   const ovs = pv.sessions || {};
@@ -424,6 +459,12 @@ function adminView() {
 
   return `${topbar('admin')}
   <h1 class="text-2xl font-display font-bold mb-6">Administración</h1>
+  <section class="${card} p-5 mb-8">
+    <h2 class="font-semibold">Postulaciones ${pendingApps.length ? `<span class="ml-2 rounded-md bg-amber-400/90 text-slate-900 text-[11px] font-semibold px-2 py-0.5">${pendingApps.length} pendientes</span>` : ''}</h2>
+    <p class="mt-1 text-xs text-white/50">Llegan desde el formulario de la vitrina. Al aprobar, el postulante queda inscrito con su cuenta de Google.</p>
+    <div class="mt-4 space-y-3">${pendingApps.map(appCard).join('') || '<p class="text-sm text-white/50">Sin postulaciones pendientes.</p>'}</div>
+    ${doneApps.length ? `<details class="mt-4"><summary class="cursor-pointer text-sm text-white/60">Historial (${doneApps.length})</summary><div class="mt-3 space-y-3">${doneApps.map(appCard).join('')}</div></details>` : ''}
+  </section>
   <section class="${card} p-5 mb-8">
     <h2 class="font-semibold">Alumnos autorizados</h2>
     <form data-act="enr-add" class="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto] items-end">
@@ -603,6 +644,22 @@ root.addEventListener('click', async (e) => {
       const patch = { status: 'issued', name: name.trim(), issuedAt: new Date().toISOString() };
       await S.api.updateCert(ct.code, patch); Object.assign(ct, patch); root.innerHTML = adminView();
     }
+    if (act === 'app-approve') {
+      const ap = S.admin.apps.find((x) => x.code === b.dataset.code);
+      const en = S.admin.enrollments.find((e) => e.email === ap.ownerEmail);
+      const courses = [...new Set([...(en?.courses || []), ap.courseId])];
+      await S.api.saveEnrollment(ap.ownerEmail, { name: en?.name || ap.name, courses, active: true, ...(en ? {} : { createdAt: new Date().toISOString() }) });
+      await S.api.updateApp(ap.code, { status: 'approved', reviewedAt: new Date().toISOString() });
+      S.admin = null; await refreshPending(); await render();
+    }
+    if (act === 'app-reject') {
+      await S.api.updateApp(b.dataset.code, { status: 'rejected', reviewedAt: new Date().toISOString() });
+      S.admin = null; await refreshPending(); await render();
+    }
+    if (act === 'app-delete') {
+      if (!confirm('¿Eliminar esta postulación?')) return;
+      await S.api.deleteApp(b.dataset.code); S.admin = null; await refreshPending(); await render();
+    }
     if (act === 'cert-delete') {
       if (!confirm('¿Eliminar este certificado? Dejará de ser verificable.')) return;
       await S.api.deleteCert(b.dataset.code); S.admin.certs = S.admin.certs.filter((x) => x.code !== b.dataset.code); root.innerHTML = adminView();
@@ -649,7 +706,7 @@ window.addEventListener('hashchange', () => { S.graded = null; S.quizMsg = ''; r
     S.api = api;
     api.onAuth(async (u) => {
       S.user = u; S.isAdmin = !!u && u.email === norm(ADMIN_EMAIL);
-      S.priv = {}; S.admin = null; S.certs = [];
+      S.priv = {}; S.admin = null; S.certs = []; S.myApps = []; S.pending = 0;
       if (u) { root.innerHTML = '<p class="text-white/60 text-sm">Cargando tus cursos…</p>'; await loadUserData(); }
       await render();
     });

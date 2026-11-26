@@ -142,7 +142,7 @@ layout: default
         <p class="mt-5 text-xs text-amber-300/90">Curso en desarrollo: las sesiones se irán publicando progresivamente.</p>
       {% endif %}
 
-      <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-apply', { detail: { course: {{ page.title | jsonify | escape }} } }))"
+      <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-apply', { detail: { course: {{ page.slug | jsonify | escape }} } }))"
          class="mt-5 flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white"
          style="background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 2px 8px rgba(0,194,255,0.25);">
         Postular a este curso
