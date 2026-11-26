@@ -520,109 +520,224 @@ async function loadAdmin() {
   S.admin = { enrollments, progress, certs, apps, courseId: S.admin?.courseId || S.catalog[0]?.id };
 }
 
+// Filtra la lista de alumnos (búsqueda y curso) sin volver a dibujar la página.
+function filterStudents() {
+  const q = (document.getElementById('al-q')?.value || '').trim().toLowerCase();
+  const cid = document.getElementById('al-course')?.value || '';
+  let n = 0;
+  root.querySelectorAll('[data-row]').forEach((el) => {
+    const ok = (!q || el.dataset.search.includes(q)) && (!cid || el.dataset.courses.includes(',' + cid + ','));
+    el.classList.toggle('hidden', !ok);
+    if (ok) n++;
+  });
+  const cnt = document.getElementById('al-count'); if (cnt) cnt.textContent = `${n} alumno${n === 1 ? '' : 's'}`;
+  const empty = document.getElementById('al-empty'); if (empty) empty.classList.toggle('hidden', n !== 0);
+}
+
+// Descarga la lista de alumnos con su avance en un CSV (abre bien en Excel).
+function exportCsv() {
+  const A = S.admin;
+  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = [['Nombre', 'Correo', 'Activo', 'Curso', 'Avance %', 'Actividades completadas', 'Actividades totales', 'Alta'].map(q).join(',')];
+  for (const e of A.enrollments) {
+    const cs = (e.courses || []).map((id) => S.catalog.find((c) => c.id === id)).filter(Boolean);
+    if (!cs.length) rows.push([e.name, e.email, e.active !== false ? 'Sí' : 'No', '', '', '', '', e.createdAt || ''].map(q).join(','));
+    for (const c of cs) {
+      const pr = A.progress[e.email]?.[c.id];
+      rows.push([e.name, e.email, e.active !== false ? 'Sí' : 'No', c.title, pct(c, pr), doneCount(c, pr), trackable(c).length, e.createdAt || ''].map(q).join(','));
+    }
+  }
+  const blob = new Blob(['\ufeff' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `alumnos-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+}
+
 function adminView() {
   const A = S.admin;
-  const rows = A.enrollments.map((e) => {
-    const boxes = S.catalog.map((c) => `<label class="inline-flex items-center gap-1.5 text-xs text-white/80 mr-3"><input type="checkbox" data-act="enr-course" data-email="${esc(e.email)}" data-cid="${esc(c.id)}" ${(e.courses || []).includes(c.id) ? 'checked' : ''}> ${esc(c.title)}</label>`).join('');
-    const prog = (e.courses || []).map((cid) => { const c = S.catalog.find((x) => x.id === cid); return c ? `${esc(c.title)}: ${pct(c, A.progress[e.email]?.[cid])}%` : ''; }).filter(Boolean).join(' · ');
-    return `<tr class="border-t border-white/10 align-top">
-      <td class="py-3 pr-3"><div class="font-medium text-sm">${esc(e.name || '—')}</div><div class="text-xs text-white/50">${esc(e.email)}</div></td>
-      <td class="py-3 pr-3">${boxes}<div class="mt-1 text-xs text-white/40">${prog || 'Sin cursos'}</div></td>
-      <td class="py-3 pr-3 whitespace-nowrap"><label class="inline-flex items-center gap-1.5 text-xs"><input type="checkbox" data-act="enr-active" data-email="${esc(e.email)}" ${e.active !== false ? 'checked' : ''}> Activo</label></td>
-      <td class="py-3 text-right"><button data-act="enr-delete" data-email="${esc(e.email)}" class="text-xs text-red-300 hover:text-red-200">Eliminar</button></td></tr>`;
-  }).join('');
-  const checks = S.catalog.map((c) => `<label class="inline-flex items-center gap-1.5 text-sm mr-4"><input type="checkbox" name="new-course" value="${esc(c.id)}"> ${esc(c.title)}</label>`).join('');
-
-  const certRows = A.certs.map((ct) => {
-    const c = S.catalog.find((x) => x.id === ct.courseId);
-    const pr = A.progress[ct.ownerEmail]?.[ct.courseId];
-    const info = c && pr ? `Progreso ${pct(c, pr)}%` : '';
-    const issued = ct.status === 'issued';
-    return `<tr class="border-t border-white/10 align-top">
-      <td class="py-3 pr-3"><div class="text-sm font-medium">${esc(ct.name)}</div><div class="text-xs text-white/50">${esc(ct.ownerEmail)}</div></td>
-      <td class="py-3 pr-3 text-sm">${esc(ct.courseTitle)}<div class="text-xs text-white/40">${info}</div></td>
-      <td class="py-3 pr-3 text-xs">${issued ? `<span class="text-emerald-300">Emitido</span><div class="text-white/40">${esc(fmtDate(ct.issuedAt))}</div>` : '<span class="text-amber-300">Pendiente</span>'}<div class="text-white/30">${esc(ct.code)}</div></td>
-      <td class="py-3 text-right whitespace-nowrap text-xs">
-        ${issued ? `<a class="text-sky-300 hover:text-sky-200 mr-3" target="_blank" rel="noopener" href="/certificado/?c=${encodeURIComponent(ct.code)}">Ver</a>` : `<button data-act="cert-issue" data-code="${esc(ct.code)}" class="text-emerald-300 hover:text-emerald-200 mr-3">Aprobar y emitir</button>`}
-        <button data-act="cert-delete" data-code="${esc(ct.code)}" class="text-red-300 hover:text-red-200">${issued ? 'Revocar' : 'Rechazar'}</button></td></tr>`;
-  }).join('');
+  const tab = ['resumen', 'postulaciones', 'alumnos', 'certificados', 'contenido'].includes(parseRoute().tab) ? parseRoute().tab : 'resumen';
+  const pendingApps = A.apps.filter((a) => a.status === 'pending');
+  const doneApps = A.apps.filter((a) => a.status !== 'pending');
+  const pendingCerts = A.certs.filter((x) => x.status !== 'issued');
+  const issuedCerts = A.certs.filter((x) => x.status === 'issued');
+  const activeN = A.enrollments.filter((e) => e.active !== false).length;
 
   const flash = S.flash ? `<div class="mb-6 rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">${esc(S.flash)}</div>` : '';
   S.flash = '';
+
+  const progOf = (email, cid) => { const c = S.catalog.find((x) => x.id === cid); return c ? pct(c, A.progress[email]?.[cid]) : 0; };
+  const pairs = A.enrollments.flatMap((e) => (e.courses || []).map((cid) => progOf(e.email, cid)));
+  const avgProg = pairs.length ? Math.round(pairs.reduce((a, b) => a + b, 0) / pairs.length) : null;
+  const badge = (n, warn) => (n ? `<span class="ml-1.5 rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${warn ? 'bg-amber-400/90 text-slate-900' : 'bg-white/10 text-white/70'}">${n}</span>` : '');
+  const ghost = 'rounded-lg border border-white/15 px-3.5 py-2 text-sm text-white/80 transition hover:border-white/30 hover:text-white';
+  const input = 'w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none';
+
+  /* ---- piezas reutilizables ---- */
   const appCard = (a) => `<div class="${card} p-4">
       <div class="flex flex-wrap items-start justify-between gap-3">
-        <div><div class="font-medium text-sm">${esc(a.name)} <span class="text-xs text-white/50">· ${esc(a.ownerEmail)}</span>${a.linkedin ? ` <a href="${esc(safeUrl(a.linkedin))}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs text-sky-300 hover:text-sky-200">LinkedIn ↗</a>` : ''}</div>
-          <div class="text-xs text-sky-300/80 mt-0.5">${esc(a.courseTitle)} · ${esc(fmtDate(a.createdAt))}</div></div>
-        <div class="text-xs whitespace-nowrap">
-          ${a.status === 'pending' ? `<button data-act="app-approve" data-code="${esc(a.code)}" class="text-emerald-300 hover:text-emerald-200 mr-3">Aprobar e inscribir</button><button data-act="app-reject" data-code="${esc(a.code)}" class="text-red-300 hover:text-red-200 mr-3">Rechazar</button>`
-            : `<span class="${a.status === 'approved' ? 'text-emerald-300' : 'text-white/40'} mr-3">${a.status === 'approved' ? 'Aprobada' : 'Rechazada'}</span>`}
-          <button data-act="app-delete" data-code="${esc(a.code)}" class="text-white/40 hover:text-white/70">Eliminar</button></div></div>
-      <p class="mt-3 text-xs text-white/50">Perfil</p><p class="text-sm text-white/80 whitespace-pre-line">${esc(a.profile)}</p>
-      <p class="mt-2 text-xs text-white/50">Qué espera aplicar</p><p class="text-sm text-white/80 whitespace-pre-line">${esc(a.goal)}</p></div>`;
-  const pendingApps = A.apps.filter((a) => a.status === 'pending');
-  const doneApps = A.apps.filter((a) => a.status !== 'pending');
+        <div class="min-w-0"><div class="text-sm font-medium">${esc(a.name)} <span class="text-xs text-white/50">· ${esc(a.ownerEmail)}</span>${a.linkedin ? ` <a href="${esc(safeUrl(a.linkedin))}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs text-sky-300 hover:text-sky-200">LinkedIn ↗</a>` : ''}</div>
+          <div class="mt-0.5 text-xs text-sky-300/80">${esc(a.courseTitle)} · ${esc(fmtDate(a.createdAt))}</div></div>
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          ${a.status === 'pending' ? `<button data-act="app-approve" data-code="${esc(a.code)}" class="rounded-lg bg-emerald-500/20 px-3 py-1.5 font-semibold text-emerald-200 hover:bg-emerald-500/30">Aprobar e inscribir</button><button data-act="app-reject" data-code="${esc(a.code)}" class="rounded-lg border border-white/15 px-3 py-1.5 text-red-300 hover:border-red-300/40">Rechazar</button>`
+            : `<span class="${a.status === 'approved' ? 'text-emerald-300' : 'text-white/40'}">${a.status === 'approved' ? 'Aprobada' : 'Rechazada'}</span>`}
+          <button data-act="app-delete" data-code="${esc(a.code)}" class="text-white/35 hover:text-white/70">Eliminar</button></div></div>
+      <p class="mt-3 text-xs text-white/45">Perfil</p><p class="text-sm text-white/80 whitespace-pre-line">${esc(a.profile)}</p>
+      <p class="mt-2 text-xs text-white/45">Qué espera aplicar</p><p class="text-sm text-white/80 whitespace-pre-line">${esc(a.goal)}</p></div>`;
 
-  const course = S.catalog.find((c) => c.id === A.courseId);
-  const pv = S.priv[A.courseId] || {};
-  const ovs = pv.sessions || {};
-  const sessionForms = course ? course.modules.flatMap((m) => m.sessions.map((s) => {
-    const o = ovs[s.id] || {};
-    const resText = (o.resources || []).map((r) => `${r.label} | ${r.url}`).join('\n');
-    return `<div class="${card} p-4" data-sform="${esc(s.id)}">
-      <div class="text-sm font-medium">${esc(s.title)} <span class="text-xs text-white/40">(${esc(s.id)})</span></div>
-      <label class="block mt-3 text-xs text-white/50">Video (URL de Drive o YouTube) — opcional</label>
-      <input type="text" data-f="video" value="${esc(o.video || '')}" placeholder="https://drive.google.com/file/d/…/view" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
-      <label class="block mt-3 text-xs text-white/50">Materiales — una línea por archivo: Etiqueta | https://enlace</label>
-      <textarea data-f="res" rows="3" placeholder="Guía (PDF) | https://drive.google.com/…" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">${esc(resText)}</textarea></div>`;
-  })).join('') : '';
-  const quizForms = course ? course.modules.map((m) => `<div class="${card} p-4">
-      <div class="text-sm font-medium">${esc(m.title)} <span class="text-xs text-white/40">(${esc(m.id)})</span></div>
-      <textarea data-qform="${esc(m.id)}" rows="6" placeholder="? Pregunta&#10;- Opción incorrecta&#10;+ Opción correcta&#10;= Explicación (opcional)&#10;&#10;? Otra pregunta…" class="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-mono">${esc(quizToText(pv.quizzes?.[m.id]?.questions))}</textarea></div>`).join('') : '';
+  const certCard = (ct) => {
+    const issued = ct.status === 'issued';
+    const c = S.catalog.find((x) => x.id === ct.courseId);
+    const pr = A.progress[ct.ownerEmail]?.[ct.courseId];
+    const n = c && pr ? pct(c, pr) : null;
+    return `<div class="${card} flex flex-wrap items-center justify-between gap-3 p-4">
+      <div class="min-w-0"><p class="text-sm font-medium">${esc(ct.name)} <span class="text-xs text-white/50">· ${esc(ct.ownerEmail)}</span></p>
+        <p class="mt-0.5 text-xs text-sky-300/80">${esc(ct.courseTitle)}${n !== null ? ` · Progreso ${n}%` : ''}</p>
+        <p class="mt-0.5 text-xs text-white/35">${esc(ct.code)} · ${issued ? 'Emitido el ' + esc(fmtDate(ct.issuedAt)) : 'Solicitado el ' + esc(fmtDate(ct.requestedAt))}</p></div>
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        ${issued ? `<a class="rounded-lg border border-white/15 px-3 py-1.5 text-sky-300 hover:border-sky-300/40" target="_blank" rel="noopener" href="/certificado/?c=${encodeURIComponent(ct.code)}">Ver</a>`
+          : `<button data-act="cert-issue" data-code="${esc(ct.code)}" class="rounded-lg bg-emerald-500/20 px-3 py-1.5 font-semibold text-emerald-200 hover:bg-emerald-500/30">Aprobar y emitir</button>`}
+        <button data-act="cert-delete" data-code="${esc(ct.code)}" class="text-red-300 hover:text-red-200">${issued ? 'Revocar' : 'Rechazar'}</button></div></div>`;
+  };
+
+  const sessCount = (c) => c.modules.reduce((n, m) => n + m.sessions.length, 0);
+  const hasContent = (cid, sid) => { const o = S.priv[cid]?.sessions?.[sid]; return !!(o && (o.video || (o.resources || []).length)); };
+  const coverage = (c) => c.modules.reduce((n, m) => n + m.sessions.filter((x) => hasContent(c.id, x.id)).length, 0);
+  const quizCount = (c) => Object.values(S.priv[c.id]?.quizzes || {}).filter((z) => (z.questions || []).length).length;
+
+  /* ---- pestañas ---- */
+  const tabs = [['resumen', 'Resumen', ''], ['postulaciones', 'Postulaciones', badge(pendingApps.length, true)],
+    ['alumnos', 'Alumnos', badge(A.enrollments.length, false)], ['certificados', 'Certificados', badge(pendingCerts.length, true)], ['contenido', 'Contenido', '']];
+  const nav = `<nav class="mb-7 flex gap-1 overflow-x-auto border-b border-white/10" aria-label="Secciones de administración">${tabs.map(([k, label, b]) =>
+    `<a href="#/admin/${k}" ${k === tab ? 'aria-current="page"' : ''} class="-mb-px shrink-0 border-b-2 px-4 py-2.5 text-sm transition ${k === tab ? 'border-sky-400 font-semibold text-white' : 'border-transparent text-white/60 hover:text-white'}">${label}${b}</a>`).join('')}</nav>`;
+
+  let body = '';
+
+  /* ---- RESUMEN ---- */
+  if (tab === 'resumen') {
+    const stat = (label, value, sub, warn) => `<div class="${card} px-4 py-3 ${warn ? 'border-amber-400/40' : ''}"><p class="text-[11px] uppercase tracking-wider text-white/40">${label}</p>
+      <p class="mt-1 font-display text-2xl font-bold ${warn ? 'text-amber-300' : ''}">${value}</p><p class="text-xs text-white/50">${sub}</p></div>`;
+    const attention = pendingApps.length || pendingCerts.length
+      ? `${pendingApps.length ? `<div><div class="mb-2 flex items-center justify-between"><h3 class="text-sm font-semibold">Postulaciones pendientes</h3><a href="#/admin/postulaciones" class="text-xs text-sky-300 hover:text-sky-200">Ver todas</a></div><div class="space-y-3">${pendingApps.slice(0, 3).map(appCard).join('')}</div></div>` : ''}
+         ${pendingCerts.length ? `<div><div class="mb-2 flex items-center justify-between"><h3 class="text-sm font-semibold">Certificados por aprobar</h3><a href="#/admin/certificados" class="text-xs text-sky-300 hover:text-sky-200">Ver todos</a></div><div class="space-y-3">${pendingCerts.slice(0, 3).map(certCard).join('')}</div></div>` : ''}`
+      : `<div class="${card} px-5 py-6 text-center"><p class="font-semibold text-emerald-300">Todo al día</p><p class="mt-1 text-sm text-white/60">No tienes postulaciones ni certificados pendientes.</p></div>`;
+    const courseRows = S.catalog.map((c) => {
+      const enrolled = A.enrollments.filter((e) => (e.courses || []).includes(c.id));
+      const ap = enrolled.length ? Math.round(enrolled.reduce((n, e) => n + progOf(e.email, c.id), 0) / enrolled.length) : null;
+      return `<tr class="border-t border-white/10"><td class="py-3 pr-4 text-sm font-medium">${esc(c.title)}${c.status === 'in_development' ? ' <span class="ml-1 rounded bg-amber-400/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-900">En desarrollo</span>' : ''}</td>
+        <td class="py-3 pr-4 text-sm text-white/70">${enrolled.length}</td><td class="py-3 pr-4 text-sm text-white/70">${ap === null ? '—' : ap + '%'}</td>
+        <td class="py-3 pr-4 text-sm text-white/70">${coverage(c)} de ${sessCount(c)}</td><td class="py-3 text-sm text-white/70">${quizCount(c)}</td></tr>`;
+    }).join('');
+    body = `<div class="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        ${stat('Alumnos activos', activeN, `de ${A.enrollments.length} registrados`)}
+        ${stat('Postulaciones', pendingApps.length, pendingApps.length === 1 ? 'pendiente' : 'pendientes', pendingApps.length > 0)}
+        ${stat('Certificados', pendingCerts.length, pendingCerts.length === 1 ? 'por aprobar' : 'por aprobar', pendingCerts.length > 0)}
+        ${stat('Avance promedio', avgProg === null ? '—' : avgProg + '%', 'de los alumnos inscritos')}
+      </div>
+      <section class="mb-8 space-y-5"><h2 class="text-sm font-semibold uppercase tracking-wider text-white/50">Requiere tu atención</h2>${attention}</section>
+      <section><h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-white/50">Cursos</h2>
+        <div class="${card} overflow-x-auto px-5 py-2"><table class="w-full text-left"><thead><tr class="text-[11px] uppercase tracking-wider text-white/40">
+          <th class="py-3 pr-4 font-medium">Curso</th><th class="py-3 pr-4 font-medium">Alumnos</th><th class="py-3 pr-4 font-medium">Avance</th><th class="py-3 pr-4 font-medium">Sesiones con contenido</th><th class="py-3 font-medium">Evaluaciones</th></tr></thead>
+          <tbody>${courseRows}</tbody></table></div></section>`;
+  }
+
+  /* ---- POSTULACIONES ---- */
+  if (tab === 'postulaciones') {
+    body = `<p class="mb-4 text-sm text-white/60">Llegan desde el formulario de la vitrina. Al aprobar, el postulante queda inscrito con su cuenta de Google y recibe un correo.</p>
+      <div class="space-y-3">${pendingApps.map(appCard).join('') || `<div class="${card} px-5 py-8 text-center text-sm text-white/55">Sin postulaciones pendientes.</div>`}</div>
+      ${doneApps.length ? `<details class="mt-6"><summary class="cursor-pointer text-sm text-white/60 hover:text-white">Historial (${doneApps.length})</summary><div class="mt-3 space-y-3">${doneApps.map(appCard).join('')}</div></details>` : ''}`;
+  }
+
+  /* ---- ALUMNOS ---- */
+  if (tab === 'alumnos') {
+    const checks = S.catalog.map((c) => `<label class="inline-flex cursor-pointer items-center gap-1.5 text-sm"><input type="checkbox" name="new-course" value="${esc(c.id)}"> ${esc(c.title)}</label>`).join('');
+    const rows = A.enrollments.map((e) => {
+      const chips = S.catalog.map((c) => `<label class="cursor-pointer"><input type="checkbox" class="peer sr-only" data-act="enr-course" data-email="${esc(e.email)}" data-cid="${esc(c.id)}" ${(e.courses || []).includes(c.id) ? 'checked' : ''}>
+        <span class="inline-flex items-center rounded-lg border border-white/10 px-2.5 py-1 text-xs text-white/40 transition peer-checked:border-sky-400/40 peer-checked:bg-sky-400/10 peer-checked:text-sky-200 peer-focus-visible:ring-2 peer-focus-visible:ring-sky-400/60">${esc(c.title)}</span></label>`).join('');
+      const bars = (e.courses || []).map((cid) => { const c = S.catalog.find((x) => x.id === cid); if (!c) return ''; const n = progOf(e.email, cid);
+        return `<div class="min-w-[9rem] flex-1"><div class="mb-1 flex justify-between text-[11px] text-white/45"><span class="truncate pr-2">${esc(c.title)}</span><span>${n}%</span></div>${bar(n)}</div>`; }).join('');
+      return `<div data-row data-search="${esc(((e.name || '') + ' ' + e.email).toLowerCase())}" data-courses=",${esc((e.courses || []).join(','))}," class="${card} p-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0"><p class="text-sm font-medium">${esc(e.name || '—')}</p><p class="text-xs text-white/50">${esc(e.email)}</p></div>
+          <div class="flex items-center gap-4 text-xs">
+            <label class="inline-flex cursor-pointer items-center gap-2 text-white/70"><input type="checkbox" data-act="enr-active" data-email="${esc(e.email)}" ${e.active !== false ? 'checked' : ''}> Activo</label>
+            <button data-act="enr-delete" data-email="${esc(e.email)}" class="text-red-300 hover:text-red-200">Eliminar</button></div></div>
+        <div class="mt-3 flex flex-wrap gap-2">${chips}</div>
+        ${bars ? `<div class="mt-3 flex flex-wrap gap-x-5 gap-y-2">${bars}</div>` : ''}</div>`;
+    }).join('');
+    body = `<div class="mb-5 flex flex-wrap items-center gap-3">
+        <input id="al-q" type="search" placeholder="Buscar por nombre o correo…" class="${input} sm:w-72" aria-label="Buscar alumno">
+        <select id="al-course" class="rounded-lg border border-white/10 bg-base px-3 py-2 text-sm text-white/90" aria-label="Filtrar por curso"><option value="">Todos los cursos</option>${S.catalog.map((c) => `<option value="${esc(c.id)}">${esc(c.title)}</option>`).join('')}</select>
+        <span id="al-count" class="text-sm text-white/50">${A.enrollments.length} alumno${A.enrollments.length === 1 ? '' : 's'}</span>
+        <div class="ml-auto flex gap-2"><button data-act="export-csv" class="${ghost}">Exportar CSV</button></div></div>
+      <details class="${card} mb-5"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold"><span>Agregar alumno manualmente</span>${ICON.chev}</summary>
+        <form data-act="enr-add" class="grid items-end gap-3 border-t border-white/10 p-4 md:grid-cols-[1fr_1fr_auto]">
+          <div><label class="text-xs text-white/50">Cuenta de Google</label><input name="email" type="email" required placeholder="alumno@gmail.com" class="mt-1 ${input}"></div>
+          <div><label class="text-xs text-white/50">Nombre</label><input name="name" type="text" placeholder="Nombre y apellido" class="mt-1 ${input}"></div>
+          <button class="${btnPrimary}" style="${gradient}">Agregar</button>
+          <div class="flex flex-wrap gap-x-5 gap-y-2 md:col-span-3">${checks}</div></form></details>
+      <div class="space-y-3">${rows}</div>
+      <p id="al-empty" class="${A.enrollments.length ? 'hidden ' : ''}${card} px-5 py-8 text-center text-sm text-white/55">${A.enrollments.length ? 'Ningún alumno coincide con la búsqueda.' : 'Aún no hay alumnos.'}</p>`;
+  }
+
+  /* ---- CERTIFICADOS ---- */
+  if (tab === 'certificados') {
+    body = `<p class="mb-4 text-sm text-white/60">Los alumnos lo solicitan al completar un curso. Antes de aprobar, revisa su progreso: es un dato que registra el propio alumno.</p>
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-white/50">Por aprobar${badge(pendingCerts.length, true)}</h2>
+      <div class="space-y-3">${pendingCerts.map(certCard).join('') || `<div class="${card} px-5 py-6 text-center text-sm text-white/55">Sin solicitudes pendientes.</div>`}</div>
+      <h2 class="mb-3 mt-8 text-sm font-semibold uppercase tracking-wider text-white/50">Emitidos${badge(issuedCerts.length, false)}</h2>
+      <div class="space-y-3">${issuedCerts.map(certCard).join('') || `<div class="${card} px-5 py-6 text-center text-sm text-white/55">Aún no has emitido certificados.</div>`}</div>`;
+  }
+
+  /* ---- CONTENIDO ---- */
+  if (tab === 'contenido') {
+    const course = S.catalog.find((c) => c.id === A.courseId) || S.catalog[0];
+    const pv = S.priv[course.id] || {};
+    const ovs = pv.sessions || {};
+    const mods = course.modules.map((m, mi) => {
+      const covM = m.sessions.filter((x) => hasContent(course.id, x.id)).length;
+      const hasQ = (pv.quizzes?.[m.id]?.questions || []).length > 0;
+      const sess = m.sessions.map((x) => {
+        const o = ovs[x.id] || {};
+        const nRes = (o.resources || []).length;
+        const has = !!(o.video || nRes);
+        const resText = (o.resources || []).map((r) => `${r.label} | ${r.url}`).join('\n');
+        const state = has ? [o.video ? 'Video' : '', nRes ? `${nRes} material${nRes === 1 ? '' : 'es'}` : ''].filter(Boolean).join(' · ') : 'Sin contenido';
+        return `<div class="rounded-xl border border-white/10 bg-white/[0.03] p-3" data-sform="${esc(x.id)}">
+          <div class="flex items-center justify-between gap-2"><p class="text-sm font-medium">${esc(x.title)} <span class="text-xs text-white/35">(${esc(x.id)})</span></p><span class="shrink-0 text-[11px] ${has ? 'text-emerald-300' : 'text-white/35'}">${esc(state)}</span></div>
+          <div class="mt-3 grid gap-3 md:grid-cols-2">
+            <div><label class="text-xs text-white/50">Video (URL de Drive o YouTube) — opcional</label><input type="text" data-f="video" value="${esc(o.video || '')}" placeholder="https://drive.google.com/file/d/…/view" class="mt-1 ${input}"></div>
+            <div><label class="text-xs text-white/50">Materiales — Etiqueta | https://enlace (uno por línea)</label><textarea data-f="res" rows="2" placeholder="Guía (PDF) | https://drive.google.com/…" class="mt-1 ${input}">${esc(resText)}</textarea></div></div></div>`;
+      }).join('');
+      return `<details class="overflow-hidden rounded-xl border border-white/10 bg-white/5" ${mi === 0 ? 'open' : ''}>
+        <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-3 hover:bg-white/5">
+          <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-white/70">${mi + 1}</span>
+          <span class="min-w-0 flex-1"><span class="block text-sm font-semibold">${esc(m.title)}</span>
+          <span class="block text-xs text-white/45">${covM} de ${m.sessions.length} sesiones con contenido · ${hasQ ? 'con evaluación' : 'sin evaluación'}</span></span>${ICON.chev}</summary>
+        <div class="space-y-3 border-t border-white/10 p-4">${sess}
+          <div class="rounded-xl border border-white/10 bg-white/[0.03] p-3"><p class="text-sm font-medium">Evaluación del módulo <span class="text-xs text-white/35">(${esc(m.id)})</span></p>
+            <textarea data-qform="${esc(m.id)}" rows="6" placeholder="? Pregunta&#10;- Opción incorrecta&#10;+ Opción correcta&#10;= Explicación (opcional)&#10;&#10;? Otra pregunta…" class="mt-2 ${input} font-mono">${esc(quizToText(pv.quizzes?.[m.id]?.questions))}</textarea></div></div></details>`;
+    }).join('');
+    body = `<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div><p class="text-sm text-white/60">La estructura (módulos y sesiones) sale de la vitrina. Aquí agregas el video, los materiales y las evaluaciones.</p></div>
+        <select data-act="admin-course" class="rounded-lg border border-white/10 bg-base px-3 py-2 text-sm" aria-label="Curso">${S.catalog.map((c) => `<option value="${esc(c.id)}" ${c.id === course.id ? 'selected' : ''}>${esc(c.title)}</option>`).join('')}</select></div>
+      <details class="${card} mb-5"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm"><span>Formato de las evaluaciones</span>${ICON.chev}</summary>
+        <div class="border-t border-white/10 px-4 py-3 text-xs leading-relaxed text-white/60"><code>?</code> pregunta · <code>-</code> opción incorrecta · <code>+</code> opción correcta (una sola) · <code>=</code> explicación opcional. Deja una línea en blanco entre preguntas. Un módulo sin texto no tiene evaluación. Las respuestas son visibles para los alumnos inscritos: sirven para autoevaluación.</div></details>
+      <div class="space-y-3">${mods}</div>
+      <div class="sticky bottom-3 z-10 mt-6"><div class="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 shadow-soft backdrop-blur" style="background:rgba(13,31,58,.92);">
+        <label class="text-sm text-white/70">Puntaje mínimo para aprobar (%) <input data-f="pass" type="number" min="1" max="100" value="${esc(pv.pass || PASS_DEFAULT)}" class="ml-2 w-20 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-sm"></label>
+        <button data-act="save-content" class="${btnPrimary}" style="${gradient}">Guardar contenido</button><span id="admin-status" class="text-sm text-white/60"></span></div></div>`;
+  }
 
   return `${topbar('admin')}
-  <h1 class="text-2xl font-display font-bold mb-6">Administración</h1>
-  ${flash}
-  <section class="${card} p-5 mb-8">
-    <h2 class="font-semibold">Postulaciones ${pendingApps.length ? `<span class="ml-2 rounded-md bg-amber-400/90 text-slate-900 text-[11px] font-semibold px-2 py-0.5">${pendingApps.length} pendientes</span>` : ''}</h2>
-    <p class="mt-1 text-xs text-white/50">Llegan desde el formulario de la vitrina. Al aprobar, el postulante queda inscrito con su cuenta de Google.</p>
-    <div class="mt-4 space-y-3">${pendingApps.map(appCard).join('') || '<p class="text-sm text-white/50">Sin postulaciones pendientes.</p>'}</div>
-    ${doneApps.length ? `<details class="mt-4"><summary class="cursor-pointer text-sm text-white/60">Historial (${doneApps.length})</summary><div class="mt-3 space-y-3">${doneApps.map(appCard).join('')}</div></details>` : ''}
-  </section>
-  <section class="${card} p-5 mb-8">
-    <h2 class="font-semibold">Alumnos autorizados</h2>
-    <form data-act="enr-add" class="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto] items-end">
-      <div><label class="text-xs text-white/50">Gmail</label><input name="email" type="email" required placeholder="alumno@gmail.com" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm"></div>
-      <div><label class="text-xs text-white/50">Nombre</label><input name="name" type="text" placeholder="Nombre y apellido" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm"></div>
-      <button class="${btnPrimary}" style="${gradient}">Agregar</button>
-      <div class="md:col-span-3">${checks}</div>
-    </form>
-    <div class="mt-5 overflow-x-auto"><table class="w-full text-left">${rows ? `<tbody>${rows}</tbody>` : ''}</table>${rows ? '' : '<p class="text-sm text-white/50">Aún no hay alumnos.</p>'}</div>
-  </section>
-  <section class="${card} p-5 mb-8">
-    <h2 class="font-semibold">Certificados ${A.certs.some((x) => x.status !== 'issued') ? '<span class="ml-2 rounded-md bg-amber-400/90 text-slate-900 text-[11px] font-semibold px-2 py-0.5">Hay pendientes</span>' : ''}</h2>
-    <p class="mt-1 text-xs text-white/50">Los alumnos lo solicitan al completar un curso. Antes de aprobar, revisa su progreso: es un dato que el propio alumno registra.</p>
-    <div class="mt-4 overflow-x-auto">${certRows ? `<table class="w-full text-left"><tbody>${certRows}</tbody></table>` : '<p class="text-sm text-white/50">Sin solicitudes.</p>'}</div>
-  </section>
-  <section class="${card} p-5">
-    <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="font-semibold">Contenido privado por curso</h2>
-      <select data-act="admin-course" class="rounded-lg border border-white/10 bg-base px-3 py-2 text-sm">${S.catalog.map((c) => `<option value="${esc(c.id)}" ${c.id === A.courseId ? 'selected' : ''}>${esc(c.title)}</option>`).join('')}</select></div>
-    <p class="mt-2 text-xs text-white/50">La estructura (módulos y sesiones) sale de la vitrina. Aquí agregas el video y los materiales de cada sesión, y las evaluaciones de cada módulo.</p>
-    <h3 class="mt-5 text-sm font-semibold uppercase tracking-wider text-white/50">Sesiones</h3>
-    <div class="mt-3 space-y-3">${sessionForms}</div>
-    <h3 class="mt-8 text-sm font-semibold uppercase tracking-wider text-white/50">Evaluaciones por módulo</h3>
-    <p class="mt-2 text-xs text-white/50">Formato: <code>?</code> pregunta, <code>-</code> opción incorrecta, <code>+</code> opción correcta (una sola), <code>=</code> explicación opcional. Deja una línea en blanco entre preguntas. Módulo sin texto = sin evaluación. Las respuestas son visibles para los alumnos inscritos: sirven para autoevaluación.</p>
-    <div class="mt-3 space-y-3">${quizForms}</div>
-    <div class="mt-5 flex flex-wrap items-center gap-3">
-      <label class="text-sm text-white/70">Puntaje mínimo para aprobar (%) <input data-f="pass" type="number" min="1" max="100" value="${esc(pv.pass || PASS_DEFAULT)}" class="ml-2 w-20 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-sm"></label>
-      <button data-act="save-content" class="${btnPrimary}" style="${gradient}">Guardar contenido</button><span id="admin-status" class="text-sm text-white/60"></span></div>
-  </section>`;
+  <h1 class="mb-5 font-display text-2xl font-bold">Administración</h1>
+  ${flash}${nav}${body}`;
 }
 
 /* ---------- render y rutas ---------- */
 function parseRoute() {
   const p = location.hash.replace(/^#\/?/, '').split('/');
   if (p[0] === 'c' && p[1]) return { v: 'course', cid: p[1], sid: p[2] };
-  if (p[0] === 'admin') return { v: 'admin' };
+  if (p[0] === 'admin') return { v: 'admin', tab: p[1] || '' };
   return { v: 'home' };
 }
 
@@ -634,8 +749,7 @@ async function render() {
     if (noAccess) { root.innerHTML = noAccessView(); return; }
     if (r.v === 'admin') {
       if (!S.isAdmin) { location.hash = '#/'; return; }
-      root.innerHTML = `${topbar('admin')}<p class="text-white/60 text-sm">Cargando…</p>`;
-      if (!S.admin) await loadAdmin();
+      if (!S.admin) { root.innerHTML = `${topbar('admin')}<p class="text-white/60 text-sm">Cargando…</p>`; await loadAdmin(); }
       root.innerHTML = adminView();
     } else if (r.v === 'course') {
       if (!(r.cid in S.priv)) S.priv[r.cid] = (await S.api.getPrivate(r.cid)) || {};
@@ -667,6 +781,7 @@ const saveNote = debounce(async (cid, sid, text) => {
 }, 800);
 
 root.addEventListener('input', (e) => {
+  if (e.target.id === 'al-q') { filterStudents(); return; }
   if (e.target.id === 'note') {
     const sec = root.querySelector('[data-session]');
     const st = document.getElementById('note-status'); if (st) st.textContent = 'Guardando…';
@@ -676,6 +791,7 @@ root.addEventListener('input', (e) => {
 
 root.addEventListener('change', async (e) => {
   const t = e.target, act = t.dataset.act;
+  if (t.id === 'al-course') { filterStudents(); return; }
   try {
     if (act === 'admin-course') {
       S.admin.courseId = t.value;
@@ -686,6 +802,7 @@ root.addEventListener('change', async (e) => {
       const en = S.admin.enrollments.find((x) => x.email === t.dataset.email);
       const set = new Set(en.courses || []); t.checked ? set.add(t.dataset.cid) : set.delete(t.dataset.cid);
       en.courses = [...set]; await S.api.saveEnrollment(en.email, { courses: en.courses });
+      const row = t.closest('[data-row]'); if (row) row.dataset.courses = ',' + en.courses.join(',') + ',';
     }
     if (act === 'enr-active') {
       const en = S.admin.enrollments.find((x) => x.email === t.dataset.email);
@@ -756,6 +873,7 @@ root.addEventListener('click', async (e) => {
       await S.api.requestCert(code, data);
       S.certs.push({ code, ...data }); await render();
     }
+    if (act === 'export-csv') exportCsv();
     if (act === 'enr-delete') {
       if (!confirm('¿Eliminar a ' + b.dataset.email + '? Perderá el acceso.')) return;
       await S.api.deleteEnrollment(b.dataset.email); S.admin = null; await render();
