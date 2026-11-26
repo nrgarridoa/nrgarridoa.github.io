@@ -17,4 +17,4 @@ export const CONTACT_EMAIL = "ngarridoa18_1@unc.edu.pe";
 
 // URL de la aplicación web de Google Apps Script que envía los correos (ver apps-script/LEEME.md).
 // Vacía = no se envían correos y el resto del aula funciona igual.
-export const NOTIFY_URL = "";
+export const NOTIFY_URL = "https://script.google.com/macros/s/AKfycbwCrfKJ9wnMQOVsiOyaORjAq5lHIC0WWfsAj9I6rLtHn6pLLmAov_pfRLVTNQ13fJdMDA/exec";
