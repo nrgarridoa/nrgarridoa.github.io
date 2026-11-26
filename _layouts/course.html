@@ -1,0 +1,167 @@
+---
+layout: default
+---
+
+{% assign _img = page.cover | default: site.assets.default_course_cover %}
+{% assign _n_sessions = 0 %}
+{% for m in page.modules %}{% assign _n_sessions = _n_sessions | plus: m.sessions.size %}{% endfor %}
+{% assign _subject = "Solicitud de acceso: " | append: page.title %}
+{% assign _body = "Hola Nilson, me interesa el curso " | append: page.title | append: ". Mi cuenta de Gmail es: " %}
+
+<div class="max-w-6xl mx-auto px-6 py-10">
+  <nav class="text-sm text-white/50 mb-6" aria-label="Breadcrumb">
+    <a href="{{ '/cursos/' | relative_url }}" class="hover:text-white/80">Cursos</a>
+    <span class="mx-2">/</span>
+    <span class="text-white/70">{{ page.title }}</span>
+  </nav>
+
+  <header class="mb-8 max-w-3xl">
+    {% if page.status == "in_development" %}
+      <span class="inline-block mb-3 rounded-md bg-amber-400/90 text-slate-900 text-xs font-semibold px-2 py-0.5">En desarrollo</span>
+    {% endif %}
+    <h1 class="text-3xl md:text-4xl font-extrabold leading-tight">{{ page.title }}</h1>
+    <p class="mt-3 text-white/80">{{ page.subtitle }}</p>
+    <div class="mt-4 flex flex-wrap gap-2">
+      {% for t in page.tools %}
+        <span class="inline-flex items-center rounded-lg bg-white/5 px-2.5 py-1 text-xs text-white/80">{{ t }}</span>
+      {% endfor %}
+    </div>
+  </header>
+
+  <div class="grid gap-10 lg:grid-cols-[1fr_340px] items-start">
+    <!-- COLUMNA PRINCIPAL -->
+    <div class="min-w-0">
+      <img src="{{ _img | relative_url }}" alt="{{ page.title | escape }}" width="1200" height="630"
+           class="w-full rounded-2xl border border-white/10 object-cover">
+
+      {% if content and content != "" %}
+      <section class="mt-10">
+        {% include components/section-header.html title="Sobre el curso" %}
+        <div class="prose prose-invert max-w-none mt-4">{{ content }}</div>
+      </section>
+      {% endif %}
+
+      {% if page.outcomes %}
+      <section class="mt-10">
+        {% include components/section-header.html title="Lo que aprenderás" %}
+        <ul class="mt-4 grid gap-3 md:grid-cols-2">
+          {% for o in page.outcomes %}
+            <li class="flex gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
+              <span class="mt-0.5 text-emerald-400">{% include icons/check-circle.svg class="h-4 w-4" %}</span>
+              <span>{{ o }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+
+      <!-- TEMARIO -->
+      <section class="mt-10" x-data="{ open: 1 }">
+        {% include components/section-header.html title="Temario" %}
+        <p class="mt-3 text-sm text-white/60">{{ page.modules.size }} módulos · {{ _n_sessions }} sesiones · {{ page.hours }} horas</p>
+
+        <div class="mt-4 space-y-3">
+          {% for m in page.modules %}
+          <div class="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+            <button type="button" @click="open = (open === {{ forloop.index }} ? 0 : {{ forloop.index }})"
+                    :aria-expanded="open === {{ forloop.index }}"
+                    class="w-full flex items-center justify-between gap-4 px-4 py-3 text-left hover:bg-white/5 transition">
+              <span>
+                <span class="block text-xs text-white/50">Módulo {{ forloop.index }}</span>
+                <span class="block font-semibold">{{ m.title }}</span>
+              </span>
+              <span class="flex items-center gap-3 shrink-0 text-xs text-white/50">
+                {{ m.sessions.size }} sesiones
+                <span class="transition-transform" :class="open === {{ forloop.index }} ? 'rotate-90' : ''">{% include icons/chevron-right.svg class="h-4 w-4" %}</span>
+              </span>
+            </button>
+            <div x-show="open === {{ forloop.index }}" style="display:none" class="border-t border-white/10 px-4 py-3">
+              {% if m.summary %}<p class="text-sm text-white/70 mb-3">{{ m.summary }}</p>{% endif %}
+              <ol class="space-y-2">
+                {% for s in m.sessions %}
+                <li class="flex items-start justify-between gap-4 rounded-lg bg-white/5 px-3 py-2">
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium">{{ s.title }}</p>
+                    {% if s.summary %}<p class="text-xs text-white/60 mt-0.5">{{ s.summary }}</p>{% endif %}
+                  </div>
+                  <div class="shrink-0 text-right text-xs">
+                    {% if s.duration %}<span class="block text-white/60">{{ s.duration }}</span>{% endif %}
+                    {% if s.status == "soon" %}<span class="block mt-1 text-amber-300/90">Próximamente</span>{% endif %}
+                  </div>
+                </li>
+                {% endfor %}
+              </ol>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      {% if page.audience or page.prerequisites %}
+      <section class="mt-10 grid gap-8 md:grid-cols-2">
+        {% if page.audience %}
+        <div>
+          {% include components/section-header.html title="¿A quién va dirigido?" %}
+          <p class="mt-4 text-sm text-white/80">{{ page.audience }}</p>
+        </div>
+        {% endif %}
+        {% if page.prerequisites %}
+        <div>
+          {% include components/section-header.html title="Requisitos" variant="secondary" %}
+          <ul class="mt-4 space-y-2 text-sm text-white/80 list-disc list-inside">
+            {% for r in page.prerequisites %}<li>{{ r }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <!-- INSTRUCTOR -->
+      <section class="mt-10">
+        {% include components/section-header.html title="Instructor" %}
+        <div class="mt-4 flex items-center gap-4">
+          <img src="{{ site.author.avatar | relative_url }}" alt="{{ site.author.name }}"
+               class="h-14 w-14 rounded-full object-cover ring-2 ring-white/10">
+          <div class="leading-tight">
+            <div class="font-semibold">{{ site.author.name }}</div>
+            <div class="text-sm text-white/60">{{ site.author.position }}</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- BARRA LATERAL -->
+    <aside class="lg:sticky lg:top-24 rounded-2xl border border-white/10 bg-white/5 p-5">
+      <dl class="space-y-3 text-sm">
+        <div class="flex justify-between gap-4"><dt class="text-white/50">Nivel</dt><dd class="text-right">{{ page.level }}</dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-white/50">Duración</dt><dd class="text-right">{{ page.hours }} horas</dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-white/50">Contenido</dt><dd class="text-right">{{ page.modules.size }} módulos · {{ _n_sessions }} sesiones</dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-white/50">Modalidad</dt><dd class="text-right">{{ page.modality }}</dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-white/50">Acceso</dt><dd class="text-right">{{ page.access }}</dd></div>
+      </dl>
+
+      {% if page.status == "in_development" %}
+        <p class="mt-5 text-xs text-amber-300/90">Curso en desarrollo: las sesiones se irán publicando progresivamente.</p>
+      {% endif %}
+
+      <a href="mailto:{{ site.author.email }}?subject={{ _subject | url_encode }}&body={{ _body | url_encode }}"
+         class="mt-5 flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white"
+         style="background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 2px 8px rgba(0,194,255,0.25);">
+        Solicitar acceso por correo
+      </a>
+      <p class="mt-3 text-xs text-white/50">El acceso es gratuito y se asigna por invitación. Indica tu cuenta de Gmail al escribir.</p>
+      <a href="{{ '/aula/' | relative_url }}" class="mt-4 flex items-center justify-center rounded-lg border border-white/15 px-4 py-2 text-sm text-white/80 hover:text-white hover:border-white/30 transition">Ya tengo acceso: entrar al aula</a>
+    </aside>
+  </div>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Course",
+  "name": {{ page.title | jsonify }},
+  "description": {{ page.subtitle | jsonify }},
+  "provider": { "@type": "Person", "name": {{ site.author.name | jsonify }}, "url": {{ site.url | jsonify }} },
+  "inLanguage": "es"
+}
+</script>

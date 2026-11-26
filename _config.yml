@@ -26,6 +26,9 @@ collections:
   articles:
     output: true
     permalink: /articles/:name/
+  courses:
+    output: true
+    permalink: /cursos/:name/
 
 # Valores por defecto (layouts y metadatos)
 defaults:
@@ -40,6 +43,12 @@ defaults:
       type: "articles"
     values:
       layout: article
+      tags: []
+  - scope:
+      path: ""
+      type: "courses"
+    values:
+      layout: course
       tags: []
 
 # Markdown engine
@@ -58,6 +67,7 @@ plugins:
 assets:
   default_project_cover: "/assets/projects/default/cover-default.jpg"
   default_article_cover: "/assets/articles/default/cover-default.jpg"
+  default_course_cover: "/assets/courses/default/cover-default.svg"
 
 # Excluir archivos de build del sitio generado
 exclude:
@@ -73,3 +83,4 @@ exclude:
   - .editorconfig
   - .nvmrc
   - readme-assets
+  - firestore.rules

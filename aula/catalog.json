@@ -1,0 +1,19 @@
+---
+layout: null
+sitemap: false
+---
+{%- assign cs = site.courses | where_exp: 'c','c.status != "draft"' | sort: 'date' -%}
+{"courses":[
+{%- for c in cs -%}
+{"id":{{ c.slug | jsonify }},"title":{{ c.title | jsonify }},"subtitle":{{ c.subtitle | jsonify }},"cover":{{ c.cover | default: site.assets.default_course_cover | relative_url | jsonify }},"url":{{ c.url | relative_url | jsonify }},"hours":{{ c.hours | default: 0 }},"level":{{ c.level | jsonify }},"status":{{ c.status | jsonify }},
+"modules":[
+{%- for m in c.modules -%}{%- assign mi = forloop.index -%}
+{"id":"m{{ mi }}","title":{{ m.title | jsonify }},"summary":{{ m.summary | jsonify }},"sessions":[
+{%- for s in m.sessions -%}
+{"id":"m{{ mi }}s{{ forloop.index }}","title":{{ s.title | jsonify }},"duration":{{ s.duration | jsonify }},"summary":{{ s.summary | jsonify }},"status":{{ s.status | default: "available" | jsonify }}}{% unless forloop.last %},{% endunless %}
+{%- endfor -%}
+]}{% unless forloop.last %},{% endunless %}
+{%- endfor -%}
+]}{% unless forloop.last %},{% endunless %}
+{%- endfor -%}
+]}

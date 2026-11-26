@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// Reglas de Firestore para el aula virtual.
+// Se pegan en: Firebase Console -> Firestore Database -> Reglas -> Publicar.
+// El correo del administrador (ADMIN) debe coincidir con assets/js/aula/firebase-config.js.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function me() {
+      return request.auth.token.email.lower();
+    }
+    function isAdmin() {
+      return signedIn() && me() == 'ngarridoa18_1@unc.edu.pe';
+    }
+    function enrollment() {
+      return get(/databases/$(database)/documents/enrollments/$(me())).data;
+    }
+    function enrolled(courseId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/enrollments/$(me()))
+        && enrollment().active == true
+        && courseId in enrollment().courses;
+    }
+
+    // Alumnos autorizados: un documento por correo (en minúsculas).
+    match /enrollments/{email} {
+      allow read: if isAdmin() || (signedIn() && email == me());
+      allow write: if isAdmin();
+    }
+
+    // Contenido privado de cada curso (videos y materiales por sesión).
+    match /courses/{courseId} {
+      allow read: if isAdmin() || enrolled(courseId);
+      allow write: if isAdmin();
+    }
+
+    // Progreso y notas de cada alumno por curso.
+    match /users/{email}/progress/{courseId} {
+      allow read, write: if isAdmin() || (signedIn() && email == me() && enrolled(courseId));
+    }
+  }
+}

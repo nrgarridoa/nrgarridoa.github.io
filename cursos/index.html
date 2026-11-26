@@ -1,0 +1,36 @@
+---
+layout: default
+title: "Cursos"
+description: "Cursos de Power BI y Python aplicados a minería y geología, por Nilson Garrido. Temarios, sesiones y acceso por invitación a un aula virtual."
+permalink: /cursos/
+---
+
+<section class="max-w-6xl mx-auto px-6 py-12">
+  <header class="mb-8">
+    <h1 class="text-3xl font-display font-bold">Cursos</h1>
+    <p class="text-white/70 mt-2 max-w-3xl">Formación práctica en Power BI y Python aplicados a minería y geología. Cada curso se imparte en un aula virtual con acceso por invitación.</p>
+  </header>
+
+  {% assign items = site.courses | where_exp: 'c','c.status != "draft"' | sort: 'date' %}
+
+  {% if items.size == 0 %}
+    <p class="text-white/60">Pronto habrá cursos disponibles.</p>
+  {% else %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for course in items %}
+        {% include components/course-card.html item=course %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="mt-12 rounded-2xl border border-white/10 bg-white/5 p-6">
+    <h2 class="text-lg font-bold">¿Cómo accedo?</h2>
+    <p class="mt-2 text-white/70 text-sm max-w-3xl">
+      El contenido de cada curso está en un aula virtual privada. El acceso es gratuito y se asigna por invitación: escríbeme por correo indicando el curso de tu interés y tu cuenta de Gmail, y evalúo tu inscripción.
+    </p>
+    <a href="mailto:{{ site.author.email }}?subject={{ 'Consulta sobre cursos' | url_encode }}"
+       class="inline-flex mt-4 items-center rounded-lg border border-white/15 px-4 py-2 text-sm text-white/80 hover:text-white hover:border-white/30 transition">
+      Escribir por correo
+    </a>
+  </div>
+</section>

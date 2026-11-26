@@ -6,6 +6,8 @@ module.exports = {
     "./*.html",
     "./_articles/**/*.md",
     "./_projects/**/*.md",
+    "./_courses/**/*.md",
+    "./cursos/**/*.html",
     "./pages/**/*.html",
     "./articles/**/*.html",
     "./projects/**/*.html",

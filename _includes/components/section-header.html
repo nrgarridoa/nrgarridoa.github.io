@@ -13,5 +13,5 @@
 
 {% assign _variant = include.variant | default: "primary" %}
 
-<h2 class="section-title">{{ include.title }}</h2>
-<div class="{% if _variant == 'secondary' %}mt-2 h-px w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500{% else %}section-line{% endif %}"></div>
+<h2 class="text-lg font-bold">{{ include.title }}</h2>
+<div class="{% if _variant == 'secondary' %}mt-2 h-px w-16 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500{% else %}mt-2 h-px w-16 rounded-full bg-gradient-to-r from-sky-400 to-blue-500{% endif %}"></div>
