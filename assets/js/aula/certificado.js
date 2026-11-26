@@ -46,10 +46,10 @@ function invalid(msg, title = 'Certificado no encontrado') {
           </div>
           <div>
             <div style="font-size:clamp(10px,1.5vw,16px);color:#475569;">Se otorga a</div>
-            <div style="margin:1.2% 0;font-family:Montserrat,Inter,Arial,sans-serif;font-size:clamp(20px,4vw,44px);font-weight:700;border-bottom:2px solid #0068FF;display:inline-block;padding:0 4%;">${esc(d.name)}</div>
+            <div style="margin:1.2% 0;font-family:Montserrat,Inter,Arial,sans-serif;font-size:clamp(18px,3.2vw,36px);font-weight:700;border-bottom:2px solid #0068FF;display:inline-block;padding:0 4%;">${esc(d.name)}</div>
             <div style="font-size:clamp(10px,1.5vw,16px);color:#475569;">por completar satisfactoriamente el curso</div>
             <div style="margin-top:1%;font-family:Montserrat,Inter,Arial,sans-serif;font-size:clamp(16px,3vw,32px);font-weight:700;color:#0A192F;">${esc(d.courseTitle)}</div>
-            <div style="margin-top:1%;font-size:clamp(10px,1.4vw,15px);color:#475569;">${esc(d.hours)} horas académicas · Modalidad asincrónica</div>
+            <div style="margin-top:1%;font-size:clamp(10px,1.4vw,15px);color:#475569;">${esc(d.hours)} ${Number(d.hours) === 1 ? 'hora académica' : 'horas académicas'} · Modalidad asincrónica</div>
           </div>
           <div style="width:100%;display:flex;align-items:flex-end;justify-content:space-between;gap:3%;">
             <div style="text-align:left;font-size:clamp(8px,1.1vw,12px);color:#475569;line-height:1.5;">
