@@ -11,7 +11,7 @@ permalink: /cursos/
     <p class="text-white/70 mt-2 max-w-3xl">Formación práctica en Power BI y Python aplicados a minería y geología. Cada curso se imparte en un aula virtual con acceso por invitación.</p>
   </header>
 
-  {% assign items = site.courses | where_exp: 'c','c.status != "draft" and c.status != "hidden"' | sort: 'date' %}
+  {% assign items = site.courses | where_exp: 'c','c.status != "draft"' | where_exp: 'c','c.status != "hidden"' | sort: 'date' %}
 
   {% if items.size == 0 %}
     <p class="text-white/60">Pronto habrá cursos disponibles.</p>
