@@ -1,0 +1,25 @@
+---
+layout: default
+title: "Verificación de certificado"
+description: "Verificación pública de certificados de cursos de Nilson Garrido."
+permalink: /certificado/
+noindex: true
+sitemap: false
+---
+
+<style>
+  @media print {
+    header, footer, .no-print { display: none !important; }
+    body { background: #fff !important; }
+    main { min-height: 0 !important; }
+    @page { size: A4 landscape; margin: 0; }
+    #cert-wrap { padding: 0 !important; max-width: none !important; }
+    #cert { width: 297mm !important; height: 210mm !important; border-radius: 0 !important; box-shadow: none !important; }
+  }
+</style>
+
+<div id="cert-wrap" class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+  <p class="text-white/60 text-sm">Verificando certificado…</p>
+</div>
+
+<script type="module" src="{{ '/assets/js/aula/certificado.js' | relative_url }}"></script>

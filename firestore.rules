@@ -37,6 +37,22 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Certificados: el alumno los solicita (pendiente) y solo el admin los emite.
+    // Cualquiera puede consultar un certificado emitido si conoce su código.
+    match /certificates/{code} {
+      allow get: if resource == null
+        || resource.data.status == 'issued'
+        || isAdmin()
+        || (signedIn() && resource.data.ownerEmail == me());
+      allow list: if isAdmin() || (signedIn() && resource.data.ownerEmail == me());
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['ownerEmail', 'name', 'courseId', 'courseTitle', 'hours', 'status', 'requestedAt'])
+        && request.resource.data.ownerEmail == me()
+        && request.resource.data.status == 'pending'
+        && enrolled(request.resource.data.courseId);
+      allow update, delete: if isAdmin();
+    }
+
     // Progreso y notas de cada alumno por curso.
     match /users/{email}/progress/{courseId} {
       allow read, write: if isAdmin() || (signedIn() && email == me() && enrolled(courseId));
