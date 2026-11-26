@@ -14,7 +14,7 @@
   function applyForm() {
     return {
       open: false, user: null, busy: false, state: '', error: '', sub: false, courses: APPLY_COURSES,
-      f: { course: '', name: '', profile: '', goal: '' },
+      f: { course: '', name: '', linkedin: '', profile: '', goal: '' },
       api() {
         return window.aulaApply ? Promise.resolve(window.aulaApply)
           : new Promise((r) => window.addEventListener('aula-apply-ready', () => r(window.aulaApply), { once: true }));
@@ -38,6 +38,11 @@
       valid() {
         const f = this.f;
         if (!f.course || f.name.trim().length < 2 || f.profile.trim().length < 2 || f.goal.trim().length < 2) { this.error = 'Completa todos los campos.'; return false; }
+        let li = f.linkedin.trim();
+        if (li && !/^https?:\/\//i.test(li)) li = 'https://' + li;
+        li = li.replace(/^http:\/\//i, 'https://');
+        if (!/^https:\/\/([a-z0-9-]+\.)?linkedin\.com\/(in|pub)\/[^\s]+$/i.test(li) || li.length > 200) { this.error = 'Indica el enlace de tu perfil de LinkedIn (linkedin.com/in/tu-perfil).'; return false; }
+        f.linkedin = li;
         if (f.profile.length > 1000 || f.goal.length > 1000) { this.error = 'Los textos no pueden superar los 1000 caracteres.'; return false; }
         this.error = ''; return true;
       },
@@ -45,7 +50,7 @@
         if (!this.valid() || this.busy) return;
         this.busy = true;
         try {
-          const r = await (await this.api()).submit({ courseId: this.f.course, courseTitle: this.courses[this.f.course], name: this.f.name, profile: this.f.profile, goal: this.f.goal });
+          const r = await (await this.api()).submit({ courseId: this.f.course, courseTitle: this.courses[this.f.course], name: this.f.name, linkedin: this.f.linkedin, profile: this.f.profile, goal: this.f.goal });
           this.state = r.existing ? 'exists' : 'sent';
         } catch (e) {
           this.error = 'No se pudo enviar la postulación. Inténtalo nuevamente en unos minutos.';
@@ -90,6 +95,10 @@
       <div>
         <label class="text-xs text-white/50" for="ap-name">Nombre completo</label>
         <input id="ap-name" type="text" x-model="f.name" maxlength="120" autocomplete="name" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="text-xs text-white/50" for="ap-linkedin">Perfil de LinkedIn</label>
+        <input id="ap-linkedin" type="text" inputmode="url" x-model="f.linkedin" maxlength="200" autocomplete="url" placeholder="https://www.linkedin.com/in/tu-perfil" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
       </div>
       <div>
         <label class="text-xs text-white/50" for="ap-profile">Tu perfil</label>

@@ -38,7 +38,7 @@ window.aulaApply ||= {
     await A.signOut(auth);
   },
   // Devuelve { existing: estado } si ya había una postulación a ese curso.
-  async submit({ courseId, courseTitle, name, profile, goal }) {
+  async submit({ courseId, courseTitle, name, linkedin, profile, goal }) {
     const { auth, db, F } = await load();
     const email = norm(auth.currentUser && auth.currentUser.email);
     if (!email) throw new Error('Sin sesión');
@@ -46,7 +46,7 @@ window.aulaApply ||= {
     const prev = await F.getDoc(ref);
     if (prev.exists()) return { existing: prev.data().status || 'pending' };
     await F.setDoc(ref, {
-      ownerEmail: email, name: name.trim(), courseId, courseTitle,
+      ownerEmail: email, name: name.trim(), courseId, courseTitle, linkedin: linkedin.trim(),
       profile: profile.trim(), goal: goal.trim(), status: 'pending', createdAt: new Date().toISOString(),
     });
     // Aviso por correo al administrador (si está configurado). No bloquea ni afecta la postulación.
@@ -54,7 +54,7 @@ window.aulaApply ||= {
       try {
         const idToken = await auth.currentUser.getIdToken();
         fetch(NOTIFY_URL, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'new_application', name: name.trim(), course: courseTitle, idToken }) }).catch(() => {});
+          body: JSON.stringify({ action: 'new_application', name: name.trim(), course: courseTitle, linkedin: linkedin.trim(), profile: profile.trim(), goal: goal.trim(), idToken }) }).catch(() => {});
       } catch { /* sin aviso */ }
     }
     return { ok: true };

@@ -139,8 +139,8 @@ function demoApi() {
   if (qs.has('pending')) certs.push({ code: 'NG-DEMO-PEND-0001', ownerEmail: 'maria@gmail.com', name: 'María Pérez', courseId: 'pbi-mineria', courseTitle: 'Power BI para Minería', hours: 24, status: 'pending', requestedAt: new Date().toISOString() });
   const apps = [];
   if (qs.has('apps')) {
-    apps.push({ code: 'ana@gmail.com__pbi-mineria', ownerEmail: 'ana@gmail.com', name: 'Ana Torres', courseId: 'pbi-mineria', courseTitle: 'Power BI para Minería', profile: 'Analista de planeamiento en una minera de Arequipa, 3 años de experiencia con Excel avanzado.', goal: 'Automatizar los reportes semanales de producción.', status: 'pending', createdAt: new Date().toISOString() });
-    apps.push({ code: 'luis@gmail.com__python-mineria', ownerEmail: 'luis@gmail.com', name: 'Luis Rojas', courseId: 'python-mineria', courseTitle: 'Python para Minería', profile: 'Estudiante de Ingeniería de Minas, 9.º ciclo.', goal: 'Aplicar Python en mi tesis de voladura.', status: 'pending', createdAt: new Date().toISOString() });
+    apps.push({ code: 'ana@gmail.com__pbi-mineria', ownerEmail: 'ana@gmail.com', name: 'Ana Torres', courseId: 'pbi-mineria', courseTitle: 'Power BI para Minería', linkedin: 'https://www.linkedin.com/in/ana-torres', profile: 'Analista de planeamiento en una minera de Arequipa, 3 años de experiencia con Excel avanzado.', goal: 'Automatizar los reportes semanales de producción.', status: 'pending', createdAt: new Date().toISOString() });
+    apps.push({ code: 'luis@gmail.com__python-mineria', ownerEmail: 'luis@gmail.com', name: 'Luis Rojas', courseId: 'python-mineria', courseTitle: 'Python para Minería', linkedin: 'https://www.linkedin.com/in/luis-rojas', profile: 'Estudiante de Ingeniería de Minas, 9.º ciclo.', goal: 'Aplicar Python en mi tesis de voladura.', status: 'pending', createdAt: new Date().toISOString() });
   }
   return {
     onAuth: (cb) => setTimeout(() => cb(user), 50),
@@ -442,7 +442,7 @@ function adminView() {
   S.flash = '';
   const appCard = (a) => `<div class="${card} p-4">
       <div class="flex flex-wrap items-start justify-between gap-3">
-        <div><div class="font-medium text-sm">${esc(a.name)} <span class="text-xs text-white/50">· ${esc(a.ownerEmail)}</span></div>
+        <div><div class="font-medium text-sm">${esc(a.name)} <span class="text-xs text-white/50">· ${esc(a.ownerEmail)}</span>${a.linkedin ? ` <a href="${esc(safeUrl(a.linkedin))}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs text-sky-300 hover:text-sky-200">LinkedIn ↗</a>` : ''}</div>
           <div class="text-xs text-sky-300/80 mt-0.5">${esc(a.courseTitle)} · ${esc(fmtDate(a.createdAt))}</div></div>
         <div class="text-xs whitespace-nowrap">
           ${a.status === 'pending' ? `<button data-act="app-approve" data-code="${esc(a.code)}" class="text-emerald-300 hover:text-emerald-200 mr-3">Aprobar e inscribir</button><button data-act="app-reject" data-code="${esc(a.code)}" class="text-red-300 hover:text-red-200 mr-3">Rechazar</button>`
