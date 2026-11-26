@@ -1,36 +1,105 @@
 ---
 layout: default
 title: "Cursos"
-description: "Cursos de Power BI y Python aplicados a minería y geología, por Nilson Garrido. Temarios, sesiones y acceso por invitación a un aula virtual."
+description: "Cursos aplicados de Nilson Garrido con aula virtual de acceso restringido: temarios, sesiones y modalidad."
 permalink: /cursos/
 ---
 
-<section class="max-w-6xl mx-auto px-6 py-12">
-  <header class="mb-8">
+{% assign items = site.courses | where_exp: 'c','c.status != "draft"' | where_exp: 'c','c.status != "hidden"' | sort: 'order' %}
+
+{% assign cats = "" | split: "" %}
+{% assign areas = "" | split: "" %}
+{% for c in items %}
+  {% if c.category %}{% assign cats = cats | push: c.category %}{% endif %}
+  {% if c.area %}{% assign areas = areas | push: c.area %}{% endif %}
+{% endfor %}
+{% assign cats = cats | uniq | sort %}
+{% assign areas = areas | uniq | sort %}
+
+{% capture items_json %}[{% for c in items %}{"c":{{ c.category | default: '' | jsonify }},"a":{{ c.area | default: '' | jsonify }},"t":{{ c.title | append: ' ' | append: c.subtitle | append: ' ' | append: c.tools | join: ' ' | downcase | jsonify }}}{% unless forloop.last %},{% endunless %}{% endfor %}]{% endcapture %}
+
+<section class="max-w-6xl mx-auto px-6 py-12"
+         x-data="{
+           q: '', cat: 'Todos', area: 'Todos',
+           items: {{ items_json | escape }},
+           ok(i) {
+             const it = this.items[i];
+             return (this.cat === 'Todos' || it.c === this.cat)
+               && (this.area === 'Todos' || it.a === this.area)
+               && (!this.q.trim() || it.t.includes(this.q.trim().toLowerCase()));
+           },
+           get n() { return this.items.filter((_, i) => this.ok(i)).length },
+           reset() { this.q = ''; this.cat = 'Todos'; this.area = 'Todos'; }
+         }">
+
+  <header class="mb-8 max-w-3xl">
     <h1 class="text-3xl font-display font-bold">Cursos</h1>
-    <p class="text-white/70 mt-2 max-w-3xl">Formación práctica en Power BI y Python aplicados a minería y geología. Cada curso se imparte en un aula virtual con acceso por invitación.</p>
+    <p class="text-white/70 mt-2">Formación técnica y aplicada, con contenido en un aula virtual de acceso restringido.</p>
   </header>
 
-  {% assign items = site.courses | where_exp: 'c','c.status != "draft"' | where_exp: 'c','c.status != "hidden"' | sort: 'date' %}
+  {% if items.size > 0 %}
+  <!-- Filtros -->
+  <div class="mb-8 rounded-2xl bg-white/5 border border-white/10 p-5 space-y-4">
+    <div class="flex flex-wrap items-center gap-3">
+      <label for="cq" class="sr-only">Buscar cursos</label>
+      <input id="cq" type="search" x-model="q" placeholder="Buscar por tema o herramienta…"
+             class="w-full sm:w-72 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder-white/40 focus:outline-none focus:border-white/30">
+      <span class="text-sm text-white/50 sm:ml-auto" x-text="n + (n === 1 ? ' curso' : ' cursos')"></span>
+    </div>
+
+    {% if cats.size > 1 %}
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="text-xs text-white/40 uppercase tracking-wider font-semibold w-28 shrink-0">Herramienta</span>
+      <button @click="cat='Todos'" :class="cat==='Todos' ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white/90'"
+              class="px-3.5 py-1.5 rounded-lg text-sm font-medium border transition">Todas</button>
+      {% for t in cats %}
+        <button @click="cat={{ t | jsonify | escape }}" :class="cat==={{ t | jsonify | escape }} ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white/90'"
+                class="px-3.5 py-1.5 rounded-lg text-sm font-medium border transition">{{ t }}</button>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if areas.size > 1 %}
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="text-xs text-white/40 uppercase tracking-wider font-semibold w-28 shrink-0">Área</span>
+      <button @click="area='Todos'" :class="area==='Todos' ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white/90'"
+              class="px-3.5 py-1.5 rounded-lg text-sm font-medium border transition">Todas</button>
+      {% for t in areas %}
+        <button @click="area={{ t | jsonify | escape }}" :class="area==={{ t | jsonify | escape }} ? 'bg-accent text-white border-accent shadow-sm' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white/90'"
+                class="px-3.5 py-1.5 rounded-lg text-sm font-medium border transition">{{ t }}</button>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
 
   {% if items.size == 0 %}
     <p class="text-white/60">Pronto habrá cursos disponibles.</p>
   {% else %}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {% for course in items %}
-        {% include components/course-card.html item=course %}
+        <div x-show="ok({{ forloop.index0 }})" x-transition>
+          {% include components/course-card.html item=course %}
+        </div>
       {% endfor %}
+    </div>
+    <div x-show="n === 0" style="display:none" class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
+      <p class="text-white/70">Ningún curso coincide con tu búsqueda.</p>
+      <button @click="reset()" class="mt-3 rounded-lg border border-white/15 px-4 py-2 text-sm text-white/80 hover:text-white hover:border-white/30">Limpiar filtros</button>
     </div>
   {% endif %}
 
-  <div class="mt-12 rounded-2xl border border-white/10 bg-white/5 p-6">
-    <h2 class="text-lg font-bold">¿Cómo accedo?</h2>
-    <p class="mt-2 text-white/70 text-sm max-w-3xl">
-      El contenido de cada curso está en un aula virtual privada. El acceso es gratuito y se asigna por invitación: escríbeme por correo indicando el curso de tu interés y tu cuenta de Gmail, y evalúo tu inscripción.
-    </p>
-    <a href="mailto:{{ site.author.email }}?subject={{ 'Consulta sobre cursos' | url_encode }}"
-       class="inline-flex mt-4 items-center rounded-lg border border-white/15 px-4 py-2 text-sm text-white/80 hover:text-white hover:border-white/30 transition">
-      Escribir por correo
-    </a>
+  <!-- Acceso -->
+  <div class="mt-12 rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8 flex flex-wrap items-center justify-between gap-6">
+    <div class="max-w-2xl">
+      <h2 class="text-lg font-bold">Acceso por postulación</h2>
+      <p class="mt-2 text-white/70 text-sm">
+        Los cursos no son de inscripción abierta. Los cupos se asignan según el perfil profesional o académico y el interés de cada postulante. Cuéntame quién eres y qué esperas aplicar, y revisaré tu postulación.
+      </p>
+    </div>
+    <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-apply'))"
+            class="rounded-lg border border-white/20 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10 transition">Postular a un curso</button>
   </div>
 </section>
+
+{% include components/apply-modal.html %}

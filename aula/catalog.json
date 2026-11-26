@@ -2,7 +2,7 @@
 layout: null
 sitemap: false
 ---
-{%- assign cs = site.courses | where_exp: 'c','c.status != "draft"' | sort: 'date' -%}
+{%- assign cs = site.courses | where_exp: 'c','c.status != "draft"' | sort: 'order' -%}
 {"courses":[
 {%- for c in cs -%}
 {"id":{{ c.slug | jsonify }},"title":{{ c.title | jsonify }},"subtitle":{{ c.subtitle | jsonify }},"cover":{{ c.cover | default: site.assets.default_course_cover | relative_url | jsonify }},"url":{{ c.url | relative_url | jsonify }},"hours":{{ c.hours | default: 0 }},"level":{{ c.level | jsonify }},"status":{{ c.status | jsonify }},

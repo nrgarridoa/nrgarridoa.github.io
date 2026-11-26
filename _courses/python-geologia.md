@@ -4,10 +4,13 @@ subtitle: "Procesamiento de datos geológicos, sondajes y modelamiento espacial 
 date: 2026-11-25
 status: in_development   # published | in_development | draft
 cover: /assets/courses/python-geologia/cover.svg
+order: 3
+category: "Python"   # herramienta/tecnología: genera el filtro en /cursos/
+area: "Geología"            # área de aplicación: genera el filtro en /cursos/
 level: "Básico - Intermedio"
 hours: 28
 modality: "Asincrónico · A tu ritmo"
-access: "Por invitación · Gratuito"
+access: "Por postulación"
 tags: [Python, Geología, Geoestadística, Exploración]
 tools: [Python, Pandas, GeoPandas, Matplotlib, Jupyter]
 

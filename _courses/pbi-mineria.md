@@ -4,10 +4,13 @@ subtitle: "De los datos operativos al dashboard: modelado, DAX y reportería apl
 date: 2026-11-25
 status: published   # published | in_development | draft
 cover: /assets/courses/pbi-mineria/cover.svg
+order: 1
+category: "Power BI"   # herramienta/tecnología: genera el filtro en /cursos/
+area: "Minería"            # área de aplicación: genera el filtro en /cursos/
 level: "Intermedio"
 hours: 24
 modality: "Asincrónico · A tu ritmo"
-access: "Por invitación · Gratuito"
+access: "Por postulación"
 tags: [Power BI, DAX, Minería, BI]
 tools: [Power BI Desktop, DAX, Power Query, Excel]
 

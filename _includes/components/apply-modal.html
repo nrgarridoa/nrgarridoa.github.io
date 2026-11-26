@@ -1,0 +1,95 @@
+{% comment %}
+  component: apply-modal
+  description: Formulario de postulación a un curso. Arma un borrador de correo (Gmail o app de correo)
+               con los datos del postulante; no requiere servidor.
+  uso: incluir una vez por página y abrir con
+       window.dispatchEvent(new CustomEvent('open-apply', { detail: { course: 'Título del curso' } }))
+{% endcomment %}
+
+{% assign _opts = site.courses | where_exp: 'c','c.status != "draft"' | where_exp: 'c','c.status != "hidden"' | sort: 'order' %}
+
+<script>
+  function applyForm() {
+    return {
+      open: false, sent: false, error: '',
+      to: {{ site.author.email | jsonify }},
+      f: { course: '', name: '', gmail: '', profile: '', goal: '' },
+      show(course) {
+        this.sent = false; this.error = '';
+        if (course) this.f.course = course;
+        this.open = true;
+        this.$nextTick(() => this.$refs.first && this.$refs.first.focus());
+      },
+      subject() { return 'Postulación: ' + (this.f.course || 'curso'); },
+      body() {
+        return 'Hola Nilson,\n\nQuiero postular al curso "' + this.f.course + '".\n\n'
+          + 'Nombre: ' + this.f.name.trim() + '\n'
+          + 'Cuenta de Gmail para el aula: ' + this.f.gmail.trim() + '\n\n'
+          + 'Mi perfil (ocupación, empresa o universidad, experiencia):\n' + this.f.profile.trim() + '\n\n'
+          + 'Qué espero aplicar con el curso:\n' + this.f.goal.trim() + '\n\nGracias.';
+      },
+      mailto() { return 'mailto:' + this.to + '?subject=' + encodeURIComponent(this.subject()) + '&body=' + encodeURIComponent(this.body()); },
+      gmail() { return 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(this.to) + '&su=' + encodeURIComponent(this.subject()) + '&body=' + encodeURIComponent(this.body()); },
+      valid() {
+        const f = this.f;
+        if (!f.course || !f.name.trim() || !f.profile.trim() || !f.goal.trim()) { this.error = 'Completa todos los campos.'; return false; }
+        if (!/^[^\s@]+@gmail\.com$/i.test(f.gmail.trim())) { this.error = 'Indica la cuenta de Gmail con la que ingresarás al aula.'; return false; }
+        this.error = ''; return true;
+      },
+      send() { if (!this.valid()) return; window.open(this.gmail(), '_blank', 'noopener'); this.sent = true; },
+      fallback(e) { if (!this.valid()) e.preventDefault(); else this.sent = true; },
+    };
+  }
+</script>
+
+<div x-data="applyForm()" @open-apply.window="show($event.detail && $event.detail.course)" @keydown.escape.window="open = false"
+     x-show="open" style="display:none" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="apply-title">
+  <div class="absolute inset-0 bg-black/70" @click="open = false"></div>
+
+  <div class="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 p-6 shadow-soft" style="background:#0d1f3a;">
+    <button type="button" @click="open = false" class="absolute top-3 right-3 rounded-lg p-2 text-white/60 hover:text-white hover:bg-white/10" aria-label="Cerrar">
+      {% include icons/close.svg %}
+    </button>
+
+    <h2 id="apply-title" class="text-xl font-display font-bold">Postular a un curso</h2>
+    <p class="mt-1 text-sm text-white/60">Los cupos se asignan según el perfil y el interés de cada postulante.</p>
+
+    <form class="mt-5 space-y-4" @submit.prevent="send()" @input="error = ''" @change="error = ''">
+      <div>
+        <label class="text-xs text-white/50" for="ap-course">Curso</label>
+        <select id="ap-course" x-model="f.course" x-ref="first" class="mt-1 w-full rounded-lg border border-white/10 bg-base px-3 py-2 text-sm">
+          <option value="">Selecciona un curso</option>
+          {% for c in _opts %}<option value="{{ c.title | escape }}">{{ c.title }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="text-xs text-white/50" for="ap-name">Nombre completo</label>
+          <input id="ap-name" type="text" x-model="f.name" autocomplete="name" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="text-xs text-white/50" for="ap-gmail">Gmail para el aula</label>
+          <input id="ap-gmail" type="email" x-model="f.gmail" autocomplete="email" placeholder="tucuenta@gmail.com" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
+        </div>
+      </div>
+      <div>
+        <label class="text-xs text-white/50" for="ap-profile">Tu perfil</label>
+        <textarea id="ap-profile" rows="3" x-model="f.profile" placeholder="Ocupación, empresa o universidad, años de experiencia…" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm"></textarea>
+      </div>
+      <div>
+        <label class="text-xs text-white/50" for="ap-goal">¿Qué esperas aplicar con el curso?</label>
+        <textarea id="ap-goal" rows="3" x-model="f.goal" class="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm"></textarea>
+      </div>
+
+      <p x-show="error" x-text="error" class="text-sm text-amber-300" style="display:none"></p>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="submit" class="inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white"
+                style="background:linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow:0 2px 8px rgba(0,194,255,0.25);">Preparar postulación en Gmail</button>
+        <a :href="mailto()" @click="fallback($event)" class="text-xs text-white/60 underline hover:text-white">Usar otra aplicación de correo</a>
+      </div>
+      <p x-show="sent" class="text-sm text-emerald-300" style="display:none">Se preparó el mensaje. Envíalo desde tu correo para completar la postulación.</p>
+    </form>
+  </div>
+</div>

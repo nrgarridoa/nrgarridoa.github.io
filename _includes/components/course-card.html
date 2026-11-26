@@ -20,6 +20,9 @@
       {% endif %}
     </div>
     <div class="p-4 flex flex-col flex-1">
+      {% if include.item.category or include.item.area %}
+        <p class="text-[11px] uppercase tracking-wider text-sky-300/80 mb-1">{{ include.item.category }}{% if include.item.category and include.item.area %} · {% endif %}{{ include.item.area }}</p>
+      {% endif %}
       <h3 class="font-semibold">{{ include.item.title }}</h3>
       {% if include.item.subtitle %}
         <p class="mt-1 text-sm text-white/70 line-clamp-3">{{ include.item.subtitle }}</p>

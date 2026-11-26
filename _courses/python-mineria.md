@@ -4,10 +4,13 @@ subtitle: "Análisis de datos, visualización y modelos predictivos con Python s
 date: 2026-11-25
 status: published   # published | in_development | draft
 cover: /assets/courses/python-mineria/cover.svg
+order: 2
+category: "Python"   # herramienta/tecnología: genera el filtro en /cursos/
+area: "Minería"            # área de aplicación: genera el filtro en /cursos/
 level: "Básico - Intermedio"
 hours: 30
 modality: "Asincrónico · A tu ritmo"
-access: "Por invitación · Gratuito"
+access: "Por postulación"
 tags: [Python, Pandas, Minería, Machine Learning]
 tools: [Python, Pandas, Matplotlib, Scikit-learn, Jupyter]
 
