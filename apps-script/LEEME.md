@@ -37,3 +37,9 @@ con su token). Los archivos no necesitan compartirse: solo tiene que poder leerl
 - Cada cápsula tiene `aula/clase.html`, `aula/soluciones.html`, `aula/presentacion.pdf` (se generan con
   `export_aula.py` del curso), además de `notebook.ipynb` y `presentacion.pptx`. En la raíz va `paquete_curso.zip`.
 - Tras editar `Code.gs`: ejecutar `autorizar` (pide el permiso de Drive) y publicar una versión nueva.
+
+## Liberación por alumno
+
+Los archivos del aula solo se entregan si la sesión está liberada para ese alumno (`released` o `releaseAll` en su
+inscripción de Firestore). La carpeta de cada sesión sale del catálogo público del sitio (`aula/catalog.json`), no de lo
+que envía el navegador. Al publicar este cambio hay que pegar también `firestore.rules` en la consola de Firebase.

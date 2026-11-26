@@ -25,16 +25,47 @@ service cloud.firestore {
         && courseId in enrollment().courses;
     }
 
+    // ---- Liberación de contenido por alumno ----
+    // enrollments/{correo}.released = { cursoId: [ids de sesión o evaluación liberados] }
+    // enrollments/{correo}.releaseAll = [cursoId, ...]   (acceso completo)
+    // Solo el administrador escribe ese documento. Por defecto no hay nada liberado.
+    function released(courseId, item) {
+      return courseId in enrollment().get('releaseAll', [])
+        || item in enrollment().get('released', {}).get(courseId, []);
+    }
+    function courseMeta(courseId) {
+      return get(/databases/$(database)/documents/courses/$(courseId)).data;
+    }
+    function progress(courseId) {
+      return get(/databases/$(database)/documents/users/$(me())/progress/$(courseId)).data;
+    }
+    // El certificado solo se puede solicitar con todo el contenido liberado y completado.
+    function finished(courseId) {
+      return courseMeta(courseId).get('requiredSessions', 0) > 0
+        && (courseId in enrollment().get('releaseAll', [])
+            || enrollment().get('released', {}).get(courseId, []).size()
+               >= courseMeta(courseId).get('requiredSessions', 0) + courseMeta(courseId).get('requiredQuizzes', 0))
+        && progress(courseId).get('done', {}).size() >= courseMeta(courseId).get('requiredSessions', 0)
+        && progress(courseId).get('quiz', {}).size() >= courseMeta(courseId).get('requiredQuizzes', 0);
+    }
+
     // Alumnos autorizados: un documento por correo (en minúsculas).
     match /enrollments/{email} {
       allow read: if isAdmin() || (signedIn() && email == me());
       allow write: if isAdmin();
     }
 
-    // Contenido privado de cada curso (videos y materiales por sesión).
+    // Datos generales del curso (nota mínima, cantidad de evaluaciones y de actividades exigidas).
     match /courses/{courseId} {
       allow read: if isAdmin() || enrolled(courseId);
       allow write: if isAdmin();
+
+      // Contenido privado: un documento por sesión (videos y materiales) y por evaluación (q-m1, ...).
+      // Solo se puede leer si el administrador lo liberó a ese alumno.
+      match /content/{item} {
+        allow read: if isAdmin() || (enrolled(courseId) && released(courseId, item));
+        allow write: if isAdmin();
+      }
     }
 
     // Certificados: el alumno los solicita (pendiente) y solo el admin los emite.
@@ -49,7 +80,8 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['ownerEmail', 'name', 'courseId', 'courseTitle', 'hours', 'status', 'requestedAt'])
         && request.resource.data.ownerEmail == me()
         && request.resource.data.status == 'pending'
-        && enrolled(request.resource.data.courseId);
+        && enrolled(request.resource.data.courseId)
+        && finished(request.resource.data.courseId);
       allow update, delete: if isAdmin();
     }
 

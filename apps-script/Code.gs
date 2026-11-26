@@ -88,20 +88,26 @@ const FILE_KINDS = {
 // Archivo suelto en la raíz del curso (por ejemplo el paquete para ejecutar los notebooks).
 const ROOT_KINDS = { paquete: { path: 'paquete_curso.zip', mime: 'application/zip' } };
 
-/** Entrega un archivo del curso solo a quien está inscrito (o es el administrador). */
+/** Entrega un archivo del curso solo a quien lo tiene liberado (o es el administrador). */
 function serveFile_(user, req) {
   const courseId = String(req.courseId || '');
   const course = CONFIG.COURSE_FILES[courseId];
   if (!course) throw new Error('Curso sin archivos');
-  if (user.email !== CONFIG.ADMIN_EMAIL.toLowerCase()) requireEnrollment_(user.email, courseId, req.idToken);
+  const isAdmin = user.email === CONFIG.ADMIN_EMAIL.toLowerCase();
+  const enr = isAdmin ? null : readEnrollment_(user.email, courseId, req.idToken);
 
   const kind = String(req.kind || '');
-  let spec, folder = String(req.folder || '');
-  if (ROOT_KINDS[kind]) { spec = ROOT_KINDS[kind]; folder = ''; }
-  else {
+  let spec, folder = '';
+  if (ROOT_KINDS[kind]) {
+    spec = ROOT_KINDS[kind];
+    if (!isAdmin && !enr.all && !enr.items.length) throw new Error('Bloqueado: aún no tienes contenido liberado');
+  } else {
     spec = FILE_KINDS[kind];
     if (!spec) throw new Error('Archivo no válido');
-    if (!/^modulo_\d{2}_[a-z0-9_]+\/c\d+\.\d+_[a-z0-9_]+$/.test(folder)) throw new Error('Carpeta no válida');
+    const sid = String(req.sid || '');
+    if (!/^m\d+s\d+$/.test(sid)) throw new Error('Sesión no válida');
+    if (!isAdmin && !enr.all && enr.items.indexOf(sid) < 0) throw new Error('Bloqueado: esta sesión aún no está liberada');
+    folder = catalogFolder_(courseId, sid);   // la carpeta sale del catálogo público, no de lo que envía el navegador
   }
   const rel = (folder ? folder + '/' : '') + spec.path;
   const cache = CacheService.getScriptCache();
@@ -117,16 +123,39 @@ function serveFile_(user, req) {
   return { ok: true, mime: spec.mime, b64: Utilities.base64Encode(file.getBlob().getBytes()) };
 }
 
-/** Comprueba, con la propia sesión del alumno, que su inscripción activa incluye el curso. */
-function requireEnrollment_(email, courseId, idToken) {
+/** Carpeta de una sesión según el catálogo público del sitio (aula/catalog.json). */
+function catalogFolder_(courseId, sid) {
+  const cache = CacheService.getScriptCache();
+  const ck = 'cat:' + courseId + ':' + sid;
+  const hit = cache.get(ck);
+  if (hit) return hit;
+  const res = UrlFetchApp.fetch(CONFIG.SITE_URL + 'aula/catalog.json', { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error('No se pudo leer el catálogo');
+  const cat = JSON.parse(res.getContentText());
+  const c = (cat.courses || []).filter(function (x) { return x.id === courseId; })[0];
+  const m = sid.match(/^m(\d+)s(\d+)$/);
+  const mod = c && c.modules[Number(m[1]) - 1];
+  const sess = mod && mod.sessions[Number(m[2]) - 1];
+  if (!sess || !sess.folder || !/^modulo_\d{2}_[a-z0-9_]+\/c\d+\.\d+_[a-z0-9_]+$/.test(sess.folder)) throw new Error('Sesión sin archivos');
+  cache.put(ck, sess.folder, 600);
+  return sess.folder;
+}
+
+/**
+ * Lee, con la propia sesión del alumno, su inscripción en Firestore y devuelve qué tiene liberado de este curso:
+ * { all: true } si tiene acceso completo, o { items: [ids] }. Falla si no está inscrito o está inactivo.
+ */
+function readEnrollment_(email, courseId, idToken) {
   const url = 'https://firestore.googleapis.com/v1/projects/' + CONFIG.FIREBASE_PROJECT_ID +
     '/databases/(default)/documents/enrollments/' + encodeURIComponent(email);
   const res = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + idToken }, muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) throw new Error('Sin acceso al curso');
   const f = JSON.parse(res.getContentText()).fields || {};
+  const strs = function (arr) { return ((arr && arr.arrayValue && arr.arrayValue.values) || []).map(function (v) { return v.stringValue; }); };
   const active = !f.active || f.active.booleanValue !== false;
-  const list = ((f.courses && f.courses.arrayValue && f.courses.arrayValue.values) || []).map(function (v) { return v.stringValue; });
-  if (!active || list.indexOf(courseId) < 0) throw new Error('Sin acceso al curso');
+  if (!active || strs(f.courses).indexOf(courseId) < 0) throw new Error('Sin acceso al curso');
+  const rel = (f.released && f.released.mapValue && f.released.mapValue.fields) || {};
+  return { all: strs(f.releaseAll).indexOf(courseId) >= 0, items: strs(rel[courseId]) };
 }
 
 function findFile_(course, rel) {

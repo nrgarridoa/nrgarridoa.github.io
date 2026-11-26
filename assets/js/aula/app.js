@@ -99,13 +99,45 @@ async function firebaseApi() {
     signOut: () => A.signOut(auth),
     idToken: async () => (auth.currentUser ? auth.currentUser.getIdToken() : ''),
     getEnrollment: (e) => read(F.doc(db, 'enrollments', e)),
-    getPrivate: (c) => read(F.doc(db, 'courses', c)).catch(() => null),
+    // Contenido privado: documento del curso (solo datos generales) + un documento por sesion/evaluacion
+    // en courses/{curso}/content/{id}. Las reglas solo dejan leer los liberados al alumno.
+    getPrivate: async (c, asAdmin) => {
+      const meta = (await read(F.doc(db, 'courses', c)).catch(() => null)) || {};
+      const out = { pass: meta.pass, requiredSessions: meta.requiredSessions || 0, requiredQuizzes: meta.requiredQuizzes || 0, quizMeta: meta.quizMeta || {}, sessions: {}, quizzes: {} };
+      if (asAdmin) {
+        (await F.getDocs(F.collection(db, 'courses', c, 'content'))).forEach((d) => {
+          if (d.id.startsWith('q-')) out.quizzes[d.id.slice(2)] = d.data(); else out.sessions[d.id] = d.data();
+        });
+        out.quizMeta = Object.fromEntries(Object.entries(out.quizzes).map(([m, z]) => [m, { n: (z.questions || []).length }]));
+      }
+      return out;
+    },
+    getItem: (c, item) => read(F.doc(db, 'courses', c, 'content', item)),
+    watchEnrollment: (e, cb) => F.onSnapshot(F.doc(db, 'enrollments', e), (sn) => cb(sn.exists() ? sn.data() : null), () => {}),
+    releaseBatch: async (items) => {
+      for (let i = 0; i < items.length; i += 400) {
+        const b = F.writeBatch(db);
+        items.slice(i, i + 400).forEach(({ email, patch }) => b.set(F.doc(db, 'enrollments', email), patch, { merge: true }));
+        await b.commit();
+      }
+    },
     getProgress: (e, c) => read(F.doc(db, 'users', e, 'progress', c)).catch(() => null),
-    saveProgress: (e, c, data) => F.setDoc(F.doc(db, 'users', e, 'progress', c), { ...data, updatedAt: F.serverTimestamp() }, { merge: true }),
+    saveProgress: (e, c, data) => {
+      // una sesion desmarcada se borra del mapa (las reglas del certificado cuentan las completadas)
+      const d = data.done ? { ...data, done: Object.fromEntries(Object.entries(data.done).map(([k, v]) => [k, v === false ? F.deleteField() : v])) } : data;
+      return F.setDoc(F.doc(db, 'users', e, 'progress', c), { ...d, updatedAt: F.serverTimestamp() }, { merge: true });
+    },
     listEnrollments: async () => (await F.getDocs(F.collection(db, 'enrollments'))).docs.map((d) => ({ email: d.id, ...d.data() })),
     saveEnrollment: (e, data) => F.setDoc(F.doc(db, 'enrollments', e), data, { merge: true }),
     deleteEnrollment: (e) => F.deleteDoc(F.doc(db, 'enrollments', e)),
-    savePrivate: (c, data) => F.setDoc(F.doc(db, 'courses', c), data),
+    savePrivate: async (c, d, ids) => {
+      const b = F.writeBatch(db), keep = new Set();
+      b.set(F.doc(db, 'courses', c), { pass: d.pass, requiredSessions: d.requiredSessions, requiredQuizzes: d.requiredQuizzes, quizMeta: d.quizMeta });
+      for (const [sid, v] of Object.entries(d.sessions)) { b.set(F.doc(db, 'courses', c, 'content', sid), v); keep.add(sid); }
+      for (const [mid, v] of Object.entries(d.quizzes)) { b.set(F.doc(db, 'courses', c, 'content', 'q-' + mid), v); keep.add('q-' + mid); }
+      for (const id of ids) if (!keep.has(id)) b.delete(F.doc(db, 'courses', c, 'content', id));
+      await b.commit();
+    },
     listMyCerts: (e) => certs(F.query(F.collection(db, 'certificates'), F.where('ownerEmail', '==', e))).catch(() => []),
     requestCert: (code, data) => F.setDoc(F.doc(db, 'certificates', code), data),
     listCerts: () => certs(F.collection(db, 'certificates')),
@@ -124,9 +156,11 @@ function demoApi() {
   const asAdmin = qs.has('admin');
   const user = { email: asAdmin ? ADMIN_EMAIL : 'alumno@gmail.com', name: asAdmin ? 'Nilson (demo)' : 'Alumno Demo', photo: '' };
   const enr = {
-    'alumno@gmail.com': { name: 'Alumno Demo', courses: ['pbi-mineria', 'python-mineria'], active: true },
-    'maria@gmail.com': { name: 'María Pérez', courses: ['pbi-mineria'], active: true },
+    'alumno@gmail.com': { name: 'Alumno Demo', courses: ['pbi-mineria', 'python-mineria'], active: true, groups: ['cohorte-1'], ...(qs.has('locked') ? { released: { 'pbi-mineria': ['m1s1', 'm1s2'] } } : { releaseAll: ['pbi-mineria', 'python-mineria', 'python-geologia'] }) },
+    'maria@gmail.com': { name: 'María Pérez', courses: ['pbi-mineria'], active: true, groups: ['cohorte-1'], released: { 'pbi-mineria': ['m1s1'] } },
+    'pedro@gmail.com': { name: 'Pedro Quispe', courses: ['pbi-mineria', 'python-geologia'], active: true, groups: ['cohorte-2'] },
   };
+  let watcher = null;
   const priv = {
     'pbi-mineria': { pass: 70, sessions: {
       m1s1: { video: 'https://www.youtube.com/watch?v=M7lc1UVf-VE', resources: [{ label: 'Guía de la sesión (PDF)', url: 'https://drive.google.com/' }] },
@@ -151,8 +185,20 @@ function demoApi() {
   return {
     onAuth: (cb) => setTimeout(() => cb(user), 50),
     signIn: async () => {}, signOut: async () => location.reload(), idToken: async () => 'demo',
-    getEnrollment: async (e) => enr[e] || null,
-    getPrivate: async (c) => priv[c] || null,
+    getEnrollment: async (e) => (enr[e] ? JSON.parse(JSON.stringify(enr[e])) : null),
+    getPrivate: async (c, admin) => {
+      const q = priv[c]; if (!q) return null;
+      const quizMeta = Object.fromEntries(Object.entries(q.quizzes || {}).map(([m, z]) => [m, { n: (z.questions || []).length }]));
+      return { pass: q.pass, quizMeta, requiredSessions: 0, requiredQuizzes: 0, sessions: admin ? q.sessions : {}, quizzes: admin ? q.quizzes : {} };
+    },
+    getItem: async (c, item) => {
+      const e = enr[user.email];
+      if (!(asAdmin || e?.releaseAll?.includes(c) || (e?.released?.[c] || []).includes(item))) throw Object.assign(new Error('denied'), { code: 'permission-denied' });
+      const q = priv[c] || {};
+      return item.startsWith('q-') ? (q.quizzes?.[item.slice(2)] || null) : (q.sessions?.[item] || null);
+    },
+    watchEnrollment: (e, cb) => { watcher = () => cb(enr[e] ? JSON.parse(JSON.stringify(enr[e])) : null); window.__aulaDemo = { enr, push: () => watcher && watcher() }; return () => {}; },
+    releaseBatch: async (items) => { for (const { email, patch } of items) { const cur = enr[email] || (enr[email] = {}); if (patch.released) cur.released = { ...(cur.released || {}), ...patch.released }; if (patch.releaseAll) cur.releaseAll = patch.releaseAll; } },
     getProgress: async (e, c) => prog[e + '|' + c] || null,
     saveProgress: async (e, c, d) => {
       const k = e + '|' + c; const p = prog[k] || (prog[k] = {});
@@ -161,7 +207,7 @@ function demoApi() {
     listEnrollments: async () => Object.entries(enr).map(([email, d]) => ({ email, ...d })),
     saveEnrollment: async (e, d) => { enr[e] = { ...(enr[e] || {}), ...d }; },
     deleteEnrollment: async (e) => { delete enr[e]; },
-    savePrivate: async (c, d) => { priv[c] = d; },
+    savePrivate: async (c, d) => { priv[c] = { pass: d.pass, sessions: d.sessions, quizzes: d.quizzes }; },
     listMyCerts: async (e) => certs.filter((c) => c.ownerEmail === e),
     requestCert: async (code, d) => { certs.push({ code, ...d }); },
     listCerts: async () => certs.slice(),
@@ -177,7 +223,13 @@ function demoApi() {
 /* ---------- estado y modelo de progreso ---------- */
 const S = { api: null, user: null, isAdmin: false, enr: null, catalog: [], priv: {}, prog: {}, certs: [], myApps: [], pending: 0, flash: '', admin: null, error: '', graded: null, quizMsg: '', files: {}, pdf: null };
 const quizzesOf = (cid) => S.priv[cid]?.quizzes || {};
-const hasQuiz = (cid, mid) => (quizzesOf(cid)[mid]?.questions || []).length > 0;
+const quizN = (cid, mid) => S.priv[cid]?.quizMeta?.[mid]?.n || 0;
+const hasQuiz = (cid, mid) => quizN(cid, mid) > 0;
+
+// Liberacion de contenido por alumno: ninguna por defecto. enr.released[curso] = ids liberados; enr.releaseAll = cursos abiertos.
+const isRel = (enr, cid, id) => !!(enr && (enr.releaseAll?.includes(cid) || enr.released?.[cid]?.includes(id)));
+const isReleased = (cid, id) => S.isAdmin || isRel(S.enr, cid, id);
+const relIds = (c, enr) => seqOf(c).filter((x) => x.status !== 'soon' && isRel(enr, c.id, x.id)).length;
 const passOf = (cid) => S.priv[cid]?.pass || PASS_DEFAULT;
 
 // Secuencia del curso: sesiones de cada módulo seguidas de su evaluación (si existe).
@@ -185,23 +237,56 @@ function seqOf(c) {
   const out = [];
   for (const m of c.modules) {
     m.sessions.forEach((s) => out.push({ ...s, mid: m.id, mtitle: m.title, type: 'session' }));
-    if (hasQuiz(c.id, m.id)) out.push({ id: 'q-' + m.id, type: 'quiz', mid: m.id, mtitle: m.title, title: 'Evaluación del módulo', duration: `${quizzesOf(c.id)[m.id].questions.length} preguntas`, status: 'available' });
+    if (hasQuiz(c.id, m.id)) out.push({ id: 'q-' + m.id, type: 'quiz', mid: m.id, mtitle: m.title, title: 'Evaluación del módulo', duration: `${quizN(c.id, m.id)} preguntas`, status: 'available' });
   }
-  return out;
+  return out.map((x) => ({ ...x, locked: !isReleased(c.id, x.id) }));
 }
 const trackable = (c) => seqOf(c).filter((s) => s.status !== 'soon');
 const isDone = (p, s) => (s.type === 'quiz' ? !!p?.quiz?.[s.mid]?.passed : !!p?.done?.[s.id]);
 const doneCount = (c, p) => trackable(c).filter((s) => isDone(p, s)).length;
 const pct = (c, p) => { const n = trackable(c).length; return n ? Math.round((doneCount(c, p) / n) * 100) : 0; };
-const isComplete = (c, p) => seqOf(c).every((s) => s.status !== 'soon') && trackable(c).length > 0 && doneCount(c, p) === trackable(c).length;
+const isComplete = (c, p) => seqOf(c).every((s) => s.status !== 'soon' && !s.locked) && trackable(c).length > 0 && doneCount(c, p) === trackable(c).length;
+const curOf = (c, sid) => { const all = seqOf(c); return all.find((s) => s.id === sid) || all.find((s) => s.id === (S.prog[c.id] || {}).last) || trackable(c)[0] || all[0]; };
+
+// Lee el contenido de la sesion actual solo si esta liberada (las reglas de Firestore lo exigen).
+async function ensureItem(cid, it) {
+  const P = S.priv[cid];
+  if (!P || !it || it.locked || it.status === 'soon' || S.isAdmin) return;
+  const got = (P._got ||= {});
+  if (got[it.id]) return;
+  got[it.id] = 1;
+  try {
+    const v = await S.api.getItem(cid, it.id);
+    if (v) { if (it.type === 'quiz') P.quizzes[it.mid] = v; else P.sessions[it.id] = v; }
+  } catch { delete got[it.id]; }
+}
+
+// Cambios en tu inscripcion en tiempo real: cuando se libera una sesion en clase aparece sin recargar.
+function onEnrChange(d) {
+  const sig = (x) => JSON.stringify([x?.released, x?.releaseAll, x?.courses, x?.active]);
+  if (sig(S.enr) === sig(d)) { S.enr = d; return; }
+  S.enr = d;
+  const r = parseRoute();
+  if (r.v === 'course') {
+    const sec = root.querySelector('[data-session]');
+    const c = S.catalog.find((x) => x.id === r.cid);
+    if (!sec || !c) { render(); return; }
+    if ((sec.dataset.locked === '1') !== !isReleased(r.cid, sec.dataset.session)) { render(); return; }
+    const cur = seqOf(c).find((x) => x.id === sec.dataset.session);
+    const html = sidebarHtml(c, cur, S.prog[r.cid] || {});
+    const a = document.getElementById('side-d'), m = document.getElementById('side-m');
+    if (a) a.innerHTML = html; if (m) m.innerHTML = html;
+  } else if (r.v === 'home') render();
+}
 const myCourses = () => (S.isAdmin ? S.catalog : S.catalog.filter((c) => (S.enr?.courses || []).includes(c.id)));
 const certFor = (cid, email) => S.certs.find((x) => x.courseId === cid && x.ownerEmail === (email || S.user.email));
 
 async function loadUserData() {
   S.enr = await S.api.getEnrollment(S.user.email).catch(() => null);
   S.prog = {}; S.priv = {};
+  if (!S.isAdmin && !S.unwatch) S.unwatch = S.api.watchEnrollment(S.user.email, onEnrChange);
   await Promise.all(myCourses().map(async (c) => {
-    S.priv[c.id] = (await S.api.getPrivate(c.id)) || {};
+    S.priv[c.id] = (await S.api.getPrivate(c.id, S.isAdmin)) || {};
     S.prog[c.id] = (await S.api.getProgress(S.user.email, c.id)) || {};
   }));
   S.certs = await S.api.listMyCerts(S.user.email);
@@ -226,7 +311,7 @@ const KINDS = { clase: 'aula/clase.html', soluciones: 'aula/soluciones.html', pr
 const FILES_ON = DEMO ? new URLSearchParams(location.search).has('files') : !!NOTIFY_URL;
 const b64ToBytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
-async function fetchFile(cid, folder, kind) {
+async function fetchFile(cid, folder, kind, sid) {
   const key = `${cid}|${folder}|${kind}`;
   if (S.files[key]) return S.files[key];
   let bytes;
@@ -237,7 +322,7 @@ async function fetchFile(cid, folder, kind) {
     bytes = new Uint8Array(await r.arrayBuffer());
   } else {
     const idToken = await S.api.idToken();
-    const r = await fetch(NOTIFY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'file', courseId: cid, folder, kind, idToken }) });
+    const r = await fetch(NOTIFY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'file', courseId: cid, sid, kind, idToken }) });
     const j = await r.json();
     if (!j.ok) throw new Error(j.error || 'No se pudo cargar el archivo');
     bytes = b64ToBytes(j.b64);
@@ -250,7 +335,7 @@ const VTABS = [['clase', 'Clase'], ['presentacion', 'Presentación'], ['solucion
 function viewerHtml(cid, cur) {
   const tab = 'rounded-lg px-3.5 py-2 text-sm font-medium transition';
   const dl = 'inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs text-white/75 hover:border-white/30 hover:text-white';
-  return `<div id="viewer" class="mt-6" data-cid="${esc(cid)}" data-folder="${esc(cur.folder)}">
+  return `<div id="viewer" class="mt-6" data-cid="${esc(cid)}" data-sid="${esc(cur.id)}" data-folder="${esc(cur.folder)}">
     <div class="flex flex-wrap items-center gap-2">
       <div class="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">${VTABS.map(([k, l]) => `<button type="button" data-act="vtab" data-tab="${k}" class="${tab} text-white/70 hover:text-white">${l}</button>`).join('')}</div>
       <span class="flex-1"></span>
@@ -278,7 +363,7 @@ async function showTab(tab) {
     : tab === 'clase' ? 'Para ejecutar los ejercicios en tu computadora, descarga el notebook y el paquete del curso (datos y herramientas) y sigue la cápsula 0.1.' : '';
   body.innerHTML = '<p class="flex items-center justify-center px-6 py-16 text-sm text-white/60">Cargando…</p>';
   try {
-    const bytes = await fetchFile(v.dataset.cid, v.dataset.folder, tab);
+    const bytes = await fetchFile(v.dataset.cid, v.dataset.folder, tab, v.dataset.sid);
     if (body.dataset.token !== token) return;
     if (tab === 'presentacion') await showPdf(body, bytes, token);
     else {
@@ -322,8 +407,8 @@ async function drawSlide() {
   const c = document.getElementById('slide-count'); if (c) c.textContent = `${P.n} / ${P.doc.numPages}`;
 }
 function initViewer() { if (document.getElementById('viewer')) showTab('clase'); }
-async function downloadKind(cid, folder, kind) {
-  const bytes = await fetchFile(cid, folder, kind);
+async function downloadKind(cid, folder, kind, sid) {
+  const bytes = await fetchFile(cid, folder, kind, sid);
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([bytes]));
   a.download = kind === 'paquete' ? `${cid}.zip` : folder.split('/').pop() + (kind === 'pptx' ? '.pptx' : '.ipynb');
@@ -379,7 +464,7 @@ function certBlock(c, p) {
   if (ct?.status === 'issued') return `<a href="/certificado/?c=${encodeURIComponent(ct.code)}" target="_blank" rel="noopener" class="mt-3 flex items-center justify-center rounded-lg border border-emerald-400/50 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/25">Ver certificado</a>`;
   if (ct) return '<p class="mt-3 text-center text-xs text-amber-300/90">Certificado solicitado: pendiente de aprobación.</p>';
   if (isComplete(c, p)) return `<button data-act="cert-request" data-cid="${esc(c.id)}" class="mt-3 w-full rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">Solicitar certificado</button>`;
-  return '';
+  return '<p class="mt-3 text-center text-xs text-white/40">El certificado se habilita al completar todo el contenido del curso.</p>';
 }
 
 // Curso con actividad más reciente (para "Continúa donde lo dejaste").
@@ -474,13 +559,14 @@ function sidebarHtml(c, cur, p) {
       const soon = s.status === 'soon';
       const isCur = s.id === cur.id;
       const q = s.type === 'quiz';
-      const state = soon ? `<span class="mt-0.5 text-white/30">${ICON.lock.replace('h-4 w-4', 'h-3.5 w-3.5')}</span>`
+      const lockd = s.locked && !soon;
+      const state = (soon || lockd) ? `<span class="mt-0.5 text-white/30">${ICON.lock.replace('h-4 w-4', 'h-3.5 w-3.5')}</span>`
         : done ? `<span class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">${ICON.check}</span>`
         : `<span class="mt-0.5 h-4 w-4 shrink-0 rounded-full border ${isCur ? 'border-sky-300' : 'border-white/30'}"></span>`;
-      return `<li><a href="#/c/${esc(c.id)}/${esc(s.id)}" ${isCur ? 'aria-current="page"' : ''} class="flex items-start gap-3 rounded-lg px-3 py-2 text-sm transition ${isCur ? 'bg-accent/15 font-medium text-white ring-1 ring-accent/40' : soon ? 'text-white/40' : 'text-white/70 hover:bg-white/5 hover:text-white'}">
+      return `<li><a href="#/c/${esc(c.id)}/${esc(s.id)}" ${isCur ? 'aria-current="page"' : ''} class="flex items-start gap-3 rounded-lg px-3 py-2 text-sm transition ${isCur ? 'bg-accent/15 font-medium text-white ring-1 ring-accent/40' : (soon || lockd) ? 'text-white/40' : 'text-white/70 hover:bg-white/5 hover:text-white'}">
         ${state}
         <span class="min-w-0 flex-1"><span class="block leading-snug ${q ? 'text-sky-200' : ''}">${q ? ICON.quiz.replace('class="', 'class="mr-1 inline -mt-0.5 ') : ''}${esc(s.title)}</span>
-        <span class="block text-xs text-white/40">${esc(s.duration || '')}${soon ? ' · Próximamente' : ''}</span></span></a></li>`;
+        <span class="block text-xs text-white/40">${esc(s.duration || '')}${soon ? ' · Próximamente' : lockd ? ' · Bloqueada' : ''}</span></span></a></li>`;
     }).join('');
     return `<details class="overflow-hidden rounded-xl border border-white/10 bg-white/5" ${hasCur ? 'open' : ''}>
       <summary class="flex cursor-pointer list-none items-center gap-3 px-3.5 py-3 hover:bg-white/5">
@@ -496,6 +582,7 @@ function sidebarHtml(c, cur, p) {
 
 function quizMain(c, cur, p) {
   const quiz = quizzesOf(c.id)[cur.mid];
+  if (!quiz) return `<p class="${card} px-5 py-8 text-center text-sm text-white/60">No se pudo cargar la evaluación. Recarga la página.</p>`;
   const pass = passOf(c.id);
   const best = p.quiz?.[cur.mid];
   const g = S.graded && S.graded.key === c.id + '/' + cur.id ? S.graded : null;
@@ -541,8 +628,8 @@ function courseView(cid, sid) {
   if (!c || !myCourses().includes(c)) return `${topbar('home')}<p class="text-white/70">No tienes acceso a este curso. <a class="underline" href="#/">Volver</a></p>`;
   const all = seqOf(c);
   const p = S.prog[cid] || (S.prog[cid] = {});
-  const cur = all.find((s) => s.id === sid) || all.find((s) => s.id === p.last) || trackable(c)[0] || all[0];
-  const idx = all.indexOf(cur);
+  const cur = curOf(c, sid);
+  const idx = all.findIndex((x) => x.id === cur.id);
   const prev = all[idx - 1], next = all[idx + 1];
   const prevHref = prev ? `#/c/${cid}/${prev.id}` : '', nextHref = next ? `#/c/${cid}/${next.id}` : '';
   const total = trackable(c).length, done = doneCount(c, p), n = pct(c, p);
@@ -555,7 +642,14 @@ function courseView(cid, sid) {
     </div></div>`;
 
   let main;
-  if (cur.type === 'quiz') {
+  if (cur.locked && cur.status !== 'soon') {
+    main = `<div class="flex flex-wrap items-center gap-2 text-xs text-white/50"><span>${esc(cur.mtitle)}</span></div>
+      <h1 class="mt-2 text-2xl font-display font-bold leading-tight sm:text-3xl">${esc(cur.title)}</h1>
+      <div class="${card} mt-6 flex flex-col items-center px-6 py-14 text-center"><span class="text-white/40">${ICON.lock.replace('h-4 w-4', 'h-7 w-7')}</span>
+        <p class="mt-3 font-semibold">${cur.type === 'quiz' ? 'Evaluación bloqueada' : 'Sesión bloqueada'}</p>
+        <p class="mt-1 max-w-md text-sm text-white/60">${cur.type === 'quiz' ? 'Se habilita cuando se liberan todas las sesiones de su módulo.' : 'Tu instructor la habilitará a medida que avancen las clases. Aparecerá aquí en cuanto esté disponible.'}</p></div>
+      ${actionBar('')}`;
+  } else if (cur.type === 'quiz') {
     main = `${quizMain(c, cur, p)}${actionBar('')}`;
   } else {
     const ov = S.priv[cid]?.sessions?.[cur.id] || {};
@@ -610,17 +704,17 @@ function courseView(cid, sid) {
     <div class="w-full sm:w-72"><div class="mb-1.5 flex justify-between text-xs text-white/60"><span>${done} de ${total} actividades</span><span>${n}%</span></div>${bar(n)}</div>
   </div>
   ${certBanner}
-  <details class="${card} mb-5 lg:hidden"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold"><span>Contenido del curso</span><span class="text-xs font-normal text-white/50">${done}/${total}</span></summary><div class="px-3 pb-3">${side}</div></details>
+  <details class="${card} mb-5 lg:hidden"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold"><span>Contenido del curso</span><span class="text-xs font-normal text-white/50">${done}/${total}</span></summary><div id="side-m" class="px-3 pb-3">${side}</div></details>
   <div class="grid items-start gap-8 lg:grid-cols-[320px_1fr]">
-    <aside class="hidden pr-1 lg:sticky lg:top-24 lg:block lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">${side}</aside>
-    <section class="min-w-0" data-session="${esc(cur.id)}" data-course="${esc(cid)}" data-type="${cur.type}" data-prev="${esc(prevHref)}" data-next="${esc(nextHref)}">${main}</section>
+    <aside id="side-d" class="hidden pr-1 lg:sticky lg:top-24 lg:block lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">${side}</aside>
+    <section class="min-w-0" data-session="${esc(cur.id)}" data-course="${esc(cid)}" data-type="${cur.type}" data-locked="${cur.locked && cur.status !== 'soon' ? 1 : 0}" data-prev="${esc(prevHref)}" data-next="${esc(nextHref)}">${main}</section>
   </div>`;
 }
 
 /* ---------- administración ---------- */
 async function loadAdmin() {
   const enrollments = (await S.api.listEnrollments()).sort((a, b) => a.email.localeCompare(b.email));
-  await Promise.all(S.catalog.map(async (c) => { if (!(c.id in S.priv)) S.priv[c.id] = (await S.api.getPrivate(c.id)) || {}; }));
+  await Promise.all(S.catalog.map(async (c) => { if (!(c.id in S.priv)) S.priv[c.id] = (await S.api.getPrivate(c.id, true)) || {}; }));
   const progress = {};
   await Promise.all(enrollments.flatMap((e) => (e.courses || []).map(async (cid) => {
     (progress[e.email] ||= {})[cid] = (await S.api.getProgress(e.email, cid)) || {};
@@ -635,9 +729,10 @@ async function loadAdmin() {
 function filterStudents() {
   const q = (document.getElementById('al-q')?.value || '').trim().toLowerCase();
   const cid = document.getElementById('al-course')?.value || '';
+  const grp = document.getElementById('al-group')?.value || '';
   let n = 0;
   root.querySelectorAll('[data-row]').forEach((el) => {
-    const ok = (!q || el.dataset.search.includes(q)) && (!cid || el.dataset.courses.includes(',' + cid + ','));
+    const ok = (!q || el.dataset.search.includes(q)) && (!cid || el.dataset.courses.includes(',' + cid + ',')) && (!grp || el.dataset.groups.includes(',' + grp + ','));
     el.classList.toggle('hidden', !ok);
     if (ok) n++;
   });
@@ -664,9 +759,38 @@ function exportCsv() {
   document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
 }
 
+// Libera o bloquea contenido a varios alumnos de una vez. `fn(ids, enrollment)` edita el conjunto de ids
+// liberados de ese alumno y puede devolver { all: true|false } para activar o quitar el acceso completo.
+// Las evaluaciones se habilitan solas cuando todas las sesiones de su módulo están liberadas.
+async function applyRelease(emails, cid, fn) {
+  const c = S.catalog.find((x) => x.id === cid), items = [];
+  for (const email of emails) {
+    const en = S.admin.enrollments.find((x) => x.email === email); if (!en) continue;
+    const ids = new Set(en.released?.[cid] || []);
+    const extra = fn(ids, en) || {};
+    for (const m of c.modules) {
+      if (!hasQuiz(cid, m.id)) continue;
+      const need = m.sessions.filter((x) => x.status !== 'soon'), q = 'q-' + m.id;
+      if (need.length && need.every((x) => ids.has(x.id))) ids.add(q); else ids.delete(q);
+    }
+    const patch = { released: { [cid]: [...ids] } };
+    if ('all' in extra) { const ra = new Set(en.releaseAll || []); extra.all ? ra.add(cid) : ra.delete(cid); patch.releaseAll = [...ra]; }
+    items.push({ email, patch });
+  }
+  await S.api.releaseBatch(items);
+  for (const { email, patch } of items) {
+    const en = S.admin.enrollments.find((x) => x.email === email);
+    en.released = { ...(en.released || {}), ...patch.released };
+    if (patch.releaseAll) en.releaseAll = patch.releaseAll;
+  }
+  return items.length;
+}
+function rerenderAdmin() { const y = window.scrollY; root.innerHTML = adminView(); window.scrollTo({ top: y }); }
+const sessionsOf = (c) => c.modules.flatMap((m) => m.sessions.filter((x) => x.status !== 'soon').map((x) => ({ ...x, mtitle: m.title })));
+
 function adminView() {
   const A = S.admin;
-  const tab = ['resumen', 'postulaciones', 'alumnos', 'certificados', 'contenido'].includes(parseRoute().tab) ? parseRoute().tab : 'resumen';
+  const tab = ['resumen', 'postulaciones', 'alumnos', 'liberar', 'certificados', 'contenido'].includes(parseRoute().tab) ? parseRoute().tab : 'resumen';
   const pendingApps = A.apps.filter((a) => a.status === 'pending');
   const doneApps = A.apps.filter((a) => a.status !== 'pending');
   const pendingCerts = A.certs.filter((x) => x.status !== 'issued');
@@ -717,7 +841,7 @@ function adminView() {
 
   /* ---- pestañas ---- */
   const tabs = [['resumen', 'Resumen', ''], ['postulaciones', 'Postulaciones', badge(pendingApps.length, true)],
-    ['alumnos', 'Alumnos', badge(A.enrollments.length, false)], ['certificados', 'Certificados', badge(pendingCerts.length, true)], ['contenido', 'Contenido', '']];
+    ['alumnos', 'Alumnos', badge(A.enrollments.length, false)], ['liberar', 'Liberar', ''], ['certificados', 'Certificados', badge(pendingCerts.length, true)], ['contenido', 'Contenido', '']];
   const nav = `<nav class="mb-7 flex gap-1 overflow-x-auto border-b border-white/10" aria-label="Secciones de administración">${tabs.map(([k, label, b]) =>
     `<a href="#/admin/${k}" ${k === tab ? 'aria-current="page"' : ''} class="-mb-px shrink-0 border-b-2 px-4 py-2.5 text-sm transition ${k === tab ? 'border-sky-400 font-semibold text-white' : 'border-transparent text-white/60 hover:text-white'}">${label}${b}</a>`).join('')}</nav>`;
 
@@ -760,24 +884,54 @@ function adminView() {
 
   /* ---- ALUMNOS ---- */
   if (tab === 'alumnos') {
+    const openRel = A.openRel || (A.openRel = new Set());
+    const lbl = (x, mi, j) => { const m = String(x.title).match(/(\d+(?:\.\d+)+)/); return m ? m[1] : `${mi + 1}.${j + 1}`; };
+    const relPanel = (e) => {
+      const cs = (e.courses || []).map((id) => S.catalog.find((x) => x.id === id)).filter(Boolean);
+      if (!cs.length) return '';
+      const tot = (c) => sessionsOf(c).length + c.modules.filter((m) => hasQuiz(c.id, m.id)).length;
+      const sum = cs.map((c) => (e.releaseAll?.includes(c.id) ? 'todo' : `${relIds(c, e)}/${tot(c)}`)).join(' · ');
+      const secs = cs.map((c) => {
+        const all = !!e.releaseAll?.includes(c.id);
+        const mods = c.modules.map((m, mi) => {
+          const chips = m.sessions.map((x, j) => `<label class="cursor-pointer" title="${esc(x.title)}"><input type="checkbox" class="peer sr-only" data-act="rel-toggle" data-email="${esc(e.email)}" data-cid="${esc(c.id)}" data-id="${esc(x.id)}" ${all || isRel(e, c.id, x.id) ? 'checked' : ''} ${x.status === 'soon' || all ? 'disabled' : ''}>
+            <span class="inline-flex min-w-[2.25rem] justify-center rounded-md border border-white/10 px-1.5 py-1 text-[11px] text-white/40 transition peer-checked:border-emerald-400/40 peer-checked:bg-emerald-400/10 peer-checked:text-emerald-200 peer-disabled:opacity-40 peer-focus-visible:ring-2 peer-focus-visible:ring-sky-400/60">${esc(lbl(x, mi, j))}</span></label>`).join('');
+          const q = hasQuiz(c.id, m.id) ? `<span class="rounded-md border px-1.5 py-1 text-[11px] ${all || isRel(e, c.id, 'q-' + m.id) ? 'border-sky-400/40 bg-sky-400/10 text-sky-200' : 'border-white/10 text-white/30'}" title="La evaluación se habilita sola al liberar todo el módulo">Eval.</span>` : '';
+          return `<div class="flex flex-wrap items-center gap-1.5"><span class="w-full truncate text-[11px] text-white/45 sm:w-60 sm:shrink-0">${esc(m.title)}</span>${chips}${q}</div>`;
+        }).join('');
+        return `<div class="mt-3 rounded-xl border border-white/10 p-3"><div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-sm font-semibold">${esc(c.title)} <span class="ml-2 text-xs font-normal text-white/50">${all ? 'Acceso completo' : `${relIds(c, e)} de ${tot(c)} liberadas`}</span></p>
+          <div class="flex flex-wrap gap-2 text-xs"><button data-act="rel-all" data-email="${esc(e.email)}" data-cid="${esc(c.id)}" data-on="${all ? 0 : 1}" class="${ghost} !px-2.5 !py-1">${all ? 'Quitar acceso completo' : 'Acceso completo'}</button>
+          <button data-act="rel-none" data-email="${esc(e.email)}" data-cid="${esc(c.id)}" class="${ghost} !px-2.5 !py-1">Bloquear todo</button></div></div>
+          <div class="mt-3 space-y-2">${mods}</div></div>`;
+      }).join('');
+      return `<details data-rel="${esc(e.email)}" ${openRel.has(e.email) ? 'open' : ''} class="mt-3 rounded-xl border border-white/10 bg-white/[.03]">
+        <summary class="flex cursor-pointer list-none items-center justify-between px-3.5 py-2.5 text-sm"><span class="font-medium">Contenido liberado</span><span class="text-xs text-white/50">${esc(sum)}</span></summary>
+        <div class="px-3.5 pb-3.5">${secs}</div></details>`;
+    };
+    const groupOpts = [...new Set(A.enrollments.flatMap((e) => e.groups || []))].sort();
     const checks = S.catalog.map((c) => `<label class="inline-flex cursor-pointer items-center gap-1.5 text-sm"><input type="checkbox" name="new-course" value="${esc(c.id)}"> ${esc(c.title)}</label>`).join('');
     const rows = A.enrollments.map((e) => {
       const chips = S.catalog.map((c) => `<label class="cursor-pointer"><input type="checkbox" class="peer sr-only" data-act="enr-course" data-email="${esc(e.email)}" data-cid="${esc(c.id)}" ${(e.courses || []).includes(c.id) ? 'checked' : ''}>
         <span class="inline-flex items-center rounded-lg border border-white/10 px-2.5 py-1 text-xs text-white/40 transition peer-checked:border-sky-400/40 peer-checked:bg-sky-400/10 peer-checked:text-sky-200 peer-focus-visible:ring-2 peer-focus-visible:ring-sky-400/60">${esc(c.title)}</span></label>`).join('');
       const bars = (e.courses || []).map((cid) => { const c = S.catalog.find((x) => x.id === cid); if (!c) return ''; const n = progOf(e.email, cid);
         return `<div class="min-w-[9rem] flex-1"><div class="mb-1 flex justify-between text-[11px] text-white/45"><span class="truncate pr-2">${esc(c.title)}</span><span>${n}%</span></div>${bar(n)}</div>`; }).join('');
-      return `<div data-row data-search="${esc(((e.name || '') + ' ' + e.email).toLowerCase())}" data-courses=",${esc((e.courses || []).join(','))}," class="${card} p-4">
+      return `<div data-row data-search="${esc(((e.name || '') + ' ' + e.email).toLowerCase())}" data-courses=",${esc((e.courses || []).join(','))}," data-groups=",${esc((e.groups || []).join(','))}," class="${card} p-4">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0"><p class="text-sm font-medium">${esc(e.name || '—')}</p><p class="text-xs text-white/50">${esc(e.email)}</p></div>
           <div class="flex items-center gap-4 text-xs">
             <label class="inline-flex cursor-pointer items-center gap-2 text-white/70"><input type="checkbox" data-act="enr-active" data-email="${esc(e.email)}" ${e.active !== false ? 'checked' : ''}> Activo</label>
             <button data-act="enr-delete" data-email="${esc(e.email)}" class="text-red-300 hover:text-red-200">Eliminar</button></div></div>
         <div class="mt-3 flex flex-wrap gap-2">${chips}</div>
-        ${bars ? `<div class="mt-3 flex flex-wrap gap-x-5 gap-y-2">${bars}</div>` : ''}</div>`;
+        ${bars ? `<div class="mt-3 flex flex-wrap gap-x-5 gap-y-2">${bars}</div>` : ''}
+        <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-white/50"><label for="g-${esc(e.email)}">Grupos</label>
+          <input id="g-${esc(e.email)}" data-act="enr-groups" data-email="${esc(e.email)}" value="${esc((e.groups || []).join(', '))}" placeholder="p. ej. cohorte-1" style="width:14rem" class="${input} !py-1.5"></div>
+        ${relPanel(e)}</div>`;
     }).join('');
     body = `<div class="mb-5 flex flex-wrap items-center gap-3">
         <input id="al-q" type="search" placeholder="Buscar por nombre o correo…" class="${input} sm:w-72" aria-label="Buscar alumno">
         <select id="al-course" class="rounded-lg border border-white/10 bg-base px-3 py-2 text-sm text-white/90" aria-label="Filtrar por curso"><option value="">Todos los cursos</option>${S.catalog.map((c) => `<option value="${esc(c.id)}">${esc(c.title)}</option>`).join('')}</select>
+        <select id="al-group" class="rounded-lg border border-white/10 bg-base px-3 py-2 text-sm text-white/90" aria-label="Filtrar por grupo"><option value="">Todos los grupos</option>${groupOpts.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join('')}</select>
         <span id="al-count" class="text-sm text-white/50">${A.enrollments.length} alumno${A.enrollments.length === 1 ? '' : 's'}</span>
         <div class="ml-auto flex gap-2"><button data-act="export-csv" class="${ghost}">Exportar CSV</button></div></div>
       <details class="${card} mb-5"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold"><span>Agregar alumno manualmente</span>${ICON.chev}</summary>
@@ -788,6 +942,44 @@ function adminView() {
           <div class="flex flex-wrap gap-x-5 gap-y-2 md:col-span-3">${checks}</div></form></details>
       <div class="space-y-3">${rows}</div>
       <p id="al-empty" class="${A.enrollments.length ? 'hidden ' : ''}${card} px-5 py-8 text-center text-sm text-white/55">${A.enrollments.length ? 'Ningún alumno coincide con la búsqueda.' : 'Aún no hay alumnos.'}</p>`;
+  }
+
+  /* ---- LIBERAR (clase en vivo) ---- */
+  if (tab === 'liberar') {
+    const L = A.live || (A.live = { cid: '', group: '', item: '', off: new Set() });
+    if (!S.catalog.some((x) => x.id === L.cid)) L.cid = S.catalog[0]?.id;
+    const c = S.catalog.find((x) => x.id === L.cid);
+    const items = sessionsOf(c);
+    if (!items.some((x) => x.id === L.item)) L.item = items[0]?.id || '';
+    const inCourse = A.enrollments.filter((e) => e.active !== false && (e.courses || []).includes(c.id));
+    const groups = [...new Set(inCourse.flatMap((e) => e.groups || []))].sort();
+    if (L.group && !groups.includes(L.group)) L.group = '';
+    const list = inCourse.filter((e) => !L.group || (e.groups || []).includes(L.group));
+    const sel = 'rounded-lg border border-white/10 bg-base px-3 py-2 text-sm text-white/90';
+    const itemOpts = c.modules.map((m) => `<optgroup label="${esc(m.title)}">${m.sessions.filter((x) => x.status !== 'soon').map((x) => `<option value="${esc(x.id)}" ${x.id === L.item ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</optgroup>`).join('');
+    const rows = list.map((e) => {
+      const on = isRel(e, c.id, L.item);
+      const tot = items.length + c.modules.filter((m) => hasQuiz(c.id, m.id)).length;
+      const n = progOf(e.email, c.id);
+      return `<tr class="border-t border-white/10"><td class="py-2.5 pr-3"><input type="checkbox" data-act="live-pick" data-email="${esc(e.email)}" ${L.off.has(e.email) ? '' : 'checked'} aria-label="Elegir a ${esc(e.name || e.email)}"></td>
+        <td class="py-2.5 pr-4"><p class="text-sm font-medium">${esc(e.name || '—')}</p><p class="text-xs text-white/45">${esc(e.email)}${(e.groups || []).length ? ' · ' + esc(e.groups.join(', ')) : ''}</p></td>
+        <td class="hidden py-2.5 pr-4 text-sm text-white/70 sm:table-cell">${n}%</td>
+        <td class="py-2.5 pr-4 text-sm text-white/70">${e.releaseAll?.includes(c.id) ? 'todo' : `${relIds(c, e)} de ${tot}`}</td>
+        <td class="py-2.5 text-sm">${on ? '<span class="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300">Liberada</span>' : '<span class="rounded-md bg-white/5 px-2 py-0.5 text-xs text-white/50">Bloqueada</span>'}</td></tr>`;
+    }).join('');
+    body = `<p class="mb-4 text-sm text-white/60">Elige el curso y la sesión, marca a los alumnos presentes y libera. Aparece en su pantalla al instante, sin que recarguen. Las evaluaciones se habilitan solas al liberar todo su módulo.</p>
+      <div class="mb-5 flex flex-wrap items-center gap-3">
+        <select data-act="live-course" class="${sel}" aria-label="Curso">${S.catalog.map((x) => `<option value="${esc(x.id)}" ${x.id === c.id ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</select>
+        <select data-act="live-group" class="${sel}" aria-label="Grupo"><option value="">Todos los grupos</option>${groups.map((g) => `<option value="${esc(g)}" ${g === L.group ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select>
+        <select data-act="live-item" class="${sel} min-w-0 flex-1 sm:max-w-xl" aria-label="Sesión">${itemOpts}</select></div>
+      <div class="mb-4 flex flex-wrap gap-2">
+        <button data-act="live-apply" data-mode="only" class="${btnPrimary}" style="${gradient}">Liberar esta sesión</button>
+        <button data-act="live-apply" data-mode="upto" class="${ghost}">Liberar hasta esta (incluida)</button>
+        <button data-act="live-apply" data-mode="block" class="${ghost}">Bloquear esta sesión</button>
+        <button data-act="live-apply" data-mode="all" class="${ghost}">Acceso completo</button></div>
+      ${list.length ? `<div class="${card} overflow-x-auto p-4"><table class="w-full text-left"><thead><tr class="text-[11px] uppercase tracking-wider text-white/40">
+        <th class="pb-2 pr-3"><input type="checkbox" data-act="live-all" ${list.every((e) => !L.off.has(e.email)) ? 'checked' : ''} aria-label="Elegir a todos"></th><th class="pb-2 pr-4">Alumno</th><th class="hidden pb-2 pr-4 sm:table-cell">Avance</th><th class="pb-2 pr-4">Liberado</th><th class="pb-2">Esta sesión</th></tr></thead><tbody>${rows}</tbody></table></div>`
+        : `<div class="${card} px-5 py-8 text-center text-sm text-white/55">No hay alumnos activos inscritos en este curso${L.group ? ' y grupo' : ''}.</div>`}`;
   }
 
   /* ---- CERTIFICADOS ---- */
@@ -863,7 +1055,8 @@ async function render() {
       if (!S.admin) { root.innerHTML = `${topbar('admin')}<p class="text-white/60 text-sm">Cargando…</p>`; await loadAdmin(); }
       root.innerHTML = adminView();
     } else if (r.v === 'course') {
-      if (!(r.cid in S.priv)) S.priv[r.cid] = (await S.api.getPrivate(r.cid)) || {};
+      if (!(r.cid in S.priv)) S.priv[r.cid] = (await S.api.getPrivate(r.cid, S.isAdmin)) || {};
+      { const cc = S.catalog.find((x) => x.id === r.cid); if (cc && myCourses().includes(cc)) await ensureItem(r.cid, curOf(cc, r.sid)); }
       root.innerHTML = courseView(r.cid, r.sid);
       initViewer();
       const sec = root.querySelector('[data-session]');
@@ -892,6 +1085,12 @@ const saveNote = debounce(async (cid, sid, text) => {
   } catch (e) { if (st) st.textContent = 'No se pudo guardar'; }
 }, 800);
 
+root.addEventListener('toggle', (e) => {
+  const d = e.target; if (!d?.dataset?.rel || !S.admin) return;
+  const set = S.admin.openRel || (S.admin.openRel = new Set());
+  d.open ? set.add(d.dataset.rel) : set.delete(d.dataset.rel);
+}, true);
+
 root.addEventListener('input', (e) => {
   if (e.target.id === 'al-q') { filterStudents(); return; }
   if (e.target.id === 'note') {
@@ -903,11 +1102,11 @@ root.addEventListener('input', (e) => {
 
 root.addEventListener('change', async (e) => {
   const t = e.target, act = t.dataset.act;
-  if (t.id === 'al-course') { filterStudents(); return; }
+  if (t.id === 'al-course' || t.id === 'al-group') { filterStudents(); return; }
   try {
     if (act === 'admin-course') {
       S.admin.courseId = t.value;
-      if (!(t.value in S.priv)) S.priv[t.value] = (await S.api.getPrivate(t.value)) || {};
+      if (!(t.value in S.priv)) S.priv[t.value] = (await S.api.getPrivate(t.value, true)) || {};
       root.innerHTML = adminView();
     }
     if (act === 'enr-course') {
@@ -919,6 +1118,23 @@ root.addEventListener('change', async (e) => {
     if (act === 'enr-active') {
       const en = S.admin.enrollments.find((x) => x.email === t.dataset.email);
       en.active = t.checked; await S.api.saveEnrollment(en.email, { active: en.active });
+    }
+    if (act === 'enr-groups') {
+      const en = S.admin.enrollments.find((x) => x.email === t.dataset.email);
+      en.groups = [...new Set(t.value.split(',').map((g) => g.trim().toLowerCase().replace(/\s+/g, '-')).filter(Boolean))];
+      await S.api.saveEnrollment(en.email, { groups: en.groups }); t.value = en.groups.join(', ');
+    }
+    if (act === 'rel-toggle') {
+      await applyRelease([t.dataset.email], t.dataset.cid, (ids) => { t.checked ? ids.add(t.dataset.id) : ids.delete(t.dataset.id); });
+      rerenderAdmin();
+    }
+    if (act === 'live-course') { const L = S.admin.live; L.cid = t.value; L.group = ''; L.item = ''; L.off = new Set(); rerenderAdmin(); }
+    if (act === 'live-group') { const L = S.admin.live; L.group = t.value; L.off = new Set(); rerenderAdmin(); }
+    if (act === 'live-item') { S.admin.live.item = t.value; rerenderAdmin(); }
+    if (act === 'live-pick') { const L = S.admin.live; t.checked ? L.off.delete(t.dataset.email) : L.off.add(t.dataset.email); }
+    if (act === 'live-all') {
+      const L = S.admin.live; L.off = new Set();
+      root.querySelectorAll('[data-act=live-pick]').forEach((i) => { i.checked = t.checked; if (!t.checked) L.off.add(i.dataset.email); });
     }
   } catch (err) { alert('Error: ' + (err.message || err)); }
 });
@@ -952,12 +1168,38 @@ root.addEventListener('click', async (e) => {
   if (!b) return;
   const act = b.dataset.act;
   try {
+    if (act === 'rel-all' || act === 'rel-none') {
+      const cid = b.dataset.cid, c = S.catalog.find((x) => x.id === cid);
+      if (act === 'rel-none' && !confirm('¿Bloquear todo el contenido de este curso para este alumno?')) return;
+      await applyRelease([b.dataset.email], cid, (ids) => { if (act === 'rel-none') { ids.clear(); return { all: false }; } return { all: b.dataset.on === '1' }; });
+      rerenderAdmin(); return;
+    }
+    if (act === 'live-apply') {
+      const L = S.admin.live, c = S.catalog.find((x) => x.id === L.cid), items = sessionsOf(c);
+      const emails = [...root.querySelectorAll('[data-act=live-pick]:checked')].map((i) => i.dataset.email);
+      if (!emails.length) { alert('Marca al menos un alumno.'); return; }
+      const mode = b.dataset.mode, at = items.findIndex((x) => x.id === L.item);
+      if (mode !== 'all' && at < 0) { alert('Elige una sesión.'); return; }
+      if (mode === 'all' && !confirm(`¿Dar acceso completo a ${emails.length} alumno(s)?`)) return;
+      const n = await applyRelease(emails, L.cid, (ids, en) => {
+        if (mode === 'all') return { all: true };
+        if (mode === 'only') ids.add(L.item);
+        if (mode === 'upto') items.slice(0, at + 1).forEach((x) => ids.add(x.id));
+        if (mode === 'block') {
+          if (en.releaseAll?.includes(L.cid)) { items.forEach((x) => ids.add(x.id)); ids.delete(L.item); return { all: false }; }
+          ids.delete(L.item);
+        }
+      });
+      const what = { only: 'Se liberó', upto: 'Se liberó hasta', block: 'Se bloqueó', all: 'Acceso completo para' }[mode];
+      S.flash = mode === 'all' ? `${what} ${n} alumno(s).` : `${what} «${items[at].title}» a ${n} alumno(s).`;
+      rerenderAdmin(); return;
+    }
     if (act === 'vtab') { showTab(b.dataset.tab); return; }
     if (act === 'vfull') { const t = document.getElementById('vbody'); if (document.fullscreenElement) document.exitFullscreen(); else t.requestFullscreen?.(); return; }
     if (act === 'vdl') {
       const v = document.getElementById('viewer'), old = b.innerHTML;
       b.disabled = true; b.textContent = 'Descargando…';
-      try { await downloadKind(v.dataset.cid, v.dataset.folder, b.dataset.kind); } catch (err) { alert(err.message || 'No se pudo descargar'); }
+      try { await downloadKind(v.dataset.cid, v.dataset.folder, b.dataset.kind, v.dataset.sid); } catch (err) { alert(err.message || 'No se pudo descargar'); }
       b.disabled = false; b.innerHTML = old; return;
     }
     if (act === 'slide-prev' || act === 'slide-next') { if (S.pdf) { S.pdf.n += act === 'slide-next' ? 1 : -1; await drawSlide(); } return; }
@@ -966,6 +1208,7 @@ root.addEventListener('click', async (e) => {
     if (act === 'toggle-done') {
       const sec = root.querySelector('[data-session]');
       const cid = sec.dataset.course, sid = sec.dataset.session;
+      if (!isReleased(cid, sid)) return;
       const p = S.prog[cid] || (S.prog[cid] = {});
       const v = !p.done?.[sid];
       (p.done ||= {})[sid] = v;
@@ -1048,8 +1291,12 @@ root.addEventListener('click', async (e) => {
         if (questions.length) quizzes[el.dataset.qform] = { questions };
       }
       const pass = Math.min(100, Math.max(1, Number(root.querySelector('[data-f=pass]').value) || PASS_DEFAULT));
-      const doc = { sessions, quizzes, pass };
-      await S.api.savePrivate(cid, doc);
+      const course = S.catalog.find((x) => x.id === cid);
+      const quizMeta = Object.fromEntries(Object.entries(quizzes).map(([m, z]) => [m, { n: z.questions.length }]));
+      const requiredSessions = course.modules.reduce((n, m) => n + m.sessions.filter((x) => x.status !== 'soon').length, 0);
+      const ids = course.modules.flatMap((m) => [...m.sessions.map((x) => x.id), 'q-' + m.id]);
+      const doc = { sessions, quizzes, pass, quizMeta, requiredSessions, requiredQuizzes: Object.keys(quizzes).length };
+      await S.api.savePrivate(cid, doc, ids);
       S.priv[cid] = doc;
       const st = document.getElementById('admin-status'); if (st) st.textContent = 'Guardado ✓';
     }
@@ -1082,6 +1329,7 @@ window.addEventListener('hashchange', () => { S.graded = null; S.quizMsg = ''; r
     api.onAuth(async (u) => {
       S.user = u; S.isAdmin = !!u && u.email === norm(ADMIN_EMAIL);
       S.priv = {}; S.admin = null; S.certs = []; S.myApps = []; S.pending = 0;
+      if (S.unwatch) { S.unwatch(); S.unwatch = null; }
       if (u) { root.innerHTML = '<p class="text-white/60 text-sm">Cargando tus cursos…</p>'; await loadUserData(); }
       await render();
     });
