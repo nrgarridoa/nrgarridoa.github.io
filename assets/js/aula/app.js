@@ -24,6 +24,8 @@ const ICON = {
   arrowL: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>',
   arrowR: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
   ext: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></svg>',
+  note: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>',
+  close: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   sidebar: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>',
   down: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>',
   expand: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
@@ -377,17 +379,17 @@ async function fetchFile(cid, folder, kind, sid) {
     const idToken = await S.api.idToken();
     const r = await fetch(NOTIFY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'file', courseId: cid, sid, kind, idToken }) });
     const j = await r.json();
-    if (!j.ok) throw new Error(j.error || 'No se pudo cargar el archivo');
+    if (!j.ok) throw new Error(j.error === 'Archivo no válido' ? 'El servidor de archivos aún no tiene la última versión (falta publicar el script nuevo).' : (j.error || 'No se pudo cargar el archivo'));
     bytes = b64ToBytes(j.b64);
   }
   if (Object.keys(S.files).length > 12) S.files = {};
   return (S.files[key] = bytes);
 }
 
-const VTABS = [['clase', 'Clase'], ['presentacion', 'Presentación'], ['soluciones', 'Soluciones']];
+const VTABS = [['clase', 'Clase'], ['practica', 'Práctica'], ['materiales', 'Materiales'], ['presentacion', 'Presentación'], ['soluciones', 'Soluciones']];
 function viewerHtml(cid, cur) {
   const item = (kind, title, sub) => `<button type="button" data-act="vdl" data-kind="${kind}"><span class="font-medium">${title}</span><small>${sub}</small></button>`;
-  return `<div id="viewer" class="${card} mt-6 overflow-hidden" data-cid="${esc(cid)}" data-sid="${esc(cur.id)}" data-folder="${esc(cur.folder)}">
+  return `<div id="viewer" class="${card} mt-6 overflow-clip" data-cid="${esc(cid)}" data-sid="${esc(cur.id)}" data-folder="${esc(cur.folder)}">
     <div class="au-vbar">
       <div class="au-seg" role="tablist" aria-label="Material de la sesión">${VTABS.map(([k, l]) => `<button type="button" role="tab" data-act="vtab" data-tab="${k}" aria-selected="false">${l}</button>`).join('')}</div>
       <span class="flex-1"></span>
@@ -401,9 +403,13 @@ function viewerHtml(cid, cur) {
 }
 
 const canRunPython = () => typeof WebAssembly === 'object' && typeof Worker === 'function' && !(navigator.deviceMemory && navigator.deviceMemory < 2);
-function disposeNb() { if (S.nb) { S.nb.dispose(); S.nb = null; S.nbKey = ''; } }
+function disposeNb() {
+  const x = S.sess;
+  if (x) { x.clase?.dispose(); x.practica?.dispose(); x.kernel?.dispose(); }
+  S.sess = null; S.nbKey = ''; S.nbHost = null;
+}
 
-function showFrame(body, v, tab, bytes) {
+function showFrame(host, v, tab, bytes) {
   const f = document.createElement('iframe');
   f.title = tab === 'clase' ? 'Clase' : 'Soluciones'; f.className = 'block w-full bg-white'; f.dataset.k = `${v.dataset.cid}|${v.dataset.sid}|${tab}`; f.style.height = ((S.vh ||= {})[f.dataset.k] || '70vh');
   // Sin acceso al aula (origen aislado). Se quitan los scripts del documento y solo se inyecta el aviso de altura.
@@ -411,66 +417,135 @@ function showFrame(body, v, tab, bytes) {
   const html = new TextDecoder('utf-8').decode(bytes).replace(/<script[\s\S]*?<\/script>/gi, '');
   const probe = '<script>(function(){function h(){var b=document.body,c=getComputedStyle(b);parent.postMessage({aulaH:Math.ceil(b.getBoundingClientRect().height+parseFloat(c.marginTop)+parseFloat(c.marginBottom))},"*")}addEventListener("load",h);new ResizeObserver(h).observe(document.body);h()})()<\/script>';
   f.srcdoc = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, probe + '</body>') : html + probe;
-  body.innerHTML = ''; body.appendChild(f);
+  host.innerHTML = ''; host.appendChild(f);
 }
 
-async function showNotebook(body, v, token) {
+const fmtBytes = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+function resourcesHtml(cid, sid) {
+  const res = ((S.priv[cid]?.sessions?.[sid]?.resources) || []).filter((r) => r && r.url);
+  return res.length ? `<ul class="mt-3 space-y-2">${res.map((r) => `<li><a href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener noreferrer" class="au-lift group flex items-center gap-3 ${card} px-4 py-3 text-sm">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-300">${ICON.file}</span>
+      <span class="min-w-0 flex-1"><span class="block truncate font-medium">${esc(r.label || 'Material')}</span><span class="block text-xs text-white/45">${esc(matMeta(r.url))}</span></span>
+      <span class="flex shrink-0 items-center gap-1 text-xs text-white/50 group-hover:text-white/80">Abrir ${ICON.ext}</span></a></li>`).join('')}</ul>`
+    : `<p class="mt-3 rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/50">Aún no hay enlaces publicados para esta sesión.</p>`;
+}
+
+// Materiales: datos que usa el notebook (salen del paquete de ejecución) + enlaces que publique el instructor.
+async function showMateriales(host, v, sess) {
+  const cid = v.dataset.cid, sid = v.dataset.sid, folder = v.dataset.folder;
+  let data = '';
+  try {
+    const zip = await fetchFile(cid, folder, 'runtime', sid);
+    const { unzipSync, strFromU8 } = await import('../../vendor/nbvendor.mjs');
+    const capId = (folder.match(/\/c(\d+\.\d+)_/) || [])[1];
+    const man = JSON.parse(strFromU8(unzipSync(zip, { filter: (f) => f.name === 'data/_manifest.json' })['data/_manifest.json']));
+    const names = man[capId] || [];
+    const files = names.length ? unzipSync(zip, { filter: (f) => names.includes(f.name.replace(/^data\//, '')) && f.name.startsWith('data/') }) : {};
+    sess.dataFiles = Object.fromEntries(Object.entries(files).map(([k, u8]) => [k.replace(/^data\//, ''), u8]));
+    data = names.length ? `<ul class="mt-3 grid gap-2 sm:grid-cols-2">${names.map((n) => `<li class="${card} flex items-center gap-3 px-4 py-3">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-300">${ICON.file}</span>
+        <span class="min-w-0 flex-1"><span class="block truncate font-mono text-[13px] font-medium">${esc(n)}</span><span class="block text-xs text-white/45">${fmtBytes(sess.dataFiles[n]?.length || 0)}</span></span>
+        <button type="button" data-act="dl-data" data-name="${esc(n)}" class="au-ghost !px-3 !py-1.5">${ICON.down}Descargar</button></li>`).join('')}</ul>`
+      : '<p class="mt-3 rounded-xl border border-dashed border-white/10 px-4 py-5 text-center text-sm text-white/50">Esta cápsula no usa archivos de datos.</p>';
+  } catch (e) {
+    data = `<p class="mt-3 rounded-xl border border-dashed border-white/10 px-4 py-5 text-center text-sm text-white/50">${esc(e.message || 'No se pudo leer la lista de datos')}</p>`;
+  }
+  if (S.sess !== sess) return;
+  host.innerHTML = `<div class="space-y-8 p-5">
+    <section><h3 class="au-sec">Datos de esta cápsula</h3><p class="mt-1 text-sm text-white/60">Los archivos que usa el notebook. Ya están cargados dentro del cuaderno interactivo; descárgalos si prefieres trabajar en tu computadora.</p>${data}</section>
+    <section><h3 class="au-sec">Enlaces del instructor</h3>${resourcesHtml(cid, sid)}</section></div>`;
+}
+
+async function mountClase(sess, v, pane) {
   const cid = v.dataset.cid, sid = v.dataset.sid, folder = v.dataset.folder;
   const bytes = await fetchFile(cid, folder, 'notebook', sid);
-  if (body.dataset.token !== token) return;
   const nb = JSON.parse(new TextDecoder('utf-8').decode(bytes));
   const { mountNotebook } = await import('./notebook.js');
-  if (body.dataset.token !== token) return;
-  body.innerHTML = '';
+  if (S.sess !== sess) return;
   const p = S.prog[cid] || (S.prog[cid] = {});
-  S.nb = mountNotebook(body, {
-    nb, cwd: `/course/${folder}`, storeKey: `aula:nb:${S.user.email}:${cid}:${sid}`, saved: p.ex?.[sid] || null,
-    loadZip: async () => { const u = await fetchFile(cid, folder, 'runtime', sid); return u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength); },
+  pane.innerHTML = '';
+  sess.clase = mountNotebook(pane, {
+    nb, kernel: sess.kernel, storeKey: `aula:nb:${S.user.email}:${cid}:${sid}`, saved: p.ex?.[sid] || null,
     onExercises: (st) => {
       (p.ex ||= {})[sid] = { ok: st.ok, total: st.total };
       S.api.saveProgress(S.user.email, cid, { ex: { [sid]: p.ex[sid] } }).catch(() => {});
       const c = S.catalog.find((x) => x.id === cid), cur = c && seqOf(c).find((x) => x.id === sid);
       if (cur) { const html = sidebarHtml(c, cur, p); const a = document.getElementById('side-d'), m = document.getElementById('side-m'); if (a) a.innerHTML = html; if (m) m.innerHTML = html; }
     },
-    onStatic: async () => { disposeNb(); const t = (body.dataset.token = String(Date.now()) + Math.random()); showFrame(body, v, 'clase', await fetchFile(cid, folder, 'clase', sid)); void t; },
+    onStatic: async () => { sess.clase?.dispose(); sess.clase = null; showFrame(pane, v, 'clase', await fetchFile(cid, folder, 'clase', sid)); },
   });
-  S.nbKey = `${cid}|${sid}`; S.nbHost = body;
+}
+async function mountPractica(sess, v, pane) {
+  const { mountNotebook } = await import('./notebook.js');
+  if (S.sess !== sess) return;
+  pane.innerHTML = '';
+  sess.practica = mountNotebook(pane, { scratch: true, kernel: sess.kernel, storeKey: `aula:sc:${S.user.email}:${v.dataset.cid}:${v.dataset.sid}` });
 }
 
 async function showTab(tab) {
   const v = document.getElementById('viewer'); if (!v) return;
   const body = document.getElementById('vbody'), note = document.getElementById('vnote');
-  disposeNb();
-  note.classList.toggle('pb-3', tab !== 'presentacion');
-  const token = (body.dataset.token = String(Date.now()) + Math.random());
+  const key = `${v.dataset.cid}|${v.dataset.sid}`;
+  if (!S.sess || S.sess.key !== key || S.sess.body !== body) {
+    disposeNb();
+    S.sess = { key, body, tok: 0, kernel: null, clase: null, practica: null, dataFiles: {} };
+    body.innerHTML = '<div data-pane="clase" hidden></div><div data-pane="practica" hidden></div><div data-pane="otro" hidden></div>';
+    S.nbKey = key; S.nbHost = body;
+  }
+  const sess = S.sess; S.vtab = tab;
+  const pane = (n) => body.querySelector(`[data-pane=${n}]`);
+  const show = (n) => ['clase', 'practica', 'otro'].forEach((x) => { pane(x).hidden = x !== n; });
   v.querySelectorAll('[data-act=vtab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
-  const interactive = tab === 'clase' && canRunPython();
-  note.classList.toggle('hidden', tab === 'presentacion' || interactive);
+  const run = canRunPython();
+  const live = (tab === 'clase' || tab === 'practica') && run;
+  note.classList.toggle('hidden', tab === 'presentacion' || tab === 'materiales' || live);
   note.classList.toggle('text-amber-200/80', tab === 'soluciones'); note.classList.toggle('text-white/45', tab !== 'soluciones');
   note.textContent = tab === 'soluciones' ? 'Revisa las soluciones después de intentar los ejercicios por tu cuenta: es la forma de que se quede.'
-    : tab === 'clase' ? 'Este dispositivo no puede ejecutar Python en el navegador. Para practicar, descarga el notebook y el paquete del curso (menú Descargas) y sigue la cápsula 0.1.' : '';
-  body.innerHTML = '<p class="flex items-center justify-center px-6 py-16 text-sm text-white/60">Cargando…</p>';
+    : 'Este dispositivo no puede ejecutar Python en el navegador. Para practicar, descarga el notebook y el paquete del curso (menú Descargas) y sigue la cápsula 0.1.';
+  const cid = v.dataset.cid, sid = v.dataset.sid, folder = v.dataset.folder;
+  const loading = '<p class="flex items-center justify-center px-6 py-16 text-sm text-white/60">Cargando…</p>';
+  const token = (sess.tok = Math.random());
+  const fail = (e, host) => { if (S.sess === sess) host.innerHTML = `<p class="px-6 py-14 text-center text-sm text-white/60">${esc(e.message || 'No se pudo cargar')}</p>`; };
   try {
-    if (interactive) { await showNotebook(body, v, token); return; }
-    const bytes = await fetchFile(v.dataset.cid, v.dataset.folder, tab, v.dataset.sid);
-    if (body.dataset.token !== token) return;
-    if (tab === 'presentacion') await showPdf(body, bytes, token);
-    else showFrame(body, v, tab, bytes);
-  } catch (e) {
-    if (body.dataset.token === token) body.innerHTML = `<p class="px-6 py-14 text-center text-sm text-white/60">${esc(e.message || 'No se pudo cargar')}</p>`;
-  }
+    if (tab === 'clase' || tab === 'practica') {
+      const host = pane(tab === 'clase' ? 'clase' : tab === 'practica' && run ? 'practica' : 'otro');
+      if (!run) {
+        show('otro'); const o = pane('otro');
+        if (tab === 'clase') { o.innerHTML = loading; showFrame(o, v, 'clase', await fetchFile(cid, folder, 'clase', sid)); }
+        else o.innerHTML = '<p class="px-6 py-14 text-center text-sm text-white/60">La práctica libre necesita ejecutar Python en el navegador, algo que este dispositivo no permite.</p>';
+        return;
+      }
+      show(tab);
+      if (!sess.kernel) {
+        const { createKernel } = await import('./notebook.js');
+        sess.kernel = createKernel({ cwd: `/course/${folder}`, loadZip: async () => { const u = await fetchFile(cid, folder, 'runtime', sid); return u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength); } });
+      }
+      if (!sess[tab]) {
+        if (sess.mounting?.[tab]) return;
+        (sess.mounting ||= {})[tab] = true; host.innerHTML = loading;
+        try { await (tab === 'clase' ? mountClase(sess, v, host) : mountPractica(sess, v, host)); } catch (e) { fail(e, host); } finally { if (sess.mounting) sess.mounting[tab] = false; }
+      }
+      return;
+    }
+    show('otro'); const o = pane('otro'); o.innerHTML = loading;
+    if (tab === 'materiales') { await showMateriales(o, v, sess); return; }
+    const bytes = await fetchFile(cid, folder, tab, sid);
+    if (sess.tok !== token || S.sess !== sess) return;
+    if (tab === 'presentacion') await showPdf(o, bytes, token, sess);
+    else showFrame(o, v, tab, bytes);
+  } catch (e) { fail(e, pane('otro')); }
 }
 
 window.addEventListener('message', (e) => {
-  const f = document.querySelector('#vbody iframe');
-  if (f && e.source === f.contentWindow && e.data && Number.isFinite(e.data.aulaH)) { f.style.height = Math.min(Math.max(360, e.data.aulaH + 4), 120000) + 'px'; (S.vh ||= {})[f.dataset.k] = f.style.height; }
+  const f = [...document.querySelectorAll('#vbody iframe')].find((x) => x.contentWindow === e.source);
+  if (f && e.data && Number.isFinite(e.data.aulaH)) { f.style.height = Math.min(Math.max(360, e.data.aulaH + 4), 120000) + 'px'; (S.vh ||= {})[f.dataset.k] = f.style.height; }
 });
 let pdfjs;
-async function showPdf(body, bytes, token) {
+async function showPdf(body, bytes, token, sess) {
   pdfjs ||= await import(new URL('../../vendor/pdfjs/pdf.min.mjs', import.meta.url).href);
   pdfjs.GlobalWorkerOptions.workerSrc = new URL('../../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
   const doc = await pdfjs.getDocument({ data: bytes.slice() }).promise;
-  if (body.dataset.token !== token) return;
+  if (sess.tok !== token || S.sess !== sess) return;
   S.pdf = { doc, n: 1 };
   const btn = 'au-ghost';
   body.innerHTML = `<div id="slides" class="flex flex-col" style="background:#0d1f3a">
@@ -884,6 +959,16 @@ function matMeta(url) {
   } catch { return 'Enlace'; }
 }
 
+// Notas: botón flotante siempre disponible, con panel que se puede abrir y cerrar.
+function notesPanel(cur, p) {
+  const open = localStorage.getItem('aula:notes') === '1';
+  return `<button type="button" data-act="notes-toggle" class="au-fab" aria-label="Mis notas" aria-expanded="${open}" title="Mis notas">${ICON.note}<span class="hidden sm:inline">Notas</span></button>
+    <div class="au-notes ${open ? '' : 'hidden'}" id="notes-panel" role="dialog" aria-label="Mis notas">
+      <div class="au-notes-h"><div><p class="text-sm font-semibold">Mis notas</p><p class="truncate text-xs text-white/50">${esc(cur.title)}</p></div>
+        <div class="flex items-center gap-2"><span id="note-status" class="text-xs text-white/40"></span><button type="button" data-act="notes-toggle" class="au-iconbtn !h-8 !w-8" aria-label="Cerrar notas">${ICON.close}</button></div></div>
+      <textarea id="note" placeholder="Escribe tus apuntes de esta sesión…" class="au-note" aria-label="Notas de la sesión">${esc(p.notes?.[cur.id] || '')}</textarea></div>`;
+}
+
 function courseView(cid, sid) {
   const c = S.catalog.find((x) => x.id === cid);
   if (!c || !myCourses().includes(c)) return `${topbar('home')}<p class="text-white/70">No tienes acceso a este curso. <a class="underline" href="#/">Volver</a></p>`;
@@ -939,11 +1024,6 @@ function courseView(cid, sid) {
       <div class="mt-4 flex flex-wrap items-center gap-2">${cur.duration ? `<span class="au-chip">${ICON.clock}${esc(cur.duration)}</span>` : ''}${isDone ? `<span class="au-chip ok">${ICON.check.replace('h-3 w-3', 'h-3.5 w-3.5')} Completada</span>` : ''}</div>
       ${media}
       ${!soon && cur.folder && FILES_ON ? viewerHtml(cid, cur) : ''}
-      ${soon ? '' : `<div class="mt-8 grid gap-6 lg:grid-cols-5">
-        <div class="lg:col-span-3"><h2 class="au-sec">Materiales</h2>${resHtml}</div>
-        <div class="lg:col-span-2"><h2 class="au-sec">Mis notas <span id="note-status" class="ml-2 font-normal normal-case tracking-normal text-white/40"></span></h2>
-          <textarea id="note" rows="7" placeholder="Escribe tus apuntes de esta sesión…" class="au-note mt-3 placeholder-white/30">${esc(p.notes?.[cur.id] || '')}</textarea></div>
-      </div>`}
       ${actionBar(doneBtn)}`;
   }
 
@@ -976,6 +1056,7 @@ function courseView(cid, sid) {
     <div class="flex items-center gap-3"><div class="text-right"><p class="text-sm font-semibold">${done} de ${total}</p><p class="text-xs text-white/55">completadas</p></div>${bigRing(n)}</div>
   </div>
   <details class="${card} mb-4"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold"><span>Contenido del curso</span><span class="text-xs font-normal text-white/50">${done}/${total}</span></summary><div id="side-m" class="px-2 pb-3">${side}</div></details></div>
+  ${notesPanel(cur, p)}
   <div class="au-app ${outlineOff ? 'no-outline' : ''}">
     <aside class="au-pane-l ${outlineOff ? 'hidden' : 'hidden lg:flex'}">${paneHead}
       <div class="au-outhead !py-2.5"><p class="au-sec">Contenido del curso</p></div>
@@ -1363,11 +1444,11 @@ async function render() {
         if (it && examFocus() && examHere(r.cid, it.id)) { root.innerHTML = examFocusView(); examTickStart(); return; }
         if (!(it?.type === 'quiz') && S.exam) { examStop(); S.exam = null; }
       }
-      const keepNb = (S.nb && S.nbHost?.isConnected && S.nbKey === `${r.cid}|${curOf(S.catalog.find((x) => x.id === r.cid), r.sid)?.id}`) ? S.nbHost : null;
+      const keepNb = (S.sess && S.nbHost?.isConnected && S.nbKey === `${r.cid}|${curOf(S.catalog.find((x) => x.id === r.cid), r.sid)?.id}`) ? S.nbHost : null;
       root.innerHTML = courseView(r.cid, r.sid);
       if (keepNb && document.getElementById('vbody')) {
         document.getElementById('vbody').replaceWith(keepNb);
-        document.querySelectorAll('[data-act=vtab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === 'clase')));
+        document.querySelectorAll('[data-act=vtab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === (S.vtab || 'clase'))));
         document.getElementById('vnote')?.classList.add('hidden');
       } else initViewer();
       { const sd = document.getElementById('side-d'), cu = sd?.querySelector('.is-cur'); if (sd && cu) sd.scrollTop = Math.max(0, cu.offsetTop - sd.clientHeight / 3); }
@@ -1479,6 +1560,17 @@ root.addEventListener('click', async (e) => {
   const act = b.dataset.act;
   try {
     if (act.startsWith('exam-')) { await examClick(act, b); return; }
+    if (act === 'notes-toggle') {
+      const pn = document.getElementById('notes-panel'); pn.classList.toggle('hidden');
+      const on = !pn.classList.contains('hidden'); localStorage.setItem('aula:notes', on ? '1' : '0');
+      document.querySelector('.au-fab')?.setAttribute('aria-expanded', String(on)); if (on) document.getElementById('note')?.focus();
+      return;
+    }
+    if (act === 'dl-data') {
+      const u8 = S.sess?.dataFiles?.[b.dataset.name]; if (!u8) return;
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([u8])); a.download = b.dataset.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      return;
+    }
     if (act === 'outline-toggle') { localStorage.setItem('aula:outline', localStorage.getItem('aula:outline') === '0' ? '1' : '0'); await render(); return; }
     if (act === 'cert-copy') {
       try { await navigator.clipboard.writeText(certUrl(b.dataset.code)); b.textContent = 'Enlace copiado'; setTimeout(() => { b.textContent = 'Copiar enlace'; }, 2000); }
@@ -1630,7 +1722,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft' && sec.dataset.prev) location.hash = sec.dataset.prev;
 });
 
-window.addEventListener('hashchange', () => { examStop(); S.exam = null; const k = location.hash.split('/'); if (S.nb && S.nbKey !== `${k[2]}|${k[3]}`) disposeNb(); render(); });
+window.addEventListener('hashchange', () => { examStop(); S.exam = null; const k = location.hash.split('/'); if (S.sess && S.nbKey !== `${k[2]}|${k[3]}`) disposeNb(); render(); });
 window.addEventListener('beforeunload', (e) => { if (examFocus()) { e.preventDefault(); e.returnValue = ''; } });
 
 /* ---------- arranque ---------- */

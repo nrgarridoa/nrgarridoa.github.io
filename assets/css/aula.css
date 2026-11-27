@@ -132,7 +132,7 @@ body.aula ::selection { background: rgba(16,185,129,.25); }
 .au-pop button { display: flex; width: 100%; flex-direction: column; align-items: flex-start; gap: 1px; padding: .6rem .75rem; border-radius: 9px; text-align: left; font-size: 13.5px; color: var(--au-text); }
 .au-pop button small { font-size: 11.5px; color: var(--au-mut); }
 .au-pop button:hover { background: var(--au-tint); }
-.au-vbody { background: #fff; overflow: hidden; }
+.au-vbody { background: #fff; overflow: clip; border-radius: 0 0 16px 16px; }
 .au-actionbar { display: flex; align-items: center; gap: .5rem; padding: .5rem; border-radius: 18px; border: 1px solid var(--au-line); background: rgba(255,255,255,.94); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: 0 20px 44px -20px rgba(15,23,42,.35); }
 .au-done { color: var(--au-gi) !important; background: var(--au-tint) !important; border: 1px solid #6EE7B7 !important; box-shadow: none !important; }
 .au-note { width: 100%; resize: vertical; border-radius: 12px; border: 1px solid var(--au-line2); background: #fff; color: var(--au-text); padding: .75rem; font-size: 14px; }
@@ -244,3 +244,13 @@ body.aula .bg-white\/\[\.03\], body.aula .bg-white\/\[0\.03\], body.aula .bg-whi
 
 .nb [hidden] { display: none !important; }
 @media (min-width: 1024px) { .nb-bar { top: 59px; } }
+
+/* ---------- notas flotantes ---------- */
+.au-fab { position: fixed; right: 22px; bottom: 22px; z-index: 45; display: inline-flex; align-items: center; gap: .5rem; height: 48px; padding: 0 1.05rem; border-radius: 999px; font-size: 14px; font-weight: 700; color: var(--au-ink); background: linear-gradient(135deg, #10B981, #34D399); box-shadow: 0 14px 30px -10px rgba(5,150,105,.7); cursor: pointer; transition: transform .15s, filter .15s; }
+.au-fab:hover { transform: translateY(-2px); filter: brightness(1.05); }
+.au-notes { position: fixed; right: 22px; bottom: 82px; z-index: 46; width: min(380px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: .6rem; padding: .85rem; border-radius: 16px; background: #fff; border: 1px solid var(--au-line); box-shadow: 0 30px 70px -20px rgba(15,23,42,.45); }
+.au-notes.hidden { display: none; }
+.au-notes-h { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.au-notes .au-note { height: 240px; resize: none; }
+.nb-note-info { background: var(--au-tint); border-color: #A7F3D0; color: var(--au-deep); }
+@media (max-width: 640px) { .au-fab { right: 14px; bottom: 14px; } .au-notes { right: 12px; bottom: 74px; } }

@@ -10,6 +10,8 @@ import { tags as t } from '@lezer/highlight';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import katex from 'katex';
+import { unzipSync, strFromU8 } from 'fflate';
+export { unzipSync, strFromU8 };
 
 // Colores clasicos de IDLE, igual que en los notebooks del curso.
 const idle = HighlightStyle.define([
