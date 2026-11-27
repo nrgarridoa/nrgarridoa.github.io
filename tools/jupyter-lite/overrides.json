@@ -1,0 +1,4 @@
+{
+  "@jupyterlab/notebook-extension:tracker": { "windowingMode": "none" },
+  "@jupyterlab/apputils-extension:themes": { "theme": "JupyterLab Light" }
+}

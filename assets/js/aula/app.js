@@ -24,6 +24,7 @@ const ICON = {
   arrowL: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>',
   arrowR: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
   ext: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></svg>',
+  jupyter: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9c1.8-2 4.2-3 7-3s5.2 1 7 3M5 15c1.8 2 4.2 3 7 3s5.2-1 7-3"/><circle cx="19.5" cy="5" r="1.2" fill="currentColor"/><circle cx="4.5" cy="19" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>',
   note: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>',
   close: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   sidebar: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>',
@@ -393,6 +394,7 @@ function viewerHtml(cid, cur) {
     <div class="au-vbar">
       <div class="au-seg" role="tablist" aria-label="Material de la sesión">${VTABS.map(([k, l]) => `<button type="button" role="tab" data-act="vtab" data-tab="${k}" aria-selected="false">${l}</button>`).join('')}</div>
       <span class="flex-1"></span>
+      <button type="button" data-act="open-jupyter" class="au-ghost" title="Abre este notebook en Jupyter, en una pestaña nueva. Tu trabajo allí se guarda en este navegador.">${ICON.jupyter}<span>Abrir en Jupyter</span></button>
       <details class="au-menu"><summary class="au-ghost">${ICON.down}Descargas</summary>
         <div class="au-pop">${item('notebook', 'Notebook (.ipynb)', 'La clase para ejecutar en tu computadora')}${item('pptx', 'Presentación (.pptx)', 'Las diapositivas de esta sesión')}${item('paquete', 'Paquete del curso (.zip)', 'Datos y herramientas para los ejercicios')}</div></details>
       <button type="button" data-act="vfull" class="au-ghost !px-3" aria-label="Pantalla completa" title="Pantalla completa">${ICON.expand}</button>
@@ -1560,6 +1562,25 @@ root.addEventListener('click', async (e) => {
   const act = b.dataset.act;
   try {
     if (act.startsWith('exam-')) { await examClick(act, b); return; }
+    if (act === 'open-jupyter') {
+      const v = document.getElementById('viewer'), cid = v.dataset.cid, sid = v.dataset.sid, folder = v.dataset.folder;
+      const w = window.open('about:blank', '_blank');   // se abre ya, dentro del clic, para que no lo bloquee el navegador
+      const old = b.innerHTML; b.disabled = true; b.innerHTML = 'Preparando Jupyter…';
+      try {
+        const [nbBytes, zip] = await Promise.all([fetchFile(cid, folder, 'notebook', sid), fetchFile(cid, folder, 'runtime', sid)]);
+        const { unzipSync } = await import('../../vendor/nbvendor.mjs');
+        const { seedJupyter, prepareNotebook, notebookUsesObspy } = await import('./jupyterseed.js');
+        const nb = JSON.parse(new TextDecoder('utf-8').decode(nbBytes));
+        if (notebookUsesObspy(nb)) { w?.close(); alert('Esta cápsula usa ObsPy, que todavía no funciona en el navegador. Descarga el notebook y el paquete del curso (menú Descargas) y ábrela en tu Jupyter.'); return; }
+        const files = Object.entries(unzipSync(zip)).filter(([n]) => !n.endsWith('/') && n !== 'data/_manifest.json').map(([path, bytes]) => ({ path, bytes, overwrite: true }));
+        const path = `${folder}/notebook.ipynb`;
+        await seedJupyter({ files, notebook: { path, json: prepareNotebook(nb) } });
+        const url = `${new URL('../jupyter/notebooks/index.html', location.href.replace(/[#?].*$/, '')).href}?path=${encodeURIComponent(path)}`;
+        if (w) w.location.href = url; else location.href = url;
+      } catch (err) { w?.close(); alert('No se pudo abrir Jupyter: ' + (err.message || err)); }
+      finally { b.disabled = false; b.innerHTML = old; }
+      return;
+    }
     if (act === 'notes-toggle') {
       const pn = document.getElementById('notes-panel'); pn.classList.toggle('hidden');
       const on = !pn.classList.contains('hidden'); localStorage.setItem('aula:notes', on ? '1' : '0');
