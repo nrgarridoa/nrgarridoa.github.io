@@ -53,6 +53,12 @@ function doPost(e) {
       sendNotice_(user.email, req);
     } else if (req.action === 'file') {
       return json_(serveFile_(user, req));
+    } else if (req.action === 'quiz_info') {
+      return json_(quizInfo_(user, req));
+    } else if (req.action === 'quiz_start') {
+      return json_(quizStart_(user, req));
+    } else if (req.action === 'quiz_submit') {
+      return json_(quizSubmit_(user, req));
     } else {
       throw new Error('Acción no válida');
     }
@@ -150,12 +156,14 @@ function readEnrollment_(email, courseId, idToken) {
     '/databases/(default)/documents/enrollments/' + encodeURIComponent(email);
   const res = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + idToken }, muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) throw new Error('Sin acceso al curso');
-  const f = JSON.parse(res.getContentText()).fields || {};
-  const strs = function (arr) { return ((arr && arr.arrayValue && arr.arrayValue.values) || []).map(function (v) { return v.stringValue; }); };
-  const active = !f.active || f.active.booleanValue !== false;
-  if (!active || strs(f.courses).indexOf(courseId) < 0) throw new Error('Sin acceso al curso');
-  const rel = (f.released && f.released.mapValue && f.released.mapValue.fields) || {};
-  return { all: strs(f.releaseAll).indexOf(courseId) >= 0, items: strs(rel[courseId]) };
+  const d = fsDecFields_(JSON.parse(res.getContentText()).fields || {});
+  const courses = d.courses || [];
+  if (d.active === false || courses.indexOf(courseId) < 0) throw new Error('Sin acceso al curso');
+  return {
+    all: (d.releaseAll || []).indexOf(courseId) >= 0,
+    items: (d.released && d.released[courseId]) || [],
+    overrides: d.quizOverrides || {},
+  };
 }
 
 function findFile_(course, rel) {
@@ -174,6 +182,212 @@ function findFile_(course, rel) {
   }
   const fit = dir.getFilesByName(parts[parts.length - 1]);
   return fit.hasNext() ? fit.next() : null;
+}
+
+/* ------- Evaluaciones: intentos, tiempo, plazo y calificación en el servidor ------- */
+// Las respuestas correctas viven en courses/{curso}/content/q-{módulo}, que los alumnos no pueden leer.
+// Este script las lee con una cuenta de servicio (propiedad de script SA_KEY), califica y guarda el resultado.
+
+const FS_BASE_ = 'https://firestore.googleapis.com/v1/projects/' + CONFIG.FIREBASE_PROJECT_ID + '/databases/(default)/documents/';
+const QUIZ_GRACE_MS = 20000;   // margen para la latencia de red al enviar
+
+function saToken_() {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('sa_token');
+  if (hit) return hit;
+  const raw = PropertiesService.getScriptProperties().getProperty('SA_KEY');
+  if (!raw) throw new Error('Falta configurar la cuenta de servicio (SA_KEY)');
+  const sa = JSON.parse(raw);
+  const now = Math.floor(Date.now() / 1000);
+  const b64 = function (s) { return Utilities.base64EncodeWebSafe(s).replace(/=+$/, ''); };
+  const unsigned = b64(JSON.stringify({ alg: 'RS256', typ: 'JWT' })) + '.' + b64(JSON.stringify({
+    iss: sa.client_email, scope: 'https://www.googleapis.com/auth/datastore',
+    aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600,
+  }));
+  const sig = Utilities.base64EncodeWebSafe(Utilities.computeRsaSha256Signature(unsigned, sa.private_key)).replace(/=+$/, '');
+  const res = UrlFetchApp.fetch('https://oauth2.googleapis.com/token', {
+    method: 'post', muteHttpExceptions: true,
+    payload: { grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: unsigned + '.' + sig },
+  });
+  const j = JSON.parse(res.getContentText());
+  if (!j.access_token) throw new Error('No se pudo autenticar la cuenta de servicio');
+  cache.put('sa_token', j.access_token, 3000);
+  return j.access_token;
+}
+
+function fsDec_(v) {
+  if (v.stringValue !== undefined) return v.stringValue;
+  if (v.integerValue !== undefined) return Number(v.integerValue);
+  if (v.doubleValue !== undefined) return Number(v.doubleValue);
+  if (v.booleanValue !== undefined) return v.booleanValue;
+  if (v.timestampValue !== undefined) return v.timestampValue;
+  if (v.arrayValue) return (v.arrayValue.values || []).map(fsDec_);
+  if (v.mapValue) return fsDecFields_(v.mapValue.fields || {});
+  return null;
+}
+function fsDecFields_(f) {
+  const o = {};
+  Object.keys(f || {}).forEach(function (k) { o[k] = fsDec_(f[k]); });
+  return o;
+}
+function fsEnc_(v) {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (typeof v === 'boolean') return { booleanValue: v };
+  if (typeof v === 'number') return (v % 1 === 0) ? { integerValue: String(v) } : { doubleValue: v };
+  if (typeof v === 'string') return { stringValue: v };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(fsEnc_) } };
+  const f = {};
+  Object.keys(v).forEach(function (k) { if (v[k] !== undefined) f[k] = fsEnc_(v[k]); });
+  return { mapValue: { fields: f } };
+}
+function fsGet_(path) {
+  const res = UrlFetchApp.fetch(FS_BASE_ + path, { headers: { Authorization: 'Bearer ' + saToken_() }, muteHttpExceptions: true });
+  if (res.getResponseCode() === 404) return null;
+  if (res.getResponseCode() !== 200) throw new Error('No se pudo leer ' + path.split('/')[0]);
+  return fsDecFields_(JSON.parse(res.getContentText()).fields || {});
+}
+function fsPatch_(path, obj, fields) {
+  const mask = fields.map(function (f) { return 'updateMask.fieldPaths=' + encodeURIComponent(f); }).join('&');
+  const enc = {};
+  fields.forEach(function (f) { enc[f] = fsEnc_(obj[f]); });
+  const res = UrlFetchApp.fetch(FS_BASE_ + path + '?' + mask, {
+    method: 'patch', contentType: 'application/json', headers: { Authorization: 'Bearer ' + saToken_() },
+    payload: JSON.stringify({ fields: enc }), muteHttpExceptions: true,
+  });
+  if (res.getResponseCode() !== 200) throw new Error('No se pudo guardar el resultado');
+}
+
+/** Ajustes de una evaluación: los del curso, con los cambios que hayas hecho para ese alumno. */
+function quizSettings_(meta, enr, cid, mid) {
+  const qm = (meta.quizMeta || {})[mid] || {};
+  const ov = ((enr.overrides || {})[cid] || {})[mid] || {};
+  const pick = function (k, d) {
+    if (ov[k] !== undefined && ov[k] !== null && ov[k] !== '') return ov[k];
+    return (qm[k] !== undefined && qm[k] !== null && qm[k] !== '') ? qm[k] : d;
+  };
+  const due = String(pick('due', ''));
+  return {
+    n: Number(qm.n || 0), time: Number(pick('time', 0)), attempts: Number(pick('attempts', 0)),
+    due: due, dueMs: due ? Date.parse(due + 'T23:59:59-05:00') : 0, pass: Number(meta.pass || 70),
+  };
+}
+
+function quizContext_(user, req) {
+  const cid = String(req.courseId || ''), mid = String(req.mid || '');
+  if (!/^[a-z0-9-]+$/.test(cid) || !/^m\d+$/.test(mid)) throw new Error('Evaluación no válida');
+  const isAdmin = user.email === CONFIG.ADMIN_EMAIL.toLowerCase();
+  const enr = isAdmin ? { all: true, items: [], overrides: {} } : readEnrollment_(user.email, cid, req.idToken);
+  if (!enr.all && enr.items.indexOf('q-' + mid) < 0) throw new Error('Bloqueada: aún no está habilitada');
+  const meta = fsGet_('courses/' + cid) || {};
+  const settings = quizSettings_(meta, enr, cid, mid);
+  if (!settings.n) throw new Error('Esta evaluación aún no está disponible');
+  const apath = 'quizAttempts/' + encodeURIComponent(user.email + '__' + cid + '__' + mid);
+  const A = fsGet_(apath) || { count: 0, best: 0, passed: false, history: [] };
+  A.history = A.history || [];
+  return { cid: cid, mid: mid, settings: settings, apath: apath, A: A, email: user.email };
+}
+
+/** Si un intento abierto ya agotó su tiempo, se cierra con 0 (el intento ya estaba contado). */
+function closeIfExpired_(ctx) {
+  const A = ctx.A, s = ctx.settings;
+  if (A.open && A.open.startedAt && s.time && Date.now() > A.open.startedAt + s.time * 60000 + QUIZ_GRACE_MS) {
+    A.history.push({ score: 0, at: A.open.startedAt, late: true });
+    A.open = null;
+    fsPatch_(ctx.apath, A, ['count', 'best', 'passed', 'history', 'open']);
+    syncQuizProgress_(ctx, 0);
+  }
+}
+
+function syncQuizProgress_(ctx, lastScore) {
+  const ppath = 'users/' + encodeURIComponent(ctx.email) + '/progress/' + ctx.cid;
+  const cur = fsGet_(ppath) || {};
+  const quiz = cur.quiz || {};
+  quiz[ctx.mid] = { score: lastScore, best: ctx.A.best || 0, attempts: ctx.A.count, passed: !!ctx.A.passed, at: new Date().toISOString() };
+  const passed = Object.keys(quiz).filter(function (m) { return quiz[m] && quiz[m].passed; }).length;
+  fsPatch_(ppath, { quiz: quiz, quizPassed: passed }, ['quiz', 'quizPassed']);
+  return quiz[ctx.mid];
+}
+
+function quizPublic_(ctx) {
+  const A = ctx.A, s = ctx.settings, now = Date.now();
+  const open = A.open && A.open.startedAt ? A.open : null;
+  return {
+    n: s.n, time: s.time, attempts: s.attempts, used: A.count, due: s.due, pass: s.pass,
+    closed: !!(s.dueMs && now > s.dueMs), best: A.best || 0, passed: !!A.passed,
+    open: open ? { remaining: s.time ? Math.max(0, Math.round((open.startedAt + s.time * 60000 - now) / 1000)) : null } : null,
+  };
+}
+
+function quizInfo_(user, req) {
+  const lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    const ctx = quizContext_(user, req);
+    closeIfExpired_(ctx);
+    return Object.assign({ ok: true }, quizPublic_(ctx));
+  } finally { lock.releaseLock(); }
+}
+
+function quizStart_(user, req) {
+  const lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    const ctx = quizContext_(user, req);
+    closeIfExpired_(ctx);
+    const A = ctx.A, s = ctx.settings, now = Date.now();
+    if (!A.open) {
+      if (s.dueMs && now > s.dueMs) throw new Error('El plazo de esta evaluación ya venció');
+      if (s.attempts && A.count >= s.attempts) throw new Error('No te quedan intentos disponibles');
+      A.count += 1;
+      A.open = { id: Utilities.getUuid(), startedAt: now };
+      fsPatch_(ctx.apath, A, ['count', 'best', 'passed', 'history', 'open']);
+    }
+    const qdoc = fsGet_('courses/' + ctx.cid + '/content/q-' + ctx.mid) || {};
+    const questions = (qdoc.questions || []).map(function (q) { return { q: q.q, options: q.options }; });
+    return {
+      ok: true, attemptId: A.open.id, attemptNo: A.count, questions: questions,
+      remaining: s.time ? Math.max(0, Math.round((A.open.startedAt + s.time * 60000 - now) / 1000)) : null,
+      time: s.time, attempts: s.attempts, pass: s.pass,
+    };
+  } finally { lock.releaseLock(); }
+}
+
+function quizSubmit_(user, req) {
+  const lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    const ctx = quizContext_(user, req);
+    const A = ctx.A, s = ctx.settings, now = Date.now();
+    if (!A.open || A.open.id !== String(req.attemptId || '')) throw new Error('Este intento ya no está abierto');
+    const qdoc = fsGet_('courses/' + ctx.cid + '/content/q-' + ctx.mid) || {};
+    const qs = qdoc.questions || [];
+    const answers = Array.isArray(req.answers) ? req.answers : [];
+    const late = !!(s.time && now > A.open.startedAt + s.time * 60000 + QUIZ_GRACE_MS);
+    let correct = 0;
+    const marks = qs.map(function (q, i) { const ok = !late && Number(answers[i]) === q.answer; if (ok) correct++; return ok; });
+    const score = qs.length ? Math.round((correct / qs.length) * 100) : 0;
+    const passed = score >= s.pass;
+    A.history.push({ score: score, at: now, late: late });
+    A.best = Math.max(A.best || 0, score);
+    A.passed = !!A.passed || passed;
+    const startedAt = A.open.startedAt;
+    A.open = null;
+    fsPatch_(ctx.apath, A, ['count', 'best', 'passed', 'history', 'open']);
+    const progress = syncQuizProgress_(ctx, score);
+    const left = s.attempts ? Math.max(0, s.attempts - A.count) : null;
+    const reveal = passed || (s.attempts > 0 && left === 0);
+    return {
+      ok: true, score: score, correct: correct, total: qs.length, passed: passed, late: late, left: left, reveal: reveal, pass: s.pass,
+      review: qs.map(function (q, i) {
+        return { ok: marks[i], yours: Number.isInteger(Number(answers[i])) ? Number(answers[i]) : -1, correct: reveal ? q.answer : null, explain: reveal ? (q.explain || '') : '' };
+      }),
+      progress: progress,
+    };
+  } finally { lock.releaseLock(); }
+}
+
+/** Prueba de la cuenta de servicio: ejecútala una vez desde el editor tras pegar SA_KEY. */
+function probarServicio() {
+  const t = saToken_();
+  const meta = fsGet_('courses/python-geologia');
+  Logger.log('Cuenta de servicio correcta. Curso leído: ' + (meta ? 'sí' : 'no existe todavía') + ' (token ' + t.slice(0, 8) + '…)');
 }
 
 /* ------------------------------ Envíos ------------------------------ */

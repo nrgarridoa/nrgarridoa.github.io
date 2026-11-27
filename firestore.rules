@@ -46,7 +46,7 @@ service cloud.firestore {
             || enrollment().get('released', {}).get(courseId, []).size()
                >= courseMeta(courseId).get('requiredSessions', 0) + courseMeta(courseId).get('requiredQuizzes', 0))
         && progress(courseId).get('done', {}).size() >= courseMeta(courseId).get('requiredSessions', 0)
-        && progress(courseId).get('quiz', {}).size() >= courseMeta(courseId).get('requiredQuizzes', 0);
+        && progress(courseId).get('quizPassed', 0) >= courseMeta(courseId).get('requiredQuizzes', 0);
     }
 
     // Alumnos autorizados: un documento por correo (en minúsculas).
@@ -61,9 +61,10 @@ service cloud.firestore {
       allow write: if isAdmin();
 
       // Contenido privado: un documento por sesión (videos y materiales) y por evaluación (q-m1, ...).
-      // Solo se puede leer si el administrador lo liberó a ese alumno.
+      // Las sesiones solo se pueden leer si el administrador las liberó a ese alumno.
+      // Las evaluaciones (con las respuestas correctas) NO las lee ningún alumno: las entrega y califica el script.
       match /content/{item} {
-        allow read: if isAdmin() || (enrolled(courseId) && released(courseId, item));
+        allow read: if isAdmin() || (enrolled(courseId) && released(courseId, item) && !item.matches('q-.*'));
         allow write: if isAdmin();
       }
     }
@@ -104,8 +105,17 @@ service cloud.firestore {
     }
 
     // Progreso y notas de cada alumno por curso.
+    // Los resultados de las evaluaciones (quiz, quizPassed) los escribe solo el script: el alumno no puede tocarlos.
     match /users/{email}/progress/{courseId} {
-      allow read, write: if isAdmin() || (signedIn() && email == me() && enrolled(courseId));
+      allow read: if isAdmin() || (signedIn() && email == me() && enrolled(courseId));
+      allow write: if isAdmin() || (signedIn() && email == me() && enrolled(courseId)
+        && request.resource.data.get('quiz', null) == (resource == null ? null : resource.data.get('quiz', null))
+        && request.resource.data.get('quizPassed', null) == (resource == null ? null : resource.data.get('quizPassed', null)));
+    }
+
+    // Intentos de evaluación: los crea y actualiza solo el script; el administrador puede consultarlos.
+    match /quizAttempts/{id} {
+      allow read: if isAdmin();
     }
   }
 }

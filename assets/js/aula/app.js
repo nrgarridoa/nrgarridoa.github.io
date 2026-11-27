@@ -108,11 +108,20 @@ async function firebaseApi() {
         (await F.getDocs(F.collection(db, 'courses', c, 'content'))).forEach((d) => {
           if (d.id.startsWith('q-')) out.quizzes[d.id.slice(2)] = d.data(); else out.sessions[d.id] = d.data();
         });
-        out.quizMeta = Object.fromEntries(Object.entries(out.quizzes).map(([m, z]) => [m, { n: (z.questions || []).length }]));
+        out.quizMeta = Object.fromEntries(Object.entries(out.quizzes).map(([m, z]) => [m, { ...(meta.quizMeta?.[m] || {}), n: (z.questions || []).length }]));
       }
       return out;
     },
     getItem: (c, item) => read(F.doc(db, 'courses', c, 'content', item)),
+    // Evaluaciones: las entrega y califica el script (intentos, tiempo y plazo se controlan allí).
+    quiz: async (payload) => {
+      if (!NOTIFY_URL) throw new Error('Las evaluaciones no están disponibles');
+      const idToken = await auth.currentUser.getIdToken();
+      const r = await fetch(NOTIFY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...payload, idToken }) });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'No se pudo completar la acción');
+      return j;
+    },
     watchEnrollment: (e, cb) => F.onSnapshot(F.doc(db, 'enrollments', e), (sn) => cb(sn.exists() ? sn.data() : null), () => {}),
     releaseBatch: async (items) => {
       for (let i = 0; i < items.length; i += 400) {
@@ -161,8 +170,9 @@ function demoApi() {
     'pedro@gmail.com': { name: 'Pedro Quispe', courses: ['pbi-mineria', 'python-geologia'], active: true, groups: ['cohorte-2'] },
   };
   let watcher = null;
+  const quizA = {};
   const priv = {
-    'pbi-mineria': { pass: 70, sessions: {
+    'pbi-mineria': { pass: 70, quizMeta: { m1: { attempts: 2, time: 0 } }, sessions: {
       m1s1: { video: 'https://www.youtube.com/watch?v=M7lc1UVf-VE', resources: [{ label: 'Guía de la sesión (PDF)', url: 'https://drive.google.com/' }] },
     }, quizzes: { m1: { questions: [
       { q: '¿Qué es una medida en DAX?', options: ['Una columna calculada', 'Una expresión evaluada en contexto', 'Una tabla'], answer: 1, explain: 'Las medidas se calculan al consultar, según el contexto de filtro.' },
@@ -188,7 +198,7 @@ function demoApi() {
     getEnrollment: async (e) => (enr[e] ? JSON.parse(JSON.stringify(enr[e])) : null),
     getPrivate: async (c, admin) => {
       const q = priv[c]; if (!q) return null;
-      const quizMeta = Object.fromEntries(Object.entries(q.quizzes || {}).map(([m, z]) => [m, { n: (z.questions || []).length }]));
+      const quizMeta = Object.fromEntries(Object.entries(q.quizzes || {}).map(([m, z]) => [m, { ...(q.quizMeta?.[m] || {}), n: (z.questions || []).length }]));
       return { pass: q.pass, quizMeta, requiredSessions: 0, requiredQuizzes: 0, sessions: admin ? q.sessions : {}, quizzes: admin ? q.quizzes : {} };
     },
     getItem: async (c, item) => {
@@ -207,7 +217,43 @@ function demoApi() {
     listEnrollments: async () => Object.entries(enr).map(([email, d]) => ({ email, ...d })),
     saveEnrollment: async (e, d) => { enr[e] = { ...(enr[e] || {}), ...d }; },
     deleteEnrollment: async (e) => { delete enr[e]; },
-    savePrivate: async (c, d) => { priv[c] = { pass: d.pass, sessions: d.sessions, quizzes: d.quizzes }; },
+    savePrivate: async (c, d) => { priv[c] = { pass: d.pass, sessions: d.sessions, quizzes: d.quizzes, quizMeta: d.quizMeta }; },
+    // Motor de evaluaciones de la demostración: replica las reglas del script (intentos, tiempo, plazo, calificación).
+    quiz: async (pl) => {
+      const cid = pl.courseId, mid = pl.mid, z = priv[cid]?.quizzes?.[mid];
+      if (!z) throw new Error('Esta evaluación aún no está disponible');
+      const e = enr[user.email] || {};
+      if (!(asAdmin || e.releaseAll?.includes(cid) || (e.released?.[cid] || []).includes('q-' + mid))) throw new Error('Bloqueada: aún no está habilitada');
+      const base = priv[cid].quizMeta?.[mid] || {}, ov = e.quizOverrides?.[cid]?.[mid] || {};
+      const pick = (k, d) => (ov[k] != null && ov[k] !== '' ? ov[k] : (base[k] != null && base[k] !== '' ? base[k] : d));
+      const st = { n: z.questions.length, time: Number(qs.get('qtime') || pick('time', 0)), attempts: Number(pick('attempts', 0)), due: String(pick('due', '')), pass: priv[cid].pass || 70 };
+      const key = `${user.email}|${cid}|${mid}`;
+      const A = quizA[key] || (quizA[key] = { count: 0, best: 0, passed: false, open: null });
+      const now = Date.now(), dueMs = st.due ? Date.parse(st.due + 'T23:59:59-05:00') : 0;
+      const rem = () => (st.time && A.open ? Math.max(0, Math.round((A.open.at + st.time * 60000 - now) / 1000)) : null);
+      const finish = (score) => { A.best = Math.max(A.best, score); A.passed = A.passed || score >= st.pass; (prog[user.email + '|' + cid] ||= {}); const P = prog[user.email + '|' + cid]; (P.quiz ||= {})[mid] = { score, best: A.best, attempts: A.count, passed: A.passed }; return P.quiz[mid]; };
+      if (A.open && st.time && now > A.open.at + st.time * 60000 + 20000) { A.open = null; finish(0); }
+      if (pl.action === 'quiz_info') return { ok: true, n: st.n, time: st.time, attempts: st.attempts, used: A.count, due: st.due, pass: st.pass, closed: !!(dueMs && now > dueMs), best: A.best, passed: A.passed, open: A.open ? { remaining: rem() } : null };
+      if (pl.action === 'quiz_start') {
+        if (!A.open) {
+          if (dueMs && now > dueMs) throw new Error('El plazo de esta evaluación ya venció');
+          if (st.attempts && A.count >= st.attempts) throw new Error('No te quedan intentos disponibles');
+          A.count += 1; A.open = { id: 'att' + A.count, at: now };
+        }
+        return { ok: true, attemptId: A.open.id, attemptNo: A.count, questions: z.questions.map((q) => ({ q: q.q, options: q.options })), remaining: rem(), time: st.time, attempts: st.attempts, pass: st.pass };
+      }
+      if (pl.action === 'quiz_submit') {
+        if (!A.open || A.open.id !== pl.attemptId) throw new Error('Este intento ya no está abierto');
+        const late = !!(st.time && now > A.open.at + st.time * 60000 + 20000);
+        const marks = z.questions.map((q, i) => !late && Number(pl.answers[i]) === q.answer);
+        const correct = marks.filter(Boolean).length, score = Math.round((correct / z.questions.length) * 100), passed = score >= st.pass;
+        A.open = null; const progress = finish(score);
+        const left = st.attempts ? Math.max(0, st.attempts - A.count) : null, reveal = passed || (st.attempts > 0 && left === 0);
+        return { ok: true, score, correct, total: z.questions.length, passed, late, left, reveal, pass: st.pass, progress,
+          review: z.questions.map((q, i) => ({ ok: marks[i], yours: Number(pl.answers[i]), correct: reveal ? q.answer : null, explain: reveal ? (q.explain || '') : '' })) };
+      }
+      throw new Error('Acción no válida');
+    },
     listMyCerts: async (e) => certs.filter((c) => c.ownerEmail === e),
     requestCert: async (code, d) => { certs.push({ code, ...d }); },
     listCerts: async () => certs.slice(),
@@ -251,7 +297,7 @@ const curOf = (c, sid) => { const all = seqOf(c); return all.find((s) => s.id ==
 // Lee el contenido de la sesion actual solo si esta liberada (las reglas de Firestore lo exigen).
 async function ensureItem(cid, it) {
   const P = S.priv[cid];
-  if (!P || !it || it.locked || it.status === 'soon' || S.isAdmin) return;
+  if (!P || !it || it.locked || it.status === 'soon' || S.isAdmin || it.type === 'quiz') return;
   const got = (P._got ||= {});
   if (got[it.id]) return;
   got[it.id] = 1;
@@ -580,35 +626,185 @@ function sidebarHtml(c, cur, p) {
   return `<div class="space-y-2.5">${mods}</div>`;
 }
 
-function quizMain(c, cur, p) {
-  const quiz = quizzesOf(c.id)[cur.mid];
-  if (!quiz) return `<p class="${card} px-5 py-8 text-center text-sm text-white/60">No se pudo cargar la evaluación. Recarga la página.</p>`;
-  const pass = passOf(c.id);
-  const best = p.quiz?.[cur.mid];
-  const g = S.graded && S.graded.key === c.id + '/' + cur.id ? S.graded : null;
-  const qs = quiz.questions.map((q, i) => {
-    const opts = q.options.map((o, j) => {
-      let cls = 'border-white/10 hover:bg-white/10';
-      if (g) cls = j === q.answer ? 'border-emerald-400/60 bg-emerald-500/15' : (g.answers[i] === j ? 'border-red-400/60 bg-red-500/15' : 'border-white/10 opacity-70');
-      return `<label class="flex items-start gap-3 rounded-xl border ${cls} px-4 py-2.5 text-sm cursor-pointer">
-        <input type="radio" name="q${i}" value="${j}" class="mt-1" ${g ? 'disabled' : ''} ${g && g.answers[i] === j ? 'checked' : ''}><span>${esc(o)}</span></label>`;
+/* ---------- evaluaciones: intentos, tiempo y plazo (calificadas por el servidor) ---------- */
+const LETTERS = 'ABCDEFGH';
+const fmtClock = (sec) => { sec = Math.max(0, Math.round(sec)); return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; };
+let examTimer = null;
+const examStop = () => { clearInterval(examTimer); examTimer = null; };
+const examKey = (E) => `aula:exam:${E.attemptId}`;
+const examHere = (cid, sid) => !!(S.exam && S.exam.cid === cid && S.exam.sid === sid);
+const examFocus = () => !!S.exam && ['run', 'review', 'sending'].includes(S.exam.phase);
+
+async function examLoadInfo(cid, cur) {
+  const E = (S.exam = { cid, sid: cur.id, mid: cur.mid, phase: 'loading' });
+  try { E.info = await S.api.quiz({ action: 'quiz_info', courseId: cid, mid: cur.mid }); E.phase = 'info'; }
+  catch (e) { E.phase = 'error'; E.msg = e.message || 'No se pudo cargar la evaluación'; }
+  if (S.exam === E) await render();
+}
+
+async function examStart() {
+  const E = S.exam; E.busy = true; E.msg = ''; await render();
+  try {
+    const r = await S.api.quiz({ action: 'quiz_start', courseId: E.cid, mid: E.mid });
+    let saved = null; try { saved = JSON.parse(localStorage.getItem(`aula:exam:${r.attemptId}`)); } catch { /* sin respaldo local */ }
+    Object.assign(E, { attemptId: r.attemptId, attemptNo: r.attemptNo, questions: r.questions, time: r.time, pass: r.pass, attempts: r.attempts });
+    E.answers = r.questions.map((_, i) => (Array.isArray(saved) && Number.isInteger(saved[i]) ? saved[i] : -1));
+    const first = E.answers.findIndex((a) => a < 0);
+    E.idx = first < 0 ? 0 : first;
+    E.endAt = r.remaining == null ? null : Date.now() + r.remaining * 1000;
+    E.phase = 'run'; E.busy = false; E.result = null;
+  } catch (e) { E.busy = false; E.msg = e.message || 'No se pudo iniciar la evaluación'; E.phase = 'info'; }
+  await render();
+  examTickStart();
+}
+
+function examTickStart() { examStop(); if (S.exam?.endAt != null && examFocus()) { examTimer = setInterval(examTick, 1000); examTick(); } }
+function examTick() {
+  const E = S.exam; if (!E || E.endAt == null) { examStop(); return; }
+  const left = Math.round((E.endAt - Date.now()) / 1000), el = document.getElementById('exam-timer');
+  if (el) {
+    const ratio = E.time ? left / (E.time * 60) : 1;
+    const tone = left <= 60 || ratio <= 0.15 ? 'red' : ratio <= 0.35 ? 'amber' : 'ok';
+    el.textContent = fmtClock(left);
+    el.parentElement.className = 'inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-base font-semibold tabular-nums ' +
+      (tone === 'red' ? 'border-red-400/40 bg-red-500/15 text-red-300' : tone === 'amber' ? 'border-amber-400/40 bg-amber-400/15 text-amber-200' : 'border-white/10 bg-white/5 text-white');
+  }
+  if (left <= 0 && E.phase !== 'sending') { examStop(); examSubmit(true); }
+}
+
+async function examSubmit(auto) {
+  const E = S.exam; if (!E || E.phase === 'sending') return;
+  examStop(); E.phase = 'sending'; await render();
+  try {
+    const r = await S.api.quiz({ action: 'quiz_submit', courseId: E.cid, mid: E.mid, attemptId: E.attemptId, answers: E.answers });
+    try { localStorage.removeItem(examKey(E)); } catch { /* nada */ }
+    E.result = r; E.auto = !!auto; E.phase = 'result'; E.info = null;
+    const p = S.prog[E.cid] || (S.prog[E.cid] = {}); (p.quiz ||= {})[E.mid] = r.progress;
+  } catch (e) { E.phase = 'review'; E.msg = e.message || 'No se pudo enviar. Inténtalo de nuevo.'; }
+  await render();
+}
+
+async function examClick(act, b) {
+  const E = S.exam; if (!E) return;
+  if (act === 'exam-start') { await examStart(); return; }
+  if (act === 'exam-reload') { const c = S.catalog.find((x) => x.id === E.cid); await examLoadInfo(E.cid, { id: E.sid, mid: E.mid }); return; }
+  if (act === 'exam-exit') {
+    if (!confirm(E.endAt != null ? 'Si sales, el tiempo sigue corriendo. Podrás continuar el intento desde esta evaluación. ¿Salir?' : '¿Salir? Podrás continuar el intento desde esta evaluación.')) return;
+    examStop(); S.exam = null; await render(); return;
+  }
+  if (act === 'exam-pick') {
+    E.answers[Number(b.dataset.i)] = Number(b.dataset.j) === E.answers[Number(b.dataset.i)] ? E.answers[Number(b.dataset.i)] : Number(b.dataset.j);
+    try { localStorage.setItem(examKey(E), JSON.stringify(E.answers)); } catch { /* nada */ }
+    const y = window.scrollY; await render(); window.scrollTo({ top: y }); return;
+  }
+  if (act === 'exam-next') { if (E.answers[E.idx] < 0) return; if (E.idx < E.questions.length - 1) E.idx += 1; else E.phase = 'review'; E.msg = ''; await render(); return; }
+  if (act === 'exam-prev') { if (E.phase === 'review') { E.phase = 'run'; E.idx = E.questions.length - 1; } else E.idx = Math.max(0, E.idx - 1); await render(); return; }
+  if (act === 'exam-goto') { E.idx = Number(b.dataset.i); E.phase = 'run'; await render(); examTick(); return; }
+  if (act === 'exam-submit') {
+    const blank = E.answers.filter((a) => a < 0).length;
+    if (blank && !confirm(`Tienes ${blank} pregunta${blank === 1 ? '' : 's'} sin responder. Se contarán como incorrectas. ¿Enviar de todos modos?`)) return;
+    await examSubmit(false);
+  }
+}
+
+function examTimerHtml(E) {
+  if (E.endAt == null) return '<span class="text-sm text-white/40">Sin límite de tiempo</span>';
+  return `<div class="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-base font-semibold tabular-nums text-white">${ICON.clock.replace('h-3.5 w-3.5', 'h-4 w-4')}<span id="exam-timer">${fmtClock((E.endAt - Date.now()) / 1000)}</span></div>`;
+}
+
+// Pantalla completa de la evaluación: una pregunta a la vez, sin menús.
+function examFocusView() {
+  const E = S.exam, c = S.catalog.find((x) => x.id === E.cid), mod = c.modules.find((m) => m.id === E.mid);
+  const total = E.questions.length, done = E.answers.filter((a) => a >= 0).length;
+  const btn = 'rounded-lg border border-white/15 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:border-white/30 hover:text-white';
+  const head = `<header class="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-3">
+      <div class="min-w-0"><p class="truncate text-xs text-white/50">${esc(c.title)}</p><p class="truncate text-sm font-semibold">Evaluación · ${esc(mod?.title || '')}</p></div>
+      <div class="hidden w-56 sm:block"><div class="mb-1 flex justify-between text-[11px] text-white/50"><span>${done} de ${total} respondidas</span></div>${bar(Math.round((done / total) * 100))}</div>
+      <button data-act="exam-exit" class="shrink-0 text-xs text-white/60 hover:text-white">Salir</button></header>`;
+  const shell = (inner) => `<div class="fixed inset-0 z-[60] flex flex-col overflow-y-auto" style="background:#0A192F">${head}${inner}</div>`;
+
+  if (E.phase === 'sending') return shell('<main class="flex flex-1 items-center justify-center px-6"><p class="text-white/70">Calificando tu evaluación…</p></main>');
+
+  if (E.phase === 'review') {
+    const rows = E.questions.map((q, i) => {
+      const a = E.answers[i];
+      return `<li class="${card} flex items-start gap-4 p-4"><span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${a < 0 ? 'bg-amber-400/20 text-amber-200' : 'bg-white/10 text-white/70'} text-xs font-bold">${i + 1}</span>
+        <div class="min-w-0 flex-1"><p class="text-sm font-medium">${esc(q.q)}</p>
+          <p class="mt-1 text-sm ${a < 0 ? 'text-amber-200' : 'text-white/70'}">${a < 0 ? 'Sin responder' : `${LETTERS[a]}. ${esc(q.options[a])}`}</p></div>
+        <button data-act="exam-goto" data-i="${i}" class="shrink-0 text-xs text-sky-300 hover:text-sky-200">Editar</button></li>`;
     }).join('');
-    const fb = g ? `<p class="mt-2 text-xs ${g.answers[i] === q.answer ? 'text-emerald-300' : 'text-red-300'}">${g.answers[i] === q.answer ? 'Correcto.' : 'Incorrecto.'} ${esc(q.explain || '')}</p>` : '';
-    return `<fieldset class="${card} p-4"><legend class="sr-only">Pregunta ${i + 1}</legend>
-      <p class="text-sm font-medium"><span class="text-white/40 mr-1">${i + 1}.</span>${esc(q.q)}</p><div class="mt-3 space-y-2">${opts}</div>${fb}</fieldset>`;
-  }).join('');
-  const result = g ? `<div class="${card} p-4 ${g.passed ? 'border-emerald-400/50' : 'border-amber-400/50'}">
-      <p class="font-semibold ${g.passed ? 'text-emerald-300' : 'text-amber-300'}">${g.passed ? 'Aprobado' : 'Aún no alcanzas el puntaje mínimo'}: ${g.score}% (${g.correct} de ${g.total})</p>
-      <p class="text-xs text-white/60 mt-1">Puntaje mínimo: ${pass}%.</p></div>` : '';
-  return `<p class="text-xs text-white/50">${esc(cur.mtitle)}</p>
-    <h1 class="mt-1 text-2xl font-display font-bold">Evaluación del módulo</h1>
-    <p class="mt-2 text-white/70 text-sm">${quiz.questions.length} preguntas · puntaje mínimo ${pass}%. Puedes repetirla las veces que necesites.${best ? ` Tu mejor resultado: <strong>${best.best}%</strong> (${best.attempts} ${best.attempts === 1 ? 'intento' : 'intentos'}).` : ''}</p>
-    <div class="mt-5 space-y-4">${result}${qs}</div>
-    ${S.quizMsg ? `<p class="mt-4 text-sm text-amber-300">${esc(S.quizMsg)}</p>` : ''}
-    <div class="mt-5 flex flex-wrap gap-3">
-      ${g ? `<button data-act="quiz-retry" class="rounded-lg border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/10">Reintentar</button>`
-          : `<button data-act="quiz-submit" class="${btnPrimary}" style="${gradient}">Calificar</button>`}
-    </div>`;
+    return shell(`<main class="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
+        <h2 class="text-2xl font-display font-bold">Resumen de tus respuestas</h2>
+        <p class="mt-1 text-sm text-white/60">Revisa cada pregunta. Puedes editar cualquier respuesta antes de enviar.</p>
+        ${E.msg ? `<p class="mt-3 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm text-amber-200">${esc(E.msg)}</p>` : ''}
+        <ol class="mt-5 space-y-3">${rows}</ol></main>
+      <footer class="grid grid-cols-3 items-center border-t border-white/10 px-5 py-4"><div><button data-act="exam-prev" class="${btn}">Volver</button></div>
+        <div class="flex justify-center">${examTimerHtml(E)}</div>
+        <div class="flex justify-end"><button data-act="exam-submit" class="${btnPrimary} px-6 py-3" style="${gradient}">Enviar respuestas</button></div></footer>`);
+  }
+
+  const q = E.questions[E.idx], a = E.answers[E.idx], last = E.idx === total - 1;
+  const opts = q.options.map((o, j) => `<button type="button" data-act="exam-pick" data-i="${E.idx}" data-j="${j}" role="radio" aria-checked="${a === j}"
+      class="flex w-full items-start gap-3 rounded-xl border-2 p-4 text-left transition ${a === j ? 'border-sky-400/70 bg-sky-400/10 text-white' : 'border-white/10 bg-white/5 text-white/80 hover:border-white/25 hover:bg-white/10'}">
+      <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${a === j ? 'bg-sky-400 text-slate-900' : 'bg-white/10 text-white/70'}">${LETTERS[j]}</span><span class="pt-0.5">${esc(o)}</span></button>`).join('');
+  return shell(`<main class="mx-auto grid w-full max-w-6xl flex-1 content-start gap-8 px-5 py-8 md:grid-cols-2 md:gap-12 md:py-12">
+      <section><p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300/80">Pregunta ${E.idx + 1} de ${total}</p>
+        <h2 class="mt-3 text-xl font-semibold leading-snug sm:text-2xl">${esc(q.q)}</h2></section>
+      <section role="radiogroup" aria-label="Opciones de respuesta"><p class="mb-4 text-sm text-white/60">Elige la respuesta correcta</p><div class="space-y-3">${opts}</div>
+        <p class="mt-4 hidden text-xs text-white/35 md:block">Atajos: A, B, C, D para responder · Enter para continuar</p></section></main>
+    <footer class="grid grid-cols-3 items-center border-t border-white/10 px-5 py-4">
+      <div>${E.idx > 0 ? `<button data-act="exam-prev" class="${btn}">Anterior</button>` : ''}</div>
+      <div class="flex justify-center">${examTimerHtml(E)}</div>
+      <div class="flex justify-end"><button data-act="exam-next" ${a < 0 ? 'disabled' : ''} class="${btnPrimary} px-6 py-3 ${a < 0 ? 'cursor-not-allowed !bg-white/10 !text-white/40' : ''}" style="${a < 0 ? '' : gradient}">${last ? 'Revisar' : 'Siguiente'}</button></div></footer>`);
+}
+
+// Dentro del aula: información previa, resultados y errores.
+function quizMain(c, cur, p) {
+  const E = examHere(c.id, cur.id) ? S.exam : null;
+  const head = `<p class="text-xs text-white/50">${esc(cur.mtitle)}</p><h1 class="mt-1 text-2xl font-display font-bold">Evaluación del módulo</h1>`;
+  if (!E || E.phase === 'loading') return `${head}<p class="${card} mt-5 px-5 py-10 text-center text-sm text-white/60">Cargando la evaluación…</p>`;
+  if (E.phase === 'error') return `${head}<div class="${card} mt-5 px-5 py-8 text-center"><p class="text-sm text-white/70">${esc(E.msg)}</p><button data-act="exam-reload" class="mt-4 rounded-lg border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/10">Reintentar</button></div>`;
+
+  if (E.phase === 'result') {
+    const r = E.result;
+    const list = r.review.map((x, i) => {
+      const q = E.questions[i];
+      const mine = x.yours >= 0 ? `${LETTERS[x.yours]}. ${esc(q.options[x.yours])}` : 'Sin responder';
+      return `<li class="${card} p-4"><div class="flex items-start gap-3"><span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${x.ok ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'}">${i + 1}</span>
+        <div class="min-w-0 flex-1"><p class="text-sm font-medium">${esc(q.q)}</p>
+        <p class="mt-1 text-xs ${x.ok ? 'text-emerald-300' : 'text-red-300'}">${x.ok ? 'Correcta' : 'Incorrecta'} · Tu respuesta: ${mine}</p>
+        ${!x.ok && x.correct != null ? `<p class="mt-1 text-xs text-white/70">Respuesta correcta: ${LETTERS[x.correct]}. ${esc(q.options[x.correct])}</p>` : ''}
+        ${x.explain ? `<p class="mt-1 text-xs text-white/55">${esc(x.explain)}</p>` : ''}</div></div></li>`;
+    }).join('');
+    const again = r.left === null || r.left > 0;
+    return `${head}
+      <div class="${card} mt-5 p-5 ${r.passed ? 'border-emerald-400/50' : 'border-amber-400/50'}">
+        <p class="text-sm ${r.passed ? 'text-emerald-300' : 'text-amber-300'} font-semibold">${r.passed ? 'Evaluación aprobada' : 'Aún no alcanzas el puntaje mínimo'}</p>
+        <p class="mt-1 text-4xl font-display font-bold">${r.score}%</p>
+        <p class="mt-1 text-sm text-white/60">${r.correct} de ${r.total} correctas · puntaje mínimo ${r.pass}%${r.late ? ' · se agotó el tiempo' : ''}</p>
+        ${!r.passed ? `<p class="mt-2 text-sm text-white/60">${r.left === null ? 'Puedes volver a intentarlo.' : r.left > 0 ? `Te ${r.left === 1 ? 'queda 1 intento' : `quedan ${r.left} intentos`}.` : 'Ya no te quedan intentos. Escríbeme si necesitas uno más.'}</p>` : ''}
+        ${!r.passed && again ? `<button data-act="exam-reload" class="mt-4 rounded-lg border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/10">Volver a la evaluación</button>` : ''}</div>
+      ${!r.reveal ? '<p class="mt-4 text-xs text-white/50">Las respuestas correctas se muestran cuando apruebas o agotas tus intentos.</p>' : ''}
+      <ol class="mt-4 space-y-3">${list}</ol>`;
+  }
+
+  const i = E.info, due = i.due ? new Date(i.due + 'T12:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  const cell = (label, value) => `<div class="${card} px-4 py-3"><p class="text-[11px] uppercase tracking-wider text-white/40">${label}</p><p class="mt-1 text-lg font-semibold">${value}</p></div>`;
+  const noAttempts = i.attempts > 0 && i.used >= i.attempts && !i.open;
+  let cta;
+  if (i.closed && !i.open) cta = '<p class="text-sm text-amber-300">El plazo de esta evaluación venció. Escríbeme si necesitas una ampliación.</p>';
+  else if (noAttempts) cta = '<p class="text-sm text-amber-300">No te quedan intentos disponibles. Escríbeme si necesitas uno más.</p>';
+  else cta = `<button data-act="exam-start" ${E.busy ? 'disabled' : ''} class="${btnPrimary} px-7 py-3" style="${gradient}">${E.busy ? 'Preparando…' : i.open ? 'Continuar intento' + (i.open.remaining != null ? ` (quedan ${fmtClock(i.open.remaining)})` : '') : 'Comenzar evaluación'}</button>`;
+  return `${head}
+    <p class="mt-2 max-w-2xl text-sm text-white/70">Debes aprobarla para completar el módulo. Se muestra una pregunta a la vez y puedes revisar tus respuestas antes de enviarlas.</p>
+    <div class="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      ${cell('Preguntas', i.n)}${cell('Tiempo', i.time ? `${i.time} min` : 'Sin límite')}
+      ${cell('Intentos', i.attempts ? `${i.used} de ${i.attempts}` : `${i.used} · ilimitados`)}${cell('Puntaje mínimo', `${i.pass}%`)}</div>
+    ${due ? `<p class="mt-3 text-sm ${i.closed ? 'text-amber-300' : 'text-white/60'}">Plazo: ${esc(due)}</p>` : ''}
+    ${i.best ? `<p class="mt-3 text-sm text-white/70">Tu mejor resultado: <strong>${i.best}%</strong>${i.passed ? ' · aprobada' : ''}</p>` : ''}
+    ${i.time && !i.open ? '<p class="mt-3 text-xs text-white/50">El tiempo empieza a correr al comenzar y no se detiene si sales o recargas la página.</p>' : ''}
+    ${E.msg ? `<p class="mt-4 text-sm text-amber-300">${esc(E.msg)}</p>` : ''}
+    <div class="mt-6">${cta}</div>`;
 }
 
 // Etiqueta corta según el destino de un material.
@@ -886,6 +1082,17 @@ function adminView() {
   if (tab === 'alumnos') {
     const openRel = A.openRel || (A.openRel = new Set());
     const lbl = (x, mi, j) => { const m = String(x.title).match(/(\d+(?:\.\d+)+)/); return m ? m[1] : `${mi + 1}.${j + 1}`; };
+    // Ajustes de evaluación solo para este alumno (vacío = los del curso).
+    const qov = (e, c) => {
+      const mods = c.modules.filter((m) => hasQuiz(c.id, m.id));
+      if (!mods.length) return '';
+      const rows = mods.map((m) => {
+        const ov = e.quizOverrides?.[c.id]?.[m.id] || {}, base = S.priv[c.id]?.quizMeta?.[m.id] || {};
+        const f = (k, type, ph) => `<input type="${type}" data-act="qov" data-email="${esc(e.email)}" data-cid="${esc(c.id)}" data-mid="${esc(m.id)}" data-k="${k}" value="${esc(ov[k] ?? '')}" placeholder="${esc(ph)}" aria-label="${esc(k)} de ${esc(m.title)}" class="${input} !py-1 !text-xs">`;
+        return `<div class="grid items-center gap-2 sm:grid-cols-[1fr_6rem_6rem_9rem]"><span class="truncate text-[11px] text-white/45">${esc(m.title)}</span>${f('attempts', 'number', `Intentos (${base.attempts || '∞'})`)}${f('time', 'number', `Min (${base.time || '∞'})`)}${f('due', 'date', base.due || '')}</div>`;
+      }).join('');
+      return `<div class="mt-3 border-t border-white/10 pt-3"><p class="text-xs text-white/50">Evaluaciones de este alumno: intentos, minutos y plazo. Vacío = valores del curso.</p><div class="mt-2 space-y-1.5">${rows}</div></div>`;
+    };
     const relPanel = (e) => {
       const cs = (e.courses || []).map((id) => S.catalog.find((x) => x.id === id)).filter(Boolean);
       if (!cs.length) return '';
@@ -903,7 +1110,7 @@ function adminView() {
           <p class="text-sm font-semibold">${esc(c.title)} <span class="ml-2 text-xs font-normal text-white/50">${all ? 'Acceso completo' : `${relIds(c, e)} de ${tot(c)} liberadas`}</span></p>
           <div class="flex flex-wrap gap-2 text-xs"><button data-act="rel-all" data-email="${esc(e.email)}" data-cid="${esc(c.id)}" data-on="${all ? 0 : 1}" class="${ghost} !px-2.5 !py-1">${all ? 'Quitar acceso completo' : 'Acceso completo'}</button>
           <button data-act="rel-none" data-email="${esc(e.email)}" data-cid="${esc(c.id)}" class="${ghost} !px-2.5 !py-1">Bloquear todo</button></div></div>
-          <div class="mt-3 space-y-2">${mods}</div></div>`;
+          <div class="mt-3 space-y-2">${mods}</div>${qov(e, c)}</div>`;
       }).join('');
       return `<details data-rel="${esc(e.email)}" ${openRel.has(e.email) ? 'open' : ''} class="mt-3 rounded-xl border border-white/10 bg-white/[.03]">
         <summary class="flex cursor-pointer list-none items-center justify-between px-3.5 py-2.5 text-sm"><span class="font-medium">Contenido liberado</span><span class="text-xs text-white/50">${esc(sum)}</span></summary>
@@ -1018,7 +1225,11 @@ function adminView() {
           <span class="block text-xs text-white/45">${covM} de ${m.sessions.length} sesiones con contenido · ${hasQ ? 'con evaluación' : 'sin evaluación'}</span></span>${ICON.chev}</summary>
         <div class="space-y-3 border-t border-white/10 p-4">${sess}
           <div class="rounded-xl border border-white/10 bg-white/[0.03] p-3"><p class="text-sm font-medium">Evaluación del módulo <span class="text-xs text-white/35">(${esc(m.id)})</span></p>
-            <textarea data-qform="${esc(m.id)}" rows="6" placeholder="? Pregunta&#10;- Opción incorrecta&#10;+ Opción correcta&#10;= Explicación (opcional)&#10;&#10;? Otra pregunta…" class="mt-2 ${input} font-mono">${esc(quizToText(pv.quizzes?.[m.id]?.questions))}</textarea></div></div></details>`;
+            <textarea data-qform="${esc(m.id)}" rows="6" placeholder="? Pregunta&#10;- Opción incorrecta&#10;+ Opción correcta&#10;= Explicación (opcional)&#10;&#10;? Otra pregunta…" class="mt-2 ${input} font-mono">${esc(quizToText(pv.quizzes?.[m.id]?.questions))}</textarea>
+            <div class="mt-3 grid gap-3 sm:grid-cols-3" data-qset="${esc(m.id)}">
+              <label class="text-xs text-white/50">Tiempo (minutos, 0 = sin límite)<input type="number" min="0" data-k="time" value="${esc(pv.quizMeta?.[m.id]?.time ?? 0)}" class="mt-1 ${input}"></label>
+              <label class="text-xs text-white/50">Intentos (0 = ilimitados)<input type="number" min="0" data-k="attempts" value="${esc(pv.quizMeta?.[m.id]?.attempts ?? 0)}" class="mt-1 ${input}"></label>
+              <label class="text-xs text-white/50">Plazo (último día)<input type="date" data-k="due" value="${esc(pv.quizMeta?.[m.id]?.due || '')}" class="mt-1 ${input}"></label></div></div></div></details>`;
     }).join('');
     body = `<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div><p class="text-sm text-white/60">La estructura (módulos y sesiones) sale de la vitrina. Aquí agregas el video, los materiales y las evaluaciones.</p></div>
@@ -1057,6 +1268,12 @@ async function render() {
     } else if (r.v === 'course') {
       if (!(r.cid in S.priv)) S.priv[r.cid] = (await S.api.getPrivate(r.cid, S.isAdmin)) || {};
       { const cc = S.catalog.find((x) => x.id === r.cid); if (cc && myCourses().includes(cc)) await ensureItem(r.cid, curOf(cc, r.sid)); }
+      { // evaluación: información previa o pantalla completa
+        const cc = S.catalog.find((x) => x.id === r.cid), it = cc && myCourses().includes(cc) ? curOf(cc, r.sid) : null;
+        if (it?.type === 'quiz' && !it.locked && !examHere(r.cid, it.id)) { examLoadInfo(r.cid, it); }
+        if (it && examFocus() && examHere(r.cid, it.id)) { root.innerHTML = examFocusView(); examTickStart(); return; }
+        if (!(it?.type === 'quiz') && S.exam) { examStop(); S.exam = null; }
+      }
       root.innerHTML = courseView(r.cid, r.sid);
       initViewer();
       const sec = root.querySelector('[data-session]');
@@ -1124,6 +1341,13 @@ root.addEventListener('change', async (e) => {
       en.groups = [...new Set(t.value.split(',').map((g) => g.trim().toLowerCase().replace(/\s+/g, '-')).filter(Boolean))];
       await S.api.saveEnrollment(en.email, { groups: en.groups }); t.value = en.groups.join(', ');
     }
+    if (act === 'qov') {
+      const en = S.admin.enrollments.find((x) => x.email === t.dataset.email), cid = t.dataset.cid, mid = t.dataset.mid;
+      const row = t.closest('div'), val = (k) => { const v = row.querySelector(`[data-k=${k}]`).value; return v === '' ? null : (k === 'due' ? v : Number(v)); };
+      const o = { attempts: val('attempts'), time: val('time'), due: val('due') };
+      await S.api.saveEnrollment(en.email, { quizOverrides: { [cid]: { [mid]: o } } });
+      ((en.quizOverrides ||= {})[cid] ||= {})[mid] = o;
+    }
     if (act === 'rel-toggle') {
       await applyRelease([t.dataset.email], t.dataset.cid, (ids) => { t.checked ? ids.add(t.dataset.id) : ids.delete(t.dataset.id); });
       rerenderAdmin();
@@ -1151,23 +1375,12 @@ root.addEventListener('submit', async (e) => {
   } catch (err) { alert('Error: ' + (err.message || err)); }
 });
 
-function gradeQuiz(sec) {
-  const cid = sec.dataset.course, sid = sec.dataset.session;
-  const mid = sid.replace(/^q-/, '');
-  const qz = quizzesOf(cid)[mid].questions;
-  const answers = qz.map((_, i) => { const r = root.querySelector(`input[name=q${i}]:checked`); return r ? Number(r.value) : -1; });
-  if (answers.includes(-1)) { S.quizMsg = 'Responde todas las preguntas antes de calificar.'; return null; }
-  S.quizMsg = '';
-  const correct = answers.filter((a, i) => a === qz[i].answer).length;
-  const score = Math.round((correct / qz.length) * 100);
-  return { key: cid + '/' + sid, answers, correct, total: qz.length, score, passed: score >= passOf(cid), cid, mid };
-}
-
 root.addEventListener('click', async (e) => {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
   const act = b.dataset.act;
   try {
+    if (act.startsWith('exam-')) { await examClick(act, b); return; }
     if (act === 'rel-all' || act === 'rel-none') {
       const cid = b.dataset.cid, c = S.catalog.find((x) => x.id === cid);
       if (act === 'rel-none' && !confirm('¿Bloquear todo el contenido de este curso para este alumno?')) return;
@@ -1217,18 +1430,6 @@ root.addEventListener('click', async (e) => {
       await render();
       if (note != null) { const n = document.getElementById('note'); if (n) n.value = note; }
     }
-    if (act === 'quiz-submit') {
-      const sec = root.querySelector('[data-session]');
-      const g = gradeQuiz(sec);
-      if (!g) { await render(); return; }
-      const p = S.prog[g.cid] || (S.prog[g.cid] = {});
-      const prev = p.quiz?.[g.mid] || {};
-      const res = { score: g.score, best: Math.max(prev.best || 0, g.score), attempts: (prev.attempts || 0) + 1, passed: !!prev.passed || g.passed, at: new Date().toISOString() };
-      (p.quiz ||= {})[g.mid] = res;
-      await S.api.saveProgress(S.user.email, g.cid, { quiz: { [g.mid]: res } });
-      S.graded = g; await render();
-    }
-    if (act === 'quiz-retry') { S.graded = null; S.quizMsg = ''; await render(); }
     if (act === 'cert-request') {
       const cid = b.dataset.cid; const c = S.catalog.find((x) => x.id === cid);
       if (!isComplete(c, S.prog[cid] || {}) || certFor(cid)) return;
@@ -1292,7 +1493,10 @@ root.addEventListener('click', async (e) => {
       }
       const pass = Math.min(100, Math.max(1, Number(root.querySelector('[data-f=pass]').value) || PASS_DEFAULT));
       const course = S.catalog.find((x) => x.id === cid);
-      const quizMeta = Object.fromEntries(Object.entries(quizzes).map(([m, z]) => [m, { n: z.questions.length }]));
+      const quizMeta = Object.fromEntries(Object.entries(quizzes).map(([m, z]) => {
+        const g = (k) => root.querySelector(`[data-qset=${m}] [data-k=${k}]`)?.value || '';
+        return [m, { n: z.questions.length, time: Math.max(0, Number(g('time')) || 0), attempts: Math.max(0, Number(g('attempts')) || 0), due: g('due') }];
+      }));
       const requiredSessions = course.modules.reduce((n, m) => n + m.sessions.filter((x) => x.status !== 'soon').length, 0);
       const ids = course.modules.flatMap((m) => [...m.sessions.map((x) => x.id), 'q-' + m.id]);
       const doc = { sessions, quizzes, pass, quizMeta, requiredSessions, requiredQuizzes: Object.keys(quizzes).length };
@@ -1309,13 +1513,20 @@ root.addEventListener('click', async (e) => {
 // Atajos: flechas izquierda/derecha para cambiar de sesión.
 window.addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest('input, textarea, select, [contenteditable]')) return;
+  if (S.exam?.phase === 'run') {
+    const E = S.exam, k = e.key.toLowerCase(), j = /^[1-9]$/.test(k) ? Number(k) - 1 : 'abcdefgh'.indexOf(k);
+    if (j >= 0 && j < E.questions[E.idx].options.length && k.length === 1) { examClick('exam-pick', { dataset: { i: E.idx, j } }); return; }
+    if (e.key === 'Enter' && E.answers[E.idx] >= 0) { e.preventDefault(); examClick('exam-next', {}); }
+    return;
+  }
   const sec = root.querySelector('[data-session]');
   if (!sec) return;
   if (e.key === 'ArrowRight' && sec.dataset.next) location.hash = sec.dataset.next;
   if (e.key === 'ArrowLeft' && sec.dataset.prev) location.hash = sec.dataset.prev;
 });
 
-window.addEventListener('hashchange', () => { S.graded = null; S.quizMsg = ''; render(); });
+window.addEventListener('hashchange', () => { examStop(); S.exam = null; render(); });
+window.addEventListener('beforeunload', (e) => { if (examFocus()) { e.preventDefault(); e.returnValue = ''; } });
 
 /* ---------- arranque ---------- */
 (async function init() {
