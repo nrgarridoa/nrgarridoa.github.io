@@ -55,3 +55,10 @@ Para eso accede a Firestore con una cuenta de servicio:
 2. En el editor de Apps Script: Configuración del proyecto → Propiedades del script → agrega `SA_KEY` con **todo** el contenido del `.json`.
 3. Ejecuta `probarServicio` una vez. Debe decir "Cuenta de servicio correcta".
 4. Borra el `.json` descargado: es una credencial. No lo subas a ningún repositorio.
+
+## Cuaderno interactivo (Python en el navegador)
+
+La pestaña "Clase" ejecuta el notebook de cada cápsula con Pyodide (Python en WebAssembly, cargado desde jsDelivr).
+El script entrega el `notebook.ipynb` de la sesión y `runtime_curso.zip` (carpeta `geotools` con las respuestas en hash,
+más los datos del curso) en la raíz de la carpeta del curso. Para regenerarlo tras cambiar el curso:
+`python _build/build_runtime.py <carpeta_del_curso> <carpeta_del_curso>/runtime_curso.zip`.

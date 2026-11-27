@@ -360,7 +360,7 @@ async function refreshPending() {
 }
 
 /* ---------- archivos del curso (Drive, vía Apps Script) y visor ---------- */
-const KINDS = { clase: 'aula/clase.html', soluciones: 'aula/soluciones.html', presentacion: 'aula/presentacion.pdf', notebook: 'notebook.ipynb', pptx: 'presentacion.pptx', paquete: 'paquete_curso.zip' };
+const KINDS = { clase: 'aula/clase.html', soluciones: 'aula/soluciones.html', presentacion: 'aula/presentacion.pdf', notebook: 'notebook.ipynb', pptx: 'presentacion.pptx', paquete: 'paquete_curso.zip', runtime: 'runtime_curso.zip' };
 const FILES_ON = DEMO ? new URLSearchParams(location.search).has('files') : !!NOTIFY_URL;
 const b64ToBytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
@@ -370,7 +370,7 @@ async function fetchFile(cid, folder, kind, sid) {
   let bytes;
   if (DEMO) {
     const base = new URLSearchParams(location.search).get('files');
-    const r = await fetch(`${base}/${kind === 'paquete' ? '' : folder + '/'}${KINDS[kind]}`);
+    const r = await fetch(`${base}/${(kind === 'paquete' || kind === 'runtime') ? '' : folder + '/'}${KINDS[kind]}`);
     if (!r.ok) throw new Error('Archivo no disponible todavía');
     bytes = new Uint8Array(await r.arrayBuffer());
   } else {
@@ -400,31 +400,62 @@ function viewerHtml(cid, cur) {
   </div>`;
 }
 
+const canRunPython = () => typeof WebAssembly === 'object' && typeof Worker === 'function' && !(navigator.deviceMemory && navigator.deviceMemory < 2);
+function disposeNb() { if (S.nb) { S.nb.dispose(); S.nb = null; S.nbKey = ''; } }
+
+function showFrame(body, v, tab, bytes) {
+  const f = document.createElement('iframe');
+  f.title = tab === 'clase' ? 'Clase' : 'Soluciones'; f.className = 'block w-full bg-white'; f.dataset.k = `${v.dataset.cid}|${v.dataset.sid}|${tab}`; f.style.height = ((S.vh ||= {})[f.dataset.k] || '70vh');
+  // Sin acceso al aula (origen aislado). Se quitan los scripts del documento y solo se inyecta el aviso de altura.
+  f.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox');
+  const html = new TextDecoder('utf-8').decode(bytes).replace(/<script[\s\S]*?<\/script>/gi, '');
+  const probe = '<script>(function(){function h(){var b=document.body,c=getComputedStyle(b);parent.postMessage({aulaH:Math.ceil(b.getBoundingClientRect().height+parseFloat(c.marginTop)+parseFloat(c.marginBottom))},"*")}addEventListener("load",h);new ResizeObserver(h).observe(document.body);h()})()<\/script>';
+  f.srcdoc = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, probe + '</body>') : html + probe;
+  body.innerHTML = ''; body.appendChild(f);
+}
+
+async function showNotebook(body, v, token) {
+  const cid = v.dataset.cid, sid = v.dataset.sid, folder = v.dataset.folder;
+  const bytes = await fetchFile(cid, folder, 'notebook', sid);
+  if (body.dataset.token !== token) return;
+  const nb = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+  const { mountNotebook } = await import('./notebook.js');
+  if (body.dataset.token !== token) return;
+  body.innerHTML = '';
+  const p = S.prog[cid] || (S.prog[cid] = {});
+  S.nb = mountNotebook(body, {
+    nb, cwd: `/course/${folder}`, storeKey: `aula:nb:${S.user.email}:${cid}:${sid}`, saved: p.ex?.[sid] || null,
+    loadZip: async () => { const u = await fetchFile(cid, folder, 'runtime', sid); return u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength); },
+    onExercises: (st) => {
+      (p.ex ||= {})[sid] = { ok: st.ok, total: st.total };
+      S.api.saveProgress(S.user.email, cid, { ex: { [sid]: p.ex[sid] } }).catch(() => {});
+      const c = S.catalog.find((x) => x.id === cid), cur = c && seqOf(c).find((x) => x.id === sid);
+      if (cur) { const html = sidebarHtml(c, cur, p); const a = document.getElementById('side-d'), m = document.getElementById('side-m'); if (a) a.innerHTML = html; if (m) m.innerHTML = html; }
+    },
+    onStatic: async () => { disposeNb(); const t = (body.dataset.token = String(Date.now()) + Math.random()); showFrame(body, v, 'clase', await fetchFile(cid, folder, 'clase', sid)); void t; },
+  });
+  S.nbKey = `${cid}|${sid}`; S.nbHost = body;
+}
+
 async function showTab(tab) {
   const v = document.getElementById('viewer'); if (!v) return;
   const body = document.getElementById('vbody'), note = document.getElementById('vnote');
+  disposeNb();
   note.classList.toggle('pb-3', tab !== 'presentacion');
   const token = (body.dataset.token = String(Date.now()) + Math.random());
   v.querySelectorAll('[data-act=vtab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
-  note.classList.toggle('hidden', tab === 'presentacion');
+  const interactive = tab === 'clase' && canRunPython();
+  note.classList.toggle('hidden', tab === 'presentacion' || interactive);
   note.classList.toggle('text-amber-200/80', tab === 'soluciones'); note.classList.toggle('text-white/45', tab !== 'soluciones');
   note.textContent = tab === 'soluciones' ? 'Revisa las soluciones después de intentar los ejercicios por tu cuenta: es la forma de que se quede.'
-    : tab === 'clase' ? 'Para ejecutar los ejercicios en tu computadora, descarga el notebook y el paquete del curso (datos y herramientas) y sigue la cápsula 0.1.' : '';
+    : tab === 'clase' ? 'Este dispositivo no puede ejecutar Python en el navegador. Para practicar, descarga el notebook y el paquete del curso (menú Descargas) y sigue la cápsula 0.1.' : '';
   body.innerHTML = '<p class="flex items-center justify-center px-6 py-16 text-sm text-white/60">Cargando…</p>';
   try {
+    if (interactive) { await showNotebook(body, v, token); return; }
     const bytes = await fetchFile(v.dataset.cid, v.dataset.folder, tab, v.dataset.sid);
     if (body.dataset.token !== token) return;
     if (tab === 'presentacion') await showPdf(body, bytes, token);
-    else {
-      const f = document.createElement('iframe');
-      f.title = tab === 'clase' ? 'Clase' : 'Soluciones'; f.className = 'block w-full bg-white'; f.dataset.k = `${v.dataset.cid}|${v.dataset.sid}|${tab}`; f.style.height = ((S.vh ||= {})[f.dataset.k] || '70vh');
-      // Sin acceso al aula (origen aislado). Se quitan los scripts del documento y solo se inyecta el aviso de altura.
-      f.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox');
-      const html = new TextDecoder('utf-8').decode(bytes).replace(/<script[\s\S]*?<\/script>/gi, '');
-      const probe = '<script>(function(){function h(){var b=document.body,c=getComputedStyle(b);parent.postMessage({aulaH:Math.ceil(b.getBoundingClientRect().height+parseFloat(c.marginTop)+parseFloat(c.marginBottom))},"*")}addEventListener("load",h);new ResizeObserver(h).observe(document.body);h()})()<\/script>';
-      f.srcdoc = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, probe + '</body>') : html + probe;
-      body.innerHTML = ''; body.appendChild(f);
-    }
+    else showFrame(body, v, tab, bytes);
   } catch (e) {
     if (body.dataset.token === token) body.innerHTML = `<p class="px-6 py-14 text-center text-sm text-white/60">${esc(e.message || 'No se pudo cargar')}</p>`;
   }
@@ -650,7 +681,7 @@ function sidebarHtml(c, cur, p) {
         : done ? `<span class="au-node done">${ICON.check}</span>`
         : `<span class="au-node ${q ? 'quiz' : ''} ${isCur ? 'cur' : ''}"></span>`;
       return `<li>${node}<a href="#/c/${esc(c.id)}/${esc(x.id)}" ${isCur ? 'aria-current="page"' : ''} class="au-it ${isCur ? 'is-cur' : ''} ${(soon || lockd) ? 'is-lock' : ''}">
-        <span class="block">${q ? ICON.quiz.replace('class="', 'class="mr-1 inline -mt-0.5 text-cyan-300 ') : ''}${esc(x.title)}</span><small>${esc(x.duration || '')}${soon ? ' · Próximamente' : lockd ? ' · Bloqueada' : ''}</small></a></li>`;
+        <span class="block">${q ? ICON.quiz.replace('class="', 'class="mr-1 inline -mt-0.5 text-cyan-300 ') : ''}${esc(x.title)}</span><small>${esc(x.duration || '')}${soon ? ' · Próximamente' : lockd ? ' · Bloqueada' : ''}${p.ex?.[x.id]?.total ? ` · ${p.ex[x.id].ok.length}/${p.ex[x.id].total} ejercicios` : ''}</small></a></li>`;
     }).join('');
     return `<details class="au-m" ${hasCur ? 'open' : ''}>
       <summary class="au-msum">${ring(modPct, modPct + '%', full)}
@@ -1332,8 +1363,13 @@ async function render() {
         if (it && examFocus() && examHere(r.cid, it.id)) { root.innerHTML = examFocusView(); examTickStart(); return; }
         if (!(it?.type === 'quiz') && S.exam) { examStop(); S.exam = null; }
       }
+      const keepNb = (S.nb && S.nbHost?.isConnected && S.nbKey === `${r.cid}|${curOf(S.catalog.find((x) => x.id === r.cid), r.sid)?.id}`) ? S.nbHost : null;
       root.innerHTML = courseView(r.cid, r.sid);
-      initViewer();
+      if (keepNb && document.getElementById('vbody')) {
+        document.getElementById('vbody').replaceWith(keepNb);
+        document.querySelectorAll('[data-act=vtab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === 'clase')));
+        document.getElementById('vnote')?.classList.add('hidden');
+      } else initViewer();
       { const sd = document.getElementById('side-d'), cu = sd?.querySelector('.is-cur'); if (sd && cu) sd.scrollTop = Math.max(0, cu.offsetTop - sd.clientHeight / 3); }
       const sec = root.querySelector('[data-session]');
       if (sec) {
@@ -1594,7 +1630,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft' && sec.dataset.prev) location.hash = sec.dataset.prev;
 });
 
-window.addEventListener('hashchange', () => { examStop(); S.exam = null; render(); });
+window.addEventListener('hashchange', () => { examStop(); S.exam = null; const k = location.hash.split('/'); if (S.nb && S.nbKey !== `${k[2]}|${k[3]}`) disposeNb(); render(); });
 window.addEventListener('beforeunload', (e) => { if (examFocus()) { e.preventDefault(); e.returnValue = ''; } });
 
 /* ---------- arranque ---------- */

@@ -92,7 +92,10 @@ const FILE_KINDS = {
   pptx: { path: 'presentacion.pptx', mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
 };
 // Archivo suelto en la raíz del curso (por ejemplo el paquete para ejecutar los notebooks).
-const ROOT_KINDS = { paquete: { path: 'paquete_curso.zip', mime: 'application/zip' } };
+const ROOT_KINDS = {
+  paquete: { path: 'paquete_curso.zip', mime: 'application/zip' },
+  runtime: { path: 'runtime_curso.zip', mime: 'application/zip' },   // geotools + datos para el cuaderno interactivo
+};
 
 /** Entrega un archivo del curso solo a quien lo tiene liberado (o es el administrador). */
 function serveFile_(user, req) {
