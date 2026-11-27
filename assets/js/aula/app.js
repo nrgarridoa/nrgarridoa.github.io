@@ -24,6 +24,7 @@ const ICON = {
   arrowL: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>',
   arrowR: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
   ext: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></svg>',
+  sidebar: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>',
   down: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>',
   expand: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
   book: '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 19a2 2 0 012-2h13"/></svg>',
@@ -471,11 +472,14 @@ const card = 'au-card';
 const bar = (n) => `<div class="au-bar" role="progressbar" aria-valuenow="${n}" aria-valuemin="0" aria-valuemax="100"><i style="width:${n}%"></i></div>`;
 // Anillo de progreso (módulos): muestra el número y se llena con el avance; completo = marca de verificación.
 const ring = (n, label, full) => { const r = 15, c = 2 * Math.PI * r;
-  return `<svg class="shrink-0" width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><circle cx="19" cy="19" r="${r}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3"/>
-    <circle cx="19" cy="19" r="${r}" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-dasharray="${(c * n / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 19 19)"/>
-    ${full ? '<path d="M12.5 19.5l4.2 4.2 8.3-8.6" fill="none" stroke="#34D399" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>' : `<text x="19" y="23" text-anchor="middle" font-size="12" font-weight="700" fill="#E5E7EB">${esc(label)}</text>`}</svg>`; };
+  return `<svg class="shrink-0" width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><circle cx="19" cy="19" r="${r}" fill="none" stroke="#E2E8F0" stroke-width="3"/>
+    ${n > 0 ? `<circle cx="19" cy="19" r="${r}" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-dasharray="${(c * n / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 19 19)"/>` : ''}
+    ${full ? '<path d="M12.5 19.5l4.2 4.2 8.3-8.6" fill="none" stroke="#34D399" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>' : `<text x="19" y="22.5" text-anchor="middle" font-size="${String(label).length > 3 ? 9.5 : 11}" font-weight="700" fill="#0F172A">${esc(label)}</text>`}</svg>`; };
 
 // La cabecera vive fuera del contenido (sticky, de borde a borde); topbar() queda vacío por compatibilidad.
+const bigRing = (n) => { const r = 26, c = 2 * Math.PI * r;
+  return `<div class="au-bigring"><svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="${r}" fill="none" stroke="#E2E8F0" stroke-width="6"/>
+    ${n > 0 ? `<circle cx="32" cy="32" r="${r}" fill="none" stroke="#10B981" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(c * n / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 32 32)"/>` : ''}</svg><span>${n}%</span></div>`; };
 function topbar() { return ''; }
 function paintHeader() {
   const h = document.getElementById('aula-header'); if (!h) return;
@@ -590,7 +594,7 @@ function homeView() {
     const chip = n === 100 ? '<span class="absolute left-3 top-3 rounded-full bg-emerald-500 px-2.5 py-0.5 text-[11px] font-bold text-[#04140E]">Completado</span>'
       : c.status === 'in_development' ? '<span class="absolute left-3 top-3 rounded-full bg-amber-400 px-2.5 py-0.5 text-[11px] font-bold text-slate-900">En desarrollo</span>' : '';
     return `<article class="${card} au-lift flex flex-col overflow-hidden">
-      <div class="relative"><img src="${esc(c.cover)}" alt="" class="aspect-[1200/630] w-full object-cover" loading="lazy"><div class="pointer-events-none absolute inset-x-0 bottom-0 h-16" style="background:linear-gradient(transparent,#0F1B2D)"></div>${chip}</div>
+      <div class="relative"><img src="${esc(c.cover)}" alt="" class="aspect-[1200/630] w-full object-cover" loading="lazy"><div class="pointer-events-none absolute inset-x-0 bottom-0 h-16" style="background:linear-gradient(transparent,#fff)"></div>${chip}</div>
       <div class="flex flex-1 flex-col p-5 pt-3">
         <h3 class="font-display text-lg font-bold leading-snug">${esc(c.title)}</h3>
         <p class="mt-1 line-clamp-2 text-sm text-white/65">${esc(c.subtitle)}</p>
@@ -629,22 +633,24 @@ function sidebarHtml(c, cur, p) {
     const track = items.filter((x) => x.status !== 'soon');
     const md = track.filter((x) => isDone(p, x)).length;
     const full = track.length > 0 && md === track.length;
+    const modPct = track.length ? Math.round((md / track.length) * 100) : 0;
+    const mins = items.reduce((n, x) => n + (parseInt(x.duration, 10) || 0), 0);
     const hasCur = items.some((x) => x.id === cur.id);
+    const parts = String(m.title).split(' · '), mk = parts.length > 1 ? parts[0] : `Módulo ${mi + (c.moduleStart ?? 1)}`, mt = parts.length > 1 ? parts.slice(1).join(' · ') : m.title;
     const lis = items.map((x) => {
       const done = isDone(p, x), soon = x.status === 'soon', lockd = x.locked && !soon, isCur = x.id === cur.id, q = x.type === 'quiz';
-      const dot = (soon || lockd) ? `<span class="au-dot lock">${ICON.lock.replace('h-4 w-4', 'h-3.5 w-3.5')}</span>`
-        : done ? `<span class="au-dot done">${ICON.check}</span>`
-        : q ? `<span class="au-dot quiz">${ICON.quiz.replace('h-3.5 w-3.5', 'h-3 w-3')}</span>`
-        : `<span class="au-dot ${isCur ? 'cur' : ''}"></span>`;
-      return `<li><a href="#/c/${esc(c.id)}/${esc(x.id)}" ${isCur ? 'aria-current="page"' : ''} class="au-item ${isCur ? 'is-cur' : ''} ${(soon || lockd) ? 'is-lock' : ''}">${dot}
-        <span class="min-w-0 flex-1"><span class="block">${esc(x.title)}</span><small>${esc(x.duration || '')}${soon ? ' · Próximamente' : lockd ? ' · Bloqueada' : ''}</small></span></a></li>`;
+      const node = (soon || lockd) ? `<span class="au-node lock">${ICON.lock.replace('h-4 w-4', 'h-2 w-2')}</span>`
+        : done ? `<span class="au-node done">${ICON.check}</span>`
+        : `<span class="au-node ${q ? 'quiz' : ''} ${isCur ? 'cur' : ''}"></span>`;
+      return `<li>${node}<a href="#/c/${esc(c.id)}/${esc(x.id)}" ${isCur ? 'aria-current="page"' : ''} class="au-it ${isCur ? 'is-cur' : ''} ${(soon || lockd) ? 'is-lock' : ''}">
+        <span class="block">${q ? ICON.quiz.replace('class="', 'class="mr-1 inline -mt-0.5 text-cyan-300 ') : ''}${esc(x.title)}</span><small>${esc(x.duration || '')}${soon ? ' · Próximamente' : lockd ? ' · Bloqueada' : ''}</small></a></li>`;
     }).join('');
-    return `<details class="au-mod" ${hasCur ? 'open' : ''}>
-      <summary class="au-modsum">${ring(track.length ? Math.round((md / track.length) * 100) : 0, mi + (c.moduleStart ?? 1), full)}
-        <span class="min-w-0 flex-1"><span class="au-modt">${esc(m.title)}</span><span class="au-mods">${md} de ${track.length} completadas</span></span>${ICON.chev}</summary>
-      <ul class="au-items">${lis}</ul></details>`;
+    return `<details class="au-m" ${hasCur ? 'open' : ''}>
+      <summary class="au-msum">${ring(modPct, modPct + '%', full)}
+        <span class="min-w-0 flex-1"><span class="au-mk">${esc(mk)}</span><span class="au-mt">${esc(mt)}</span><span class="au-ms">${md} de ${track.length} completadas${mins ? ` · ${mins} min` : ''}</span></span>${ICON.chev}</summary>
+      <ul class="au-tl">${lis}</ul></details>`;
   }).join('');
-  return `<div class="space-y-2.5">${mods}</div>`;
+  return mods;
 }
 
 /* ---------- evaluaciones: intentos, tiempo y plazo (calificadas por el servidor) ---------- */
@@ -742,7 +748,7 @@ function examFocusView() {
       <div class="min-w-0"><p class="truncate text-xs text-white/50">${esc(c.title)}</p><p class="truncate text-sm font-semibold">Evaluación · ${esc(mod?.title || '')}</p></div>
       <div class="hidden w-56 sm:block"><div class="mb-1 flex justify-between text-[11px] text-white/50"><span>${done} de ${total} respondidas</span></div>${bar(Math.round((done / total) * 100))}</div>
       <button data-act="exam-exit" class="shrink-0 text-xs text-white/60 hover:text-white">Salir</button></header>`;
-  const shell = (inner) => `<div class="fixed inset-0 z-[60] flex flex-col overflow-y-auto" style="background:#0A192F">${head}${inner}</div>`;
+  const shell = (inner) => `<div class="fixed inset-0 z-[60] flex flex-col overflow-y-auto" style="background:#F3F6F9">${head}${inner}</div>`;
 
   if (E.phase === 'sending') return shell('<main class="flex flex-1 items-center justify-center px-6"><p class="text-white/70">Calificando tu evaluación…</p></main>');
 
@@ -766,7 +772,7 @@ function examFocusView() {
 
   const q = E.questions[E.idx], a = E.answers[E.idx], last = E.idx === total - 1;
   const opts = q.options.map((o, j) => `<button type="button" data-act="exam-pick" data-i="${E.idx}" data-j="${j}" role="radio" aria-checked="${a === j}"
-      class="flex w-full items-start gap-3 rounded-xl border-2 p-4 text-left transition ${a === j ? 'border-emerald-400/70 bg-emerald-400/10 text-white' : 'border-white/10 bg-white/5 text-white/80 hover:border-white/25 hover:bg-white/10'}">
+      class="flex w-full items-start gap-3 rounded-xl border-2 p-4 text-left transition ${a === j ? 'border-emerald-400/70 bg-emerald-400/10 text-white' : 'border-white/15 bg-[#fff] text-white/80 hover:border-emerald-400/60 hover:bg-emerald-400/5'}">
       <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${a === j ? 'bg-emerald-400 text-slate-900' : 'bg-white/10 text-white/70'}">${LETTERS[j]}</span><span class="pt-0.5">${esc(o)}</span></button>`).join('');
   return shell(`<main class="mx-auto grid w-full max-w-6xl flex-1 content-start gap-8 px-5 py-8 md:grid-cols-2 md:gap-12 md:py-12">
       <section><p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/90">Pregunta ${E.idx + 1} de ${total}</p>
@@ -907,22 +913,28 @@ function courseView(cid, sid) {
   }
 
   const cb = isComplete(c, p) ? certBlock(c, p).replace('mt-3 ', '') : '';
-  const certBanner = isComplete(c, p) ? `<div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-400/40 p-4" style="background:linear-gradient(135deg,rgba(6,95,70,.35),rgba(16,185,129,.08))">
+  const certBanner = isComplete(c, p) ? `<div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-400/40 p-4" style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5)">
       <div><p class="font-semibold text-emerald-200">Completaste el curso</p><p class="text-sm text-emerald-100/70">${trackable(c).length} actividades${c.hours ? ` · ${esc(c.hours)} horas` : ''}${(() => { const q = Object.values(p.quiz || {}).map((x) => x.best).filter((n) => Number.isFinite(n)); return q.length ? ` · promedio en evaluaciones ${Math.round(q.reduce((a, b) => a + b, 0) / q.length)}%` : ''; })()}. Ya puedes solicitar tu certificado.</p></div>
       ${cb ? `<div class="w-full sm:w-60">${cb}</div>` : ''}</div>` : '';
 
   const side = sidebarHtml(c, cur, p);
+  const outlineOff = localStorage.getItem('aula:outline') === '0';
+  const outlineBtn = `<button data-act="outline-toggle" class="au-ghost hidden !py-1.5 lg:inline-flex" title="${outlineOff ? 'Mostrar el contenido del curso' : 'Ocultar el contenido y ampliar la clase'}">${ICON.sidebar}${outlineOff ? 'Mostrar contenido' : 'Ocultar contenido'}</button>`;
+  main = main.replace('<p class="au-eyebrow">', '<div class="flex items-center justify-between gap-3"><p class="au-eyebrow">').replace(/(<p class="au-eyebrow">[^<]*<\/p>)/, '$1' + outlineBtn + '</div>');
   return `<div class="${card} au-coursebar mb-6">
     <img src="${esc(c.cover)}" alt="" class="au-thumb hidden sm:block">
-    <div class="min-w-0 flex-1"><a href="#/" class="au-crumb">← Mis cursos</a>
-      <h2 class="au-ctitle truncate">${esc(c.title)}</h2>
-      <p class="text-xs text-white/50">${c.modules.length} módulos · ${total} actividades${c.hours ? ` · ${esc(c.hours)} horas` : ''}</p></div>
-    <div class="w-full sm:w-72"><div class="mb-1.5 flex justify-between text-xs text-white/65"><span>${done} de ${total} actividades</span><strong class="text-emerald-300">${n}%</strong></div>${bar(n)}</div>
+    <div class="min-w-[55%] flex-1"><a href="#/" class="au-crumb">← Mis cursos</a>
+      <h2 class="au-ctitle sm:truncate">${esc(c.title)}</h2>
+      <p class="mt-0.5 text-xs text-white/55">${c.modules.length} módulos · ${total} actividades${c.hours ? ` · ${esc(c.hours)} horas` : ''}</p></div>
+    <div class="flex items-center gap-3"><div class="text-right"><p class="text-sm font-semibold">${done} de ${total}</p><p class="text-xs text-white/55">actividades completadas</p></div>${bigRing(n)}</div>
   </div>
   ${certBanner}
-  <details class="${card} mb-5 lg:hidden"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold"><span>Contenido del curso</span><span class="text-xs font-normal text-white/50">${done}/${total}</span></summary><div id="side-m" class="px-3 pb-3">${side}</div></details>
-  <div class="grid items-start gap-8 lg:grid-cols-[320px_1fr]">
-    <aside id="side-d" class="hidden pr-1 lg:sticky lg:top-24 lg:block lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">${side}</aside>
+  <details class="${card} mb-5 lg:hidden"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold"><span>Contenido del curso</span><span class="text-xs font-normal text-white/50">${done}/${total}</span></summary><div id="side-m" class="px-2 pb-3">${side}</div></details>
+  <div class="grid items-start gap-7 ${outlineOff ? '' : 'lg:grid-cols-[340px_1fr]'}">
+    <aside class="${outlineOff ? 'hidden' : 'hidden lg:block'} lg:sticky lg:top-24"><div class="${card} au-out">
+      <div class="au-outhead"><div><p class="au-sec">Contenido del curso</p><p class="mt-0.5 text-xs text-white/55">${done} de ${total} completadas</p></div>
+        <button data-act="outline-toggle" class="au-ghost !px-2.5" title="Ocultar el contenido" aria-label="Ocultar el contenido">${ICON.sidebar}</button></div>
+      <div id="side-d" class="au-outbody">${side}</div></div></aside>
     <section class="min-w-0" data-session="${esc(cur.id)}" data-course="${esc(cid)}" data-type="${cur.type}" data-locked="${cur.locked && cur.status !== 'soon' ? 1 : 0}" data-prev="${esc(prevHref)}" data-next="${esc(nextHref)}">${main}</section>
   </div>`;
 }
@@ -1257,7 +1269,7 @@ function adminView() {
       <details class="${card} mb-5"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm"><span>Formato de las evaluaciones</span>${ICON.chev}</summary>
         <div class="border-t border-white/10 px-4 py-3 text-xs leading-relaxed text-white/60"><code>?</code> pregunta · <code>-</code> opción incorrecta · <code>+</code> opción correcta (una sola) · <code>=</code> explicación opcional. Deja una línea en blanco entre preguntas. Un módulo sin texto no tiene evaluación. Las respuestas son visibles para los alumnos inscritos: sirven para autoevaluación.</div></details>
       <div class="space-y-3">${mods}</div>
-      <div class="sticky bottom-3 z-10 mt-6"><div class="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 shadow-soft backdrop-blur" style="background:rgba(13,31,58,.92);">
+      <div class="sticky bottom-3 z-10 mt-6"><div class="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 shadow-soft backdrop-blur" style="background:rgba(255,255,255,.94);">
         <label class="text-sm text-white/70">Puntaje mínimo para aprobar (%) <input data-f="pass" type="number" min="1" max="100" value="${esc(pv.pass || PASS_DEFAULT)}" class="ml-2 w-20 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-sm"></label>
         <button data-act="save-content" class="${btnPrimary}" style="${gradient}">Guardar contenido</button><span id="admin-status" class="text-sm text-white/60"></span></div></div>`;
   }
@@ -1408,6 +1420,7 @@ root.addEventListener('click', async (e) => {
   const act = b.dataset.act;
   try {
     if (act.startsWith('exam-')) { await examClick(act, b); return; }
+    if (act === 'outline-toggle') { localStorage.setItem('aula:outline', localStorage.getItem('aula:outline') === '0' ? '1' : '0'); await render(); return; }
     if (act === 'cert-copy') {
       try { await navigator.clipboard.writeText(certUrl(b.dataset.code)); b.textContent = 'Enlace copiado'; setTimeout(() => { b.textContent = 'Copiar enlace'; }, 2000); }
       catch { prompt('Copia este enlace:', certUrl(b.dataset.code)); }
