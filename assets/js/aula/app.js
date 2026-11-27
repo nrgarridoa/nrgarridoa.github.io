@@ -417,9 +417,12 @@ async function showTab(tab) {
     if (tab === 'presentacion') await showPdf(body, bytes, token);
     else {
       const f = document.createElement('iframe');
-      f.title = tab === 'clase' ? 'Clase' : 'Soluciones'; f.className = 'block w-full bg-white'; f.style.height = '78vh';
-      f.setAttribute('sandbox', 'allow-popups allow-popups-to-escape-sandbox');   // sin scripts ni acceso al aula
-      f.srcdoc = new TextDecoder('utf-8').decode(bytes);
+      f.title = tab === 'clase' ? 'Clase' : 'Soluciones'; f.className = 'block w-full bg-white'; f.dataset.k = `${v.dataset.cid}|${v.dataset.sid}|${tab}`; f.style.height = ((S.vh ||= {})[f.dataset.k] || '70vh');
+      // Sin acceso al aula (origen aislado). Se quitan los scripts del documento y solo se inyecta el aviso de altura.
+      f.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox');
+      const html = new TextDecoder('utf-8').decode(bytes).replace(/<script[\s\S]*?<\/script>/gi, '');
+      const probe = '<script>(function(){function h(){var b=document.body,c=getComputedStyle(b);parent.postMessage({aulaH:Math.ceil(b.getBoundingClientRect().height+parseFloat(c.marginTop)+parseFloat(c.marginBottom))},"*")}addEventListener("load",h);new ResizeObserver(h).observe(document.body);h()})()<\/script>';
+      f.srcdoc = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, probe + '</body>') : html + probe;
       body.innerHTML = ''; body.appendChild(f);
     }
   } catch (e) {
@@ -427,6 +430,10 @@ async function showTab(tab) {
   }
 }
 
+window.addEventListener('message', (e) => {
+  const f = document.querySelector('#vbody iframe');
+  if (f && e.source === f.contentWindow && e.data && Number.isFinite(e.data.aulaH)) { f.style.height = Math.min(Math.max(360, e.data.aulaH + 4), 120000) + 'px'; (S.vh ||= {})[f.dataset.k] = f.style.height; }
+});
 let pdfjs;
 async function showPdf(body, bytes, token) {
   pdfjs ||= await import(new URL('../../vendor/pdfjs/pdf.min.mjs', import.meta.url).href);
@@ -857,12 +864,8 @@ function courseView(cid, sid) {
   const prevHref = prev ? `#/c/${cid}/${prev.id}` : '', nextHref = next ? `#/c/${cid}/${next.id}` : '';
   const total = trackable(c).length, done = doneCount(c, p), n = pct(c, p);
 
-  const navBtn = 'au-ghost !py-2.5';
-  const actionBar = (center) => `<div class="sticky bottom-3 z-10 mt-8"><div class="au-actionbar">
-      ${prev ? `<a href="${prevHref}" title="Anterior (←)" class="${navBtn}">${ICON.arrowL}<span class="hidden sm:inline">Anterior</span></a>` : `<span class="${navBtn} pointer-events-none opacity-30">${ICON.arrowL}<span class="hidden sm:inline">Anterior</span></span>`}
-      <div class="flex flex-1 justify-center">${center}</div>
-      ${next ? `<a href="${nextHref}" title="Siguiente (→)" class="${navBtn}"><span class="hidden sm:inline">Siguiente</span>${ICON.arrowR}</a>` : `<span class="${navBtn} pointer-events-none opacity-30"><span class="hidden sm:inline">Siguiente</span>${ICON.arrowR}</span>`}
-    </div></div>`;
+  const actionBar = () => '';   // los controles de navegacion viven en la barra superior
+  let toolbarDone = '';
 
   let main;
   if (cur.locked && cur.status !== 'soon') {
@@ -897,6 +900,7 @@ function courseView(cid, sid) {
     const doneBtn = soon ? '' : isDone
       ? `<button data-act="toggle-done" title="Clic para desmarcar" class="${btnPrimary} au-done">${ICON.check.replace('h-3 w-3', 'h-4 w-4')} Completada</button>`
       : `<button data-act="toggle-done" class="${btnPrimary}" style="${gradient}"><span class="sm:hidden">Completar</span><span class="hidden sm:inline">Marcar como completada</span></button>`;
+    toolbarDone = doneBtn;
 
     main = `<p class="au-eyebrow">${esc(cur.mtitle)}</p>
       <h1 class="au-h1 mt-2">${esc(cur.title)}</h1>
@@ -919,23 +923,35 @@ function courseView(cid, sid) {
 
   const side = sidebarHtml(c, cur, p);
   const outlineOff = localStorage.getItem('aula:outline') === '0';
-  const outlineBtn = `<button data-act="outline-toggle" class="au-ghost hidden !py-1.5 lg:inline-flex" title="${outlineOff ? 'Mostrar el contenido del curso' : 'Ocultar el contenido y ampliar la clase'}">${ICON.sidebar}${outlineOff ? 'Mostrar contenido' : 'Ocultar contenido'}</button>`;
-  main = main.replace('<p class="au-eyebrow">', '<div class="flex items-center justify-between gap-3"><p class="au-eyebrow">').replace(/(<p class="au-eyebrow">[^<]*<\/p>)/, '$1' + outlineBtn + '</div>');
-  return `<div class="${card} au-coursebar mb-6">
-    <img src="${esc(c.cover)}" alt="" class="au-thumb hidden sm:block">
+  const hoursTxt = c.hours ? ` · ${esc(c.hours)} horas` : '';
+  const iconBtn = (href, label, icon, key) => (href
+    ? `<a href="${href}" class="au-iconbtn" title="${label} (${key})" aria-label="${label}">${icon}</a>`
+    : `<span class="au-iconbtn is-off" aria-hidden="true">${icon}</span>`);
+  const toolbar = `<div class="au-toolbar">
+      <div class="min-w-0 flex-1"><p class="truncate text-[13px] text-white/60"><span class="font-semibold text-emerald-300">${esc(cur.mtitle)}</span><span class="mx-1.5 text-white/30">/</span>${esc(cur.title)}</p></div>
+      <div class="flex shrink-0 items-center gap-2">${iconBtn(prevHref, 'Anterior', ICON.arrowL, '←')}${iconBtn(nextHref, 'Siguiente', ICON.arrowR, '→')}${toolbarDone}
+        <button data-act="outline-toggle" class="au-iconbtn hidden lg:inline-flex" title="${outlineOff ? 'Mostrar el contenido del curso' : 'Ocultar el contenido y ampliar la clase'}" aria-label="Contenido del curso">${ICON.sidebar}</button></div></div>`;
+  const endNav = `<nav class="mt-12 grid gap-3 sm:grid-cols-2" aria-label="Navegación de sesiones">
+      ${prev ? `<a href="${prevHref}" class="${card} au-lift block p-4"><p class="au-sec">Anterior</p><p class="mt-1 font-semibold leading-snug">${esc(prev.title)}</p></a>` : '<span></span>'}
+      ${next ? `<a href="${nextHref}" class="${card} au-lift block p-4 sm:text-right"><p class="au-sec">Siguiente</p><p class="mt-1 font-semibold leading-snug">${esc(next.title)}</p></a>` : ''}</nav>`;
+  const paneHead = `<div class="au-phead"><a href="#/" class="au-crumb">← Mis cursos</a>
+      <div class="mt-3 flex items-center gap-3"><img src="${esc(c.cover)}" alt="" class="au-thumb !h-11 !w-[84px]">
+        <div class="min-w-0"><h2 class="au-ctitle !text-[15px] leading-snug">${esc(c.title)}</h2><p class="mt-0.5 text-xs text-white/55">${c.modules.length} módulos · ${total} actividades${hoursTxt}</p></div></div>
+      <div class="mt-3"><div class="mb-1.5 flex justify-between text-xs text-white/65"><span>${done} de ${total} completadas</span><strong class="text-emerald-300">${n}%</strong></div>${bar(n)}</div></div>`;
+  return `<div class="lg:hidden"><div class="${card} au-coursebar mb-4">
     <div class="min-w-[55%] flex-1"><a href="#/" class="au-crumb">← Mis cursos</a>
-      <h2 class="au-ctitle sm:truncate">${esc(c.title)}</h2>
-      <p class="mt-0.5 text-xs text-white/55">${c.modules.length} módulos · ${total} actividades${c.hours ? ` · ${esc(c.hours)} horas` : ''}</p></div>
-    <div class="flex items-center gap-3"><div class="text-right"><p class="text-sm font-semibold">${done} de ${total}</p><p class="text-xs text-white/55">actividades completadas</p></div>${bigRing(n)}</div>
+      <h2 class="au-ctitle">${esc(c.title)}</h2>
+      <p class="mt-0.5 text-xs text-white/55">${c.modules.length} módulos · ${total} actividades${hoursTxt}</p></div>
+    <div class="flex items-center gap-3"><div class="text-right"><p class="text-sm font-semibold">${done} de ${total}</p><p class="text-xs text-white/55">completadas</p></div>${bigRing(n)}</div>
   </div>
-  ${certBanner}
-  <details class="${card} mb-5 lg:hidden"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold"><span>Contenido del curso</span><span class="text-xs font-normal text-white/50">${done}/${total}</span></summary><div id="side-m" class="px-2 pb-3">${side}</div></details>
-  <div class="grid items-start gap-7 ${outlineOff ? '' : 'lg:grid-cols-[340px_1fr]'}">
-    <aside class="${outlineOff ? 'hidden' : 'hidden lg:block'} lg:sticky lg:top-24"><div class="${card} au-out">
-      <div class="au-outhead"><div><p class="au-sec">Contenido del curso</p><p class="mt-0.5 text-xs text-white/55">${done} de ${total} completadas</p></div>
-        <button data-act="outline-toggle" class="au-ghost !px-2.5" title="Ocultar el contenido" aria-label="Ocultar el contenido">${ICON.sidebar}</button></div>
-      <div id="side-d" class="au-outbody">${side}</div></div></aside>
-    <section class="min-w-0" data-session="${esc(cur.id)}" data-course="${esc(cid)}" data-type="${cur.type}" data-locked="${cur.locked && cur.status !== 'soon' ? 1 : 0}" data-prev="${esc(prevHref)}" data-next="${esc(nextHref)}">${main}</section>
+  <details class="${card} mb-4"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold"><span>Contenido del curso</span><span class="text-xs font-normal text-white/50">${done}/${total}</span></summary><div id="side-m" class="px-2 pb-3">${side}</div></details></div>
+  <div class="au-app ${outlineOff ? 'no-outline' : ''}">
+    <aside class="au-pane-l ${outlineOff ? 'hidden' : 'hidden lg:flex'}">${paneHead}
+      <div class="au-outhead !py-2.5"><p class="au-sec">Contenido del curso</p></div>
+      <div id="side-d" class="au-outbody">${side}</div></aside>
+    <section class="au-pane-r min-w-0">${toolbar}
+      <div class="au-content">${certBanner}
+        <div data-session="${esc(cur.id)}" data-course="${esc(cid)}" data-type="${cur.type}" data-locked="${cur.locked && cur.status !== 'soon' ? 1 : 0}" data-prev="${esc(prevHref)}" data-next="${esc(nextHref)}">${main}${endNav}</div></div></section>
   </div>`;
 }
 
@@ -1291,6 +1307,11 @@ function parseRoute() {
 async function render() {
   try {
     paintHeader();
+    const rr = parseRoute();
+    const appMode = !!S.user && rr.v === 'course' && !examFocus();
+    document.body.classList.toggle('aula-app', appMode);
+    root.className = appMode ? 'au-rootapp' : 'max-w-7xl mx-auto px-4 sm:px-6 py-8 min-h-[60vh]';
+    const prevScroll = S.lastKey === location.hash ? (document.querySelector('.au-pane-r')?.scrollTop || 0) : 0;
     if (!S.user) { root.innerHTML = loginView(); return; }
     const r = parseRoute();
     const noAccess = !S.isAdmin && (!S.enr || S.enr.active === false || !(S.enr.courses || []).length);
@@ -1322,7 +1343,9 @@ async function render() {
     } else {
       root.innerHTML = homeView();
     }
-    window.scrollTo({ top: 0 });
+    const pr = document.querySelector('.au-pane-r');
+    if (pr) { pr.scrollTop = prevScroll; if (S.lastKey !== location.hash) window.scrollTo({ top: 0 }); } else window.scrollTo({ top: 0 });
+    S.lastKey = location.hash;
   } catch (e) {
     console.error(e);
     root.innerHTML = `${S.user ? topbar('') : ''}<div class="${card} p-6 max-w-xl"><h1 class="font-semibold">No se pudo cargar</h1><p class="mt-2 text-sm text-white/70">${esc(e.message || e)}</p></div>`;

@@ -142,3 +142,31 @@ body.aula ::selection { background: rgba(16,185,129,.25); }
 .au-footer { max-width: 80rem; margin: 3rem auto 0; padding: 1.5rem 1rem 2.5rem; border-top: 1px solid var(--au-line); display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; justify-content: space-between; font-size: 12.5px; color: var(--au-soft); }
 .au-footer a { color: var(--au-mut); text-decoration: none; }
 .au-footer a:hover { color: var(--au-gi); }
+
+/* ---------- curso como aplicación: temario y clase con desplazamiento independiente ---------- */
+.au-rootapp { padding: 1rem; }
+.au-phead { padding: 1rem 1rem .9rem; border-bottom: 1px solid var(--au-line); }
+.au-iconbtn { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--au-line2); background: #fff; color: #334155; cursor: pointer; transition: border-color .15s, color .15s, background .15s; flex-shrink: 0; }
+a.au-iconbtn:hover, button.au-iconbtn:hover { color: var(--au-gi); border-color: #6EE7B7; background: var(--au-tint); }
+.au-iconbtn.is-off { opacity: .35; cursor: default; }
+.au-toolbar { position: sticky; top: 66px; z-index: 20; display: flex; align-items: center; gap: .75rem; padding: .6rem 1rem; margin: 0 -1rem 1.25rem; background: rgba(243,246,249,.93); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom: 1px solid var(--au-line); }
+.au-toolbar .au-btn { padding: .5rem .95rem; }
+@media (min-width: 1024px) {
+  body.aula-app { overflow: hidden; }
+  body.aula-app .au-footer { display: none; }
+  body.aula-app #main-content { min-height: 0; }
+  .au-rootapp { padding: 0; max-width: none; }
+  .au-app { display: grid; grid-template-columns: 350px minmax(0, 1fr); height: calc(100vh - 66px); }
+  .au-app.no-outline { grid-template-columns: minmax(0, 1fr); }
+  .au-pane-l { flex-direction: column; min-height: 0; background: #fff; border-right: 1px solid var(--au-line); }
+  .au-pane-l .au-outbody { flex: 1 1 auto; max-height: none; min-height: 0; }
+  .au-pane-r { min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
+  .au-toolbar { top: 0; margin: 0; padding: .65rem 2rem; }
+  .au-content { max-width: 1180px; margin: 0 auto; padding: 1.5rem 2rem 4rem; }
+}
+
+#vbody:fullscreen { overflow: auto; background: #fff; }
+
+/* superficies auxiliares en tema claro: las "tarjetas" tenues del panel pasan a blanco y las internas a gris muy suave */
+body.aula .bg-white\/5 { background-color: #fff; }
+body.aula .bg-white\/\[\.03\], body.aula .bg-white\/\[0\.03\], body.aula .bg-white\/\[\.04\] { background-color: var(--au-s2); }
