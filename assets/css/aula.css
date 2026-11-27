@@ -112,7 +112,7 @@ body.aula ::selection { background: rgba(16,185,129,.25); }
 .au-it.is-cur { background: var(--au-tint); color: var(--au-deep); font-weight: 600; }
 .au-it.is-cur small { color: var(--au-gd); }
 .au-it.is-lock { color: var(--au-soft); }
-.au-node { position: absolute; left: -1.62rem; top: .62rem; width: 14px; height: 14px; border-radius: 999px; background: #fff; border: 2px solid #CBD5E1; display: grid; place-items: center; }
+.au-node { position: absolute; left: calc(-.9rem - 8px); top: .62rem; width: 14px; height: 14px; border-radius: 999px; background: #fff; border: 2px solid #CBD5E1; display: grid; place-items: center; }
 .au-node.done { background: var(--au-g); border-color: var(--au-g); color: #fff; }
 .au-node.cur { border-color: var(--au-g); box-shadow: 0 0 0 4px rgba(16,185,129,.2); }
 .au-node.lock { border-color: #E2E8F0; background: #F1F5F9; color: #94A3B8; }
