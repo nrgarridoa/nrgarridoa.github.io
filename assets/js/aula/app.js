@@ -24,6 +24,11 @@ const ICON = {
   arrowL: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>',
   arrowR: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
   ext: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></svg>',
+  down: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>',
+  expand: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+  book: '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 19a2 2 0 012-2h13"/></svg>',
+  tick: '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>',
+  award: '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.5 14.5L7 21l5-3 5 3-1.5-6.5"/></svg>',
   check: '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>',
   file: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg>',
   quiz: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-.8.6-1.5 1-1.5 2M12 17h.01"/></svg>',
@@ -380,30 +385,26 @@ async function fetchFile(cid, folder, kind, sid) {
 
 const VTABS = [['clase', 'Clase'], ['presentacion', 'Presentación'], ['soluciones', 'Soluciones']];
 function viewerHtml(cid, cur) {
-  const tab = 'rounded-lg px-3.5 py-2 text-sm font-medium transition';
-  const dl = 'inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs text-white/75 hover:border-white/30 hover:text-white';
-  return `<div id="viewer" class="mt-6" data-cid="${esc(cid)}" data-sid="${esc(cur.id)}" data-folder="${esc(cur.folder)}">
-    <div class="flex flex-wrap items-center gap-2">
-      <div class="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">${VTABS.map(([k, l]) => `<button type="button" data-act="vtab" data-tab="${k}" class="${tab} text-white/70 hover:text-white">${l}</button>`).join('')}</div>
+  const item = (kind, title, sub) => `<button type="button" data-act="vdl" data-kind="${kind}"><span class="font-medium">${title}</span><small>${sub}</small></button>`;
+  return `<div id="viewer" class="${card} mt-6 overflow-hidden" data-cid="${esc(cid)}" data-sid="${esc(cur.id)}" data-folder="${esc(cur.folder)}">
+    <div class="au-vbar">
+      <div class="au-seg" role="tablist" aria-label="Material de la sesión">${VTABS.map(([k, l]) => `<button type="button" role="tab" data-act="vtab" data-tab="${k}" aria-selected="false">${l}</button>`).join('')}</div>
       <span class="flex-1"></span>
-      <button type="button" data-act="vdl" data-kind="notebook" class="${dl}">${ICON.file}Notebook (.ipynb)</button>
-      <button type="button" data-act="vdl" data-kind="pptx" class="${dl}">${ICON.file}Presentación (.pptx)</button>
-      <button type="button" data-act="vdl" data-kind="paquete" class="${dl}">${ICON.file}Paquete del curso (.zip)</button>
-      <button type="button" data-act="vfull" class="${dl}">Pantalla completa</button>
+      <details class="au-menu"><summary class="au-ghost">${ICON.down}Descargas</summary>
+        <div class="au-pop">${item('notebook', 'Notebook (.ipynb)', 'La clase para ejecutar en tu computadora')}${item('pptx', 'Presentación (.pptx)', 'Las diapositivas de esta sesión')}${item('paquete', 'Paquete del curso (.zip)', 'Datos y herramientas para los ejercicios')}</div></details>
+      <button type="button" data-act="vfull" class="au-ghost !px-3" aria-label="Pantalla completa" title="Pantalla completa">${ICON.expand}</button>
     </div>
-    <p id="vnote" class="mt-3 hidden text-xs text-white/45"></p>
-    <div id="vbody" class="mt-3 overflow-hidden rounded-2xl border border-white/10 shadow-soft" style="min-height:240px;background:#0d1f3a"></div>
+    <p id="vnote" class="hidden px-4 pt-3 text-xs text-white/45"></p>
+    <div id="vbody" class="au-vbody" style="min-height:240px"></div>
   </div>`;
 }
 
 async function showTab(tab) {
   const v = document.getElementById('viewer'); if (!v) return;
   const body = document.getElementById('vbody'), note = document.getElementById('vnote');
+  note.classList.toggle('pb-3', tab !== 'presentacion');
   const token = (body.dataset.token = String(Date.now()) + Math.random());
-  v.querySelectorAll('[data-act=vtab]').forEach((b) => {
-    const on = b.dataset.tab === tab;
-    b.classList.toggle('text-white', on); b.classList.toggle('text-white/70', !on); b.style.background = on ? 'linear-gradient(135deg, #0068FF, #00D2FF)' : '';
-  });
+  v.querySelectorAll('[data-act=vtab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   note.classList.toggle('hidden', tab === 'presentacion');
   note.classList.toggle('text-amber-200/80', tab === 'soluciones'); note.classList.toggle('text-white/45', tab !== 'soluciones');
   note.textContent = tab === 'soluciones' ? 'Revisa las soluciones después de intentar los ejercicios por tu cuenta: es la forma de que se quede.'
@@ -432,7 +433,7 @@ async function showPdf(body, bytes, token) {
   const doc = await pdfjs.getDocument({ data: bytes.slice() }).promise;
   if (body.dataset.token !== token) return;
   S.pdf = { doc, n: 1 };
-  const btn = 'rounded-lg border border-white/15 px-3 py-1.5 text-sm text-white/80 hover:border-white/30 hover:text-white';
+  const btn = 'au-ghost';
   body.innerHTML = `<div id="slides" class="flex flex-col" style="background:#0d1f3a">
       <div class="relative bg-black"><canvas id="slide-canvas" class="block w-full"></canvas></div>
       <div class="flex items-center justify-center gap-3 px-3 py-3">
@@ -464,35 +465,37 @@ async function downloadKind(cid, folder, kind, sid) {
 }
 
 /* ---------- vistas ---------- */
-const btnPrimary = 'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white';
-const gradient = 'background:linear-gradient(135deg, #0068FF, #00D2FF); box-shadow:0 2px 8px rgba(0,194,255,0.25);';
-const card = 'rounded-2xl border border-white/10 bg-white/5';
-const bar = (n) => `<div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full rounded-full" style="width:${n}%; background:linear-gradient(90deg, #0068FF, #00D2FF);"></div></div>`;
+const btnPrimary = 'au-btn inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm';
+const gradient = 'background:linear-gradient(135deg, #10B981, #34D399);';
+const card = 'au-card';
+const bar = (n) => `<div class="au-bar" role="progressbar" aria-valuenow="${n}" aria-valuemin="0" aria-valuemax="100"><i style="width:${n}%"></i></div>`;
+// Anillo de progreso (módulos): muestra el número y se llena con el avance; completo = marca de verificación.
+const ring = (n, label, full) => { const r = 15, c = 2 * Math.PI * r;
+  return `<svg class="shrink-0" width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><circle cx="19" cy="19" r="${r}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3"/>
+    <circle cx="19" cy="19" r="${r}" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-dasharray="${(c * n / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 19 19)"/>
+    ${full ? '<path d="M12.5 19.5l4.2 4.2 8.3-8.6" fill="none" stroke="#34D399" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>' : `<text x="19" y="23" text-anchor="middle" font-size="12" font-weight="700" fill="#E5E7EB">${esc(label)}</text>`}</svg>`; };
 
-function topbar(active) {
-  const link = (href, label, key) => `<a href="${href}" class="px-3 py-1.5 rounded-lg text-sm ${active === key ? 'bg-white/10 text-white' : 'text-white/70 hover:text-white hover:bg-white/5'}">${label}</a>`;
-  return `<div class="flex flex-wrap items-center justify-between gap-3 mb-8 pb-4 border-b border-white/10">
-    <nav class="flex items-center gap-1">
-      <span class="mr-3 hidden text-xs font-semibold uppercase tracking-[0.18em] text-sky-300/80 sm:inline">Aula virtual</span>
-      ${link('#/', 'Mis cursos', 'home')}
-      ${!S.isAdmin && S.certs.length ? link('#/certs', 'Certificados', 'certs') : ''}
-      ${S.isAdmin ? link('#/admin', 'Administración' + (S.pending ? ` <span class="ml-1 rounded-md bg-amber-400/90 text-slate-900 text-[11px] font-semibold px-1.5 py-0.5">${S.pending}</span>` : ''), 'admin') : ''}
-    </nav>
-    <div class="flex items-center gap-3 text-sm">
-      ${S.user.photo ? `<img src="${esc(S.user.photo)}" referrerpolicy="no-referrer" alt="" class="h-8 w-8 rounded-full ring-1 ring-white/20">` : ''}
-      <span class="hidden sm:block text-white/70">${esc(S.user.name)}</span>
-      <button data-act="signout" class="rounded-lg border border-white/15 px-3 py-1.5 text-white/70 hover:text-white hover:border-white/30">Salir</button>
-    </div>
-  </div>`;
+// La cabecera vive fuera del contenido (sticky, de borde a borde); topbar() queda vacío por compatibilidad.
+function topbar() { return ''; }
+function paintHeader() {
+  const h = document.getElementById('aula-header'); if (!h) return;
+  const r = parseRoute();
+  const active = r.v === 'admin' ? 'admin' : r.v === 'certs' ? 'certs' : 'home';
+  const link = (href, label, key, extra = '') => `<a href="${href}" class="au-link ${active === key ? 'is-active' : ''}" ${active === key ? 'aria-current="page"' : ''}>${label}${extra}</a>`;
+  const nav = S.user ? `<nav class="au-nav" aria-label="Aula">${link('#/', 'Mis cursos', 'home')}${!S.isAdmin && S.certs.length ? link('#/certs', 'Certificados', 'certs') : ''}${S.isAdmin ? link('#/admin', 'Administración', 'admin', S.pending ? `<span class="au-badge">${S.pending}</span>` : '') : ''}</nav>` : '';
+  const user = S.user ? `<div class="au-user">${S.user.photo ? `<img src="${esc(S.user.photo)}" referrerpolicy="no-referrer" alt="">` : ''}<span class="au-uname">${esc(S.user.name)}</span><button data-act="signout" class="au-ghost">Salir</button></div>` : '';
+  h.innerHTML = `<div class="au-hwrap"><a href="#/" class="au-brand"><span class="au-mark">NG</span><span class="au-bt"><strong>Aula virtual</strong><small>Nilson Garrido</small></span></a>${nav}<span class="flex-1"></span><a href="/" class="au-site">Ir al sitio</a>${user}</div>`;
 }
+document.getElementById('aula-header')?.addEventListener('click', (e) => { if (e.target.closest('[data-act=signout]')) S.api.signOut(); });
 
 function loginView() {
-  return `<div class="max-w-md mx-auto mt-10 ${card} p-8 text-center">
-    <h1 class="text-2xl font-display font-bold">Aula virtual</h1>
+  return `<div class="mx-auto mt-10 max-w-md ${card} p-8 text-center" style="box-shadow:0 30px 80px -40px rgba(16,185,129,.35)">
+    <span class="au-mark mx-auto" style="width:52px;height:52px;border-radius:14px;font-size:18px">NG</span>
+    <h1 class="mt-4 text-2xl font-display font-extrabold">Aula virtual</h1>
     <p class="mt-2 text-sm text-white/70">Acceso solo por invitación. Ingresa con la cuenta de Google con la que te inscribiste.</p>
     ${S.error ? `<p class="mt-4 text-sm text-red-300">${esc(S.error)}</p>` : ''}
-    <button data-act="signin" class="${btnPrimary} mt-6 w-full" style="${gradient}">Continuar con Google</button>
-    <p class="mt-5 text-xs text-white/50">¿Aún no tienes acceso? Revisa los <a class="underline" href="/cursos/">cursos</a> y escríbeme por correo.</p>
+    <button data-act="signin" class="${btnPrimary} mt-6 w-full py-3" style="${gradient}">Continuar con Google</button>
+    <p class="mt-5 text-xs text-white/50">¿Aún no tienes acceso? Revisa los <a class="underline hover:text-emerald-300" href="/cursos/">cursos</a> y postula desde ahí.</p>
   </div>`;
 }
 
@@ -524,7 +527,7 @@ function certsView() {
       <div class="min-w-0"><p class="text-lg font-semibold">${esc(ct.courseTitle)}</p>
         <p class="mt-0.5 text-sm text-white/60">${esc(ct.hours)} h · ${issued ? 'Emitido el ' + esc(fmtDate(ct.issuedAt)) : 'Solicitado el ' + esc(fmtDate(ct.requestedAt))}</p>
         ${issued ? `<p class="mt-1 font-mono text-xs text-white/40">${esc(ct.code)}</p>` : '<p class="mt-1 text-sm text-amber-300/90">Pendiente de aprobación. Te avisaremos por correo cuando esté emitido.</p>'}</div>
-      ${issued ? `<div class="flex flex-wrap gap-2"><a href="${esc(certUrl(ct.code))}" target="_blank" rel="noopener" class="${act} text-white" style="${gradient}">Ver y descargar</a>
+      ${issued ? `<div class="flex flex-wrap gap-2"><a href="${esc(certUrl(ct.code))}" target="_blank" rel="noopener" class="${btnPrimary}" style="${gradient}">Ver y descargar</a>
         <a href="${esc(linkedinUrl(ct))}" target="_blank" rel="noopener noreferrer" class="${act}">Añadir a LinkedIn</a>
         <button data-act="cert-copy" data-code="${esc(ct.code)}" class="${act}">Copiar enlace</button></div>` : ''}</div>`;
   }).join('');
@@ -560,8 +563,8 @@ function homeView() {
   const issued = S.certs.filter((x) => x.status === 'issued');
   const totalDone = cs.reduce((n, c) => n + doneCount(c, S.prog[c.id] || {}), 0);
   const totalAll = cs.reduce((n, c) => n + trackable(c).length, 0);
-  const stat = (label, value, sub) => `<div class="${card} px-4 py-3"><p class="text-[11px] uppercase tracking-wider text-white/40">${label}</p>
-    <p class="mt-1 text-2xl font-display font-bold">${value}</p><p class="text-xs text-white/50">${sub}</p></div>`;
+  const stat = (icon, label, value, sub) => `<div class="${card} au-stat"><span class="au-sicon">${icon}</span>
+    <div><p class="text-[11px] font-semibold uppercase tracking-wider text-white/45">${label}</p><p class="font-display text-2xl font-extrabold leading-tight">${value}</p><p class="text-xs text-white/50">${sub}</p></div></div>`;
 
   const cur = lastActive(cs);
   let hero = '';
@@ -569,14 +572,13 @@ function homeView() {
     const p = S.prog[cur.id] || {};
     const ls = seqOf(cur).find((s) => s.id === p.last);
     const n = pct(cur, p);
-    hero = `<section class="${card} mb-8 grid overflow-hidden md:grid-cols-[300px_1fr]">
-      <img src="${esc(cur.cover)}" alt="" class="h-full min-h-[150px] w-full object-cover object-left">
-      <div class="flex flex-col justify-center p-6">
-        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300/80">Continúa donde lo dejaste</p>
-        <h2 class="mt-1 text-xl font-bold">${esc(cur.title)}</h2>
-        ${ls ? `<p class="mt-1 text-sm text-white/60">Última sesión: ${esc(ls.title)}</p>` : ''}
-        <div class="mt-4 max-w-md"><div class="mb-1.5 flex justify-between text-xs text-white/60"><span>${doneCount(cur, p)} de ${trackable(cur).length} actividades</span><span>${n}%</span></div>${bar(n)}</div>
-        <a href="#/c/${esc(cur.id)}/${esc(p.last || '')}" class="${btnPrimary} mt-5 self-start px-6" style="${gradient}">Continuar</a>
+    hero = `<section class="au-hero mb-8"><img src="${esc(cur.cover)}" alt="">
+      <div class="max-w-xl p-6 sm:p-8">
+        <p class="au-eyebrow">Continúa donde lo dejaste</p>
+        <h2 class="mt-2 font-display text-2xl font-extrabold leading-tight">${esc(cur.title)}</h2>
+        ${ls ? `<p class="mt-2 text-sm text-white/65">Última sesión: ${esc(ls.title)}</p>` : ''}
+        <div class="mt-5 max-w-sm"><div class="mb-1.5 flex justify-between text-xs text-white/65"><span>${doneCount(cur, p)} de ${trackable(cur).length} actividades</span><strong class="text-emerald-300">${n}%</strong></div>${bar(n)}</div>
+        <a href="#/c/${esc(cur.id)}/${esc(p.last || '')}" class="${btnPrimary} mt-6 px-7 py-3" style="${gradient}">Continuar ${ICON.arrowR}</a>
       </div></section>`;
   }
 
@@ -585,38 +587,37 @@ function homeView() {
     const seq = trackable(c);
     const target = p.last || (seq[0] || seqOf(c)[0])?.id || '';
     const n = pct(c, p);
-    const chip = n === 100 ? '<span class="absolute left-3 top-3 rounded-md bg-emerald-500/90 px-2 py-0.5 text-[11px] font-semibold text-white">Completado</span>'
-      : c.status === 'in_development' ? '<span class="absolute left-3 top-3 rounded-md bg-amber-400/90 px-2 py-0.5 text-[11px] font-semibold text-slate-900">En desarrollo</span>' : '';
-    return `<article class="${card} flex flex-col overflow-hidden">
-      <div class="relative"><img src="${esc(c.cover)}" alt="" class="aspect-[1200/630] w-full object-cover" loading="lazy">${chip}</div>
-      <div class="flex flex-1 flex-col p-4">
-        <h3 class="font-semibold">${esc(c.title)}</h3>
-        <p class="mt-1 line-clamp-2 text-sm text-white/70">${esc(c.subtitle)}</p>
+    const chip = n === 100 ? '<span class="absolute left-3 top-3 rounded-full bg-emerald-500 px-2.5 py-0.5 text-[11px] font-bold text-[#04140E]">Completado</span>'
+      : c.status === 'in_development' ? '<span class="absolute left-3 top-3 rounded-full bg-amber-400 px-2.5 py-0.5 text-[11px] font-bold text-slate-900">En desarrollo</span>' : '';
+    return `<article class="${card} au-lift flex flex-col overflow-hidden">
+      <div class="relative"><img src="${esc(c.cover)}" alt="" class="aspect-[1200/630] w-full object-cover" loading="lazy"><div class="pointer-events-none absolute inset-x-0 bottom-0 h-16" style="background:linear-gradient(transparent,#0F1B2D)"></div>${chip}</div>
+      <div class="flex flex-1 flex-col p-5 pt-3">
+        <h3 class="font-display text-lg font-bold leading-snug">${esc(c.title)}</h3>
+        <p class="mt-1 line-clamp-2 text-sm text-white/65">${esc(c.subtitle)}</p>
         <div class="mt-4">
-          <div class="mb-1.5 flex justify-between text-xs text-white/60"><span>${doneCount(c, p)} de ${seq.length} actividades</span><span>${n}%</span></div>
+          <div class="mb-1.5 flex justify-between text-xs text-white/60"><span>${doneCount(c, p)} de ${seq.length} actividades</span><strong class="text-emerald-300">${n}%</strong></div>
           ${bar(n)}
         </div>
-        <a href="#/c/${esc(c.id)}/${esc(target)}" class="${btnPrimary} mt-4" style="${gradient}">${n === 0 ? 'Comenzar' : n === 100 ? 'Repasar' : 'Continuar'}</a>
+        <a href="#/c/${esc(c.id)}/${esc(target)}" class="${btnPrimary} mt-5" style="${gradient}">${n === 0 ? 'Comenzar' : n === 100 ? 'Repasar' : 'Continuar'}</a>
         ${certBlock(c, p)}
       </div>
     </article>`;
   }).join('');
 
-  const certs = issued.length ? `<section class="mt-10"><h2 class="text-sm font-semibold uppercase tracking-wider text-white/50">Mis certificados</h2>
-    <ul class="mt-3 grid gap-3 sm:grid-cols-2">${issued.map((ct) => `<li class="${card} flex items-center justify-between gap-3 px-4 py-3">
-      <div class="min-w-0"><p class="truncate text-sm font-medium">${esc(ct.courseTitle)}</p><p class="text-xs text-white/50">Emitido el ${esc(fmtDate(ct.issuedAt))}</p></div>
-      <a href="/certificado/?c=${encodeURIComponent(ct.code)}" target="_blank" rel="noopener" class="shrink-0 rounded-lg border border-emerald-400/50 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/25">Ver</a></li>`).join('')}</ul></section>` : '';
+  const certs = issued.length ? `<section class="mt-10"><div class="mb-3 flex items-center justify-between"><h2 class="au-sec">Mis certificados</h2><a href="#/certs" class="text-xs text-emerald-300 hover:text-emerald-200">Ver todos</a></div>
+    <ul class="grid gap-3 sm:grid-cols-2">${issued.map((ct) => `<li class="${card} flex items-center justify-between gap-3 px-4 py-3">
+      <div class="flex min-w-0 items-center gap-3"><span class="au-sicon !h-9 !w-9">${ICON.award}</span><div class="min-w-0"><p class="truncate text-sm font-semibold">${esc(ct.courseTitle)}</p><p class="text-xs text-white/50">Emitido el ${esc(fmtDate(ct.issuedAt))}</p></div></div>
+      <a href="/certificado/?c=${encodeURIComponent(ct.code)}" target="_blank" rel="noopener" class="au-ghost shrink-0">Ver</a></li>`).join('')}</ul></section>` : '';
 
-  return `${topbar('home')}
-    <header class="mb-6"><h1 class="text-2xl font-display font-bold">Hola, ${first}</h1>
+  return `<header class="mb-7"><h1 class="font-display text-3xl font-extrabold">Hola, ${first}</h1>
     <p class="mt-1 text-sm text-white/60">Este es tu espacio de aprendizaje.</p></header>
-    <div class="mb-8 grid grid-cols-3 gap-3">
-      ${stat('Cursos', cs.length, 'asignados')}
-      ${stat('Actividades', totalDone, `de ${totalAll} completadas`)}
-      ${stat('Certificados', issued.length, 'emitidos')}
+    <div class="mb-8 grid gap-3 sm:grid-cols-3">
+      ${stat(ICON.book, 'Cursos', cs.length, 'asignados')}
+      ${stat(ICON.tick, 'Actividades', totalDone, `de ${totalAll} completadas`)}
+      ${stat(ICON.award, 'Certificados', issued.length, 'emitidos')}
     </div>
     ${hero}
-    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-white/50">Mis cursos</h2>
+    <h2 class="au-sec mb-4">Mis cursos</h2>
     <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">${cards}</div>
     ${certs}`;
 }
@@ -624,33 +625,24 @@ function homeView() {
 function sidebarHtml(c, cur, p) {
   const seq = seqOf(c);
   const mods = c.modules.map((m, mi) => {
-    const items = seq.filter((s) => s.mid === m.id);
-    const track = items.filter((s) => s.status !== 'soon');
-    const md = track.filter((s) => isDone(p, s)).length;
+    const items = seq.filter((x) => x.mid === m.id);
+    const track = items.filter((x) => x.status !== 'soon');
+    const md = track.filter((x) => isDone(p, x)).length;
     const full = track.length > 0 && md === track.length;
-    const hasCur = items.some((s) => s.id === cur.id);
-    const lis = items.map((s) => {
-      const done = isDone(p, s);
-      const soon = s.status === 'soon';
-      const isCur = s.id === cur.id;
-      const q = s.type === 'quiz';
-      const lockd = s.locked && !soon;
-      const state = (soon || lockd) ? `<span class="mt-0.5 text-white/30">${ICON.lock.replace('h-4 w-4', 'h-3.5 w-3.5')}</span>`
-        : done ? `<span class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">${ICON.check}</span>`
-        : `<span class="mt-0.5 h-4 w-4 shrink-0 rounded-full border ${isCur ? 'border-sky-300' : 'border-white/30'}"></span>`;
-      return `<li><a href="#/c/${esc(c.id)}/${esc(s.id)}" ${isCur ? 'aria-current="page"' : ''} class="flex items-start gap-3 rounded-lg px-3 py-2 text-sm transition ${isCur ? 'bg-accent/15 font-medium text-white ring-1 ring-accent/40' : (soon || lockd) ? 'text-white/40' : 'text-white/70 hover:bg-white/5 hover:text-white'}">
-        ${state}
-        <span class="min-w-0 flex-1"><span class="block leading-snug ${q ? 'text-sky-200' : ''}">${q ? ICON.quiz.replace('class="', 'class="mr-1 inline -mt-0.5 ') : ''}${esc(s.title)}</span>
-        <span class="block text-xs text-white/40">${esc(s.duration || '')}${soon ? ' · Próximamente' : lockd ? ' · Bloqueada' : ''}</span></span></a></li>`;
+    const hasCur = items.some((x) => x.id === cur.id);
+    const lis = items.map((x) => {
+      const done = isDone(p, x), soon = x.status === 'soon', lockd = x.locked && !soon, isCur = x.id === cur.id, q = x.type === 'quiz';
+      const dot = (soon || lockd) ? `<span class="au-dot lock">${ICON.lock.replace('h-4 w-4', 'h-3.5 w-3.5')}</span>`
+        : done ? `<span class="au-dot done">${ICON.check}</span>`
+        : q ? `<span class="au-dot quiz">${ICON.quiz.replace('h-3.5 w-3.5', 'h-3 w-3')}</span>`
+        : `<span class="au-dot ${isCur ? 'cur' : ''}"></span>`;
+      return `<li><a href="#/c/${esc(c.id)}/${esc(x.id)}" ${isCur ? 'aria-current="page"' : ''} class="au-item ${isCur ? 'is-cur' : ''} ${(soon || lockd) ? 'is-lock' : ''}">${dot}
+        <span class="min-w-0 flex-1"><span class="block">${esc(x.title)}</span><small>${esc(x.duration || '')}${soon ? ' · Próximamente' : lockd ? ' · Bloqueada' : ''}</small></span></a></li>`;
     }).join('');
-    return `<details class="overflow-hidden rounded-xl border border-white/10 bg-white/5" ${hasCur ? 'open' : ''}>
-      <summary class="flex cursor-pointer list-none items-center gap-3 px-3.5 py-3 hover:bg-white/5">
-        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${full ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/70'}">${full ? ICON.check : mi + (c.moduleStart ?? 1)}</span>
-        <span class="min-w-0 flex-1"><span class="block text-sm font-semibold leading-snug">${esc(m.title)}</span>
-        <span class="mt-0.5 block text-xs text-white/45">${md} de ${track.length} completadas</span></span>
-        ${ICON.chev}
-      </summary>
-      <ul class="space-y-0.5 px-2 pb-2">${lis}</ul></details>`;
+    return `<details class="au-mod" ${hasCur ? 'open' : ''}>
+      <summary class="au-modsum">${ring(track.length ? Math.round((md / track.length) * 100) : 0, mi + (c.moduleStart ?? 1), full)}
+        <span class="min-w-0 flex-1"><span class="au-modt">${esc(m.title)}</span><span class="au-mods">${md} de ${track.length} completadas</span></span>${ICON.chev}</summary>
+      <ul class="au-items">${lis}</ul></details>`;
   }).join('');
   return `<div class="space-y-2.5">${mods}</div>`;
 }
@@ -760,7 +752,7 @@ function examFocusView() {
       return `<li class="${card} flex items-start gap-4 p-4"><span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${a < 0 ? 'bg-amber-400/20 text-amber-200' : 'bg-white/10 text-white/70'} text-xs font-bold">${i + 1}</span>
         <div class="min-w-0 flex-1"><p class="text-sm font-medium">${esc(q.q)}</p>
           <p class="mt-1 text-sm ${a < 0 ? 'text-amber-200' : 'text-white/70'}">${a < 0 ? 'Sin responder' : `${LETTERS[a]}. ${esc(q.options[a])}`}</p></div>
-        <button data-act="exam-goto" data-i="${i}" class="shrink-0 text-xs text-sky-300 hover:text-sky-200">Editar</button></li>`;
+        <button data-act="exam-goto" data-i="${i}" class="shrink-0 text-xs text-cyan-300 hover:text-cyan-200">Editar</button></li>`;
     }).join('');
     return shell(`<main class="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
         <h2 class="text-2xl font-display font-bold">Resumen de tus respuestas</h2>
@@ -774,10 +766,10 @@ function examFocusView() {
 
   const q = E.questions[E.idx], a = E.answers[E.idx], last = E.idx === total - 1;
   const opts = q.options.map((o, j) => `<button type="button" data-act="exam-pick" data-i="${E.idx}" data-j="${j}" role="radio" aria-checked="${a === j}"
-      class="flex w-full items-start gap-3 rounded-xl border-2 p-4 text-left transition ${a === j ? 'border-sky-400/70 bg-sky-400/10 text-white' : 'border-white/10 bg-white/5 text-white/80 hover:border-white/25 hover:bg-white/10'}">
-      <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${a === j ? 'bg-sky-400 text-slate-900' : 'bg-white/10 text-white/70'}">${LETTERS[j]}</span><span class="pt-0.5">${esc(o)}</span></button>`).join('');
+      class="flex w-full items-start gap-3 rounded-xl border-2 p-4 text-left transition ${a === j ? 'border-emerald-400/70 bg-emerald-400/10 text-white' : 'border-white/10 bg-white/5 text-white/80 hover:border-white/25 hover:bg-white/10'}">
+      <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${a === j ? 'bg-emerald-400 text-slate-900' : 'bg-white/10 text-white/70'}">${LETTERS[j]}</span><span class="pt-0.5">${esc(o)}</span></button>`).join('');
   return shell(`<main class="mx-auto grid w-full max-w-6xl flex-1 content-start gap-8 px-5 py-8 md:grid-cols-2 md:gap-12 md:py-12">
-      <section><p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300/80">Pregunta ${E.idx + 1} de ${total}</p>
+      <section><p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/90">Pregunta ${E.idx + 1} de ${total}</p>
         <h2 class="mt-3 text-xl font-semibold leading-snug sm:text-2xl">${esc(q.q)}</h2></section>
       <section role="radiogroup" aria-label="Opciones de respuesta"><p class="mb-4 text-sm text-white/60">Elige la respuesta correcta</p><div class="space-y-3">${opts}</div>
         <p class="mt-4 hidden text-xs text-white/35 md:block">Atajos: A, B, C, D para responder · Enter para continuar</p></section></main>
@@ -859,8 +851,8 @@ function courseView(cid, sid) {
   const prevHref = prev ? `#/c/${cid}/${prev.id}` : '', nextHref = next ? `#/c/${cid}/${next.id}` : '';
   const total = trackable(c).length, done = doneCount(c, p), n = pct(c, p);
 
-  const navBtn = 'inline-flex items-center gap-2 rounded-lg border border-white/15 px-3.5 py-2 text-sm text-white/80 transition hover:border-white/30 hover:text-white';
-  const actionBar = (center) => `<div class="sticky bottom-3 z-10 mt-8"><div class="flex items-center gap-2 rounded-2xl border border-white/10 px-2.5 py-2.5 shadow-soft backdrop-blur" style="background:rgba(13,31,58,.92);">
+  const navBtn = 'au-ghost !py-2.5';
+  const actionBar = (center) => `<div class="sticky bottom-3 z-10 mt-8"><div class="au-actionbar">
       ${prev ? `<a href="${prevHref}" title="Anterior (←)" class="${navBtn}">${ICON.arrowL}<span class="hidden sm:inline">Anterior</span></a>` : `<span class="${navBtn} pointer-events-none opacity-30">${ICON.arrowL}<span class="hidden sm:inline">Anterior</span></span>`}
       <div class="flex flex-1 justify-center">${center}</div>
       ${next ? `<a href="${nextHref}" title="Siguiente (→)" class="${navBtn}"><span class="hidden sm:inline">Siguiente</span>${ICON.arrowR}</a>` : `<span class="${navBtn} pointer-events-none opacity-30"><span class="hidden sm:inline">Siguiente</span>${ICON.arrowR}</span>`}
@@ -868,8 +860,8 @@ function courseView(cid, sid) {
 
   let main;
   if (cur.locked && cur.status !== 'soon') {
-    main = `<div class="flex flex-wrap items-center gap-2 text-xs text-white/50"><span>${esc(cur.mtitle)}</span></div>
-      <h1 class="mt-2 text-2xl font-display font-bold leading-tight sm:text-3xl">${esc(cur.title)}</h1>
+    main = `<p class="au-eyebrow">${esc(cur.mtitle)}</p>
+      <h1 class="au-h1 mt-2">${esc(cur.title)}</h1>
       <div class="${card} mt-6 flex flex-col items-center px-6 py-14 text-center"><span class="text-white/40">${ICON.lock.replace('h-4 w-4', 'h-7 w-7')}</span>
         <p class="mt-3 font-semibold">${cur.type === 'quiz' ? 'Evaluación bloqueada' : 'Sesión bloqueada'}</p>
         <p class="mt-1 max-w-md text-sm text-white/60">${cur.type === 'quiz' ? 'Se habilita cuando se liberan todas las sesiones de su módulo.' : 'Tu instructor la habilitará a medida que avancen las clases. Aparecerá aquí en cuanto esté disponible.'}</p></div>
@@ -890,43 +882,42 @@ function courseView(cid, sid) {
           <iframe src="${esc(video.src)}" title="${esc(cur.title)}" class="h-full w-full" allow="autoplay; encrypted-media; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>` : '';
 
     const resHtml = res.length ? `<ul class="mt-3 space-y-2">${res.map((r) => `<li><a href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener noreferrer"
-        class="group flex items-center gap-3 ${card} px-4 py-3 text-sm transition hover:border-white/25 hover:bg-white/10">
-        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-400/10 text-sky-300">${ICON.file}</span>
+        class="au-lift group flex items-center gap-3 ${card} px-4 py-3 text-sm">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-300">${ICON.file}</span>
         <span class="min-w-0 flex-1"><span class="block truncate font-medium">${esc(r.label || 'Material')}</span><span class="block text-xs text-white/45">${esc(matMeta(r.url))}</span></span>
         <span class="flex shrink-0 items-center gap-1 text-xs text-white/50 group-hover:text-white/80">Abrir ${ICON.ext}</span></a></li>`).join('')}</ul>`
       : `<p class="mt-3 rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/50">Aún no hay materiales publicados para esta sesión.</p>`;
 
     const doneBtn = soon ? '' : isDone
-      ? `<button data-act="toggle-done" title="Clic para desmarcar" class="${btnPrimary} border border-emerald-400/50 bg-emerald-500/20 text-emerald-200">✓ Completada</button>`
+      ? `<button data-act="toggle-done" title="Clic para desmarcar" class="${btnPrimary} au-done">${ICON.check.replace('h-3 w-3', 'h-4 w-4')} Completada</button>`
       : `<button data-act="toggle-done" class="${btnPrimary}" style="${gradient}"><span class="sm:hidden">Completar</span><span class="hidden sm:inline">Marcar como completada</span></button>`;
 
-    main = `<div class="flex flex-wrap items-center gap-2 text-xs text-white/50">
-        <span>${esc(cur.mtitle)}</span>${cur.duration ? `<span>·</span><span class="inline-flex items-center gap-1">${ICON.clock}${esc(cur.duration)}</span>` : ''}
-        ${isDone ? '<span class="rounded-md bg-emerald-500/20 px-2 py-0.5 font-semibold text-emerald-300">Completada</span>' : ''}
-      </div>
-      <h1 class="mt-2 text-2xl font-display font-bold leading-tight sm:text-3xl">${esc(cur.title)}</h1>
-      ${cur.summary ? `<p class="mt-2 text-white/70">${esc(cur.summary)}</p>` : ''}
+    main = `<p class="au-eyebrow">${esc(cur.mtitle)}</p>
+      <h1 class="au-h1 mt-2">${esc(cur.title)}</h1>
+      ${cur.summary ? `<p class="mt-3 max-w-3xl text-[15px] leading-relaxed text-white/70">${esc(cur.summary)}</p>` : ''}
+      <div class="mt-4 flex flex-wrap items-center gap-2">${cur.duration ? `<span class="au-chip">${ICON.clock}${esc(cur.duration)}</span>` : ''}${isDone ? `<span class="au-chip ok">${ICON.check.replace('h-3 w-3', 'h-3.5 w-3.5')} Completada</span>` : ''}</div>
       ${media}
       ${!soon && cur.folder && FILES_ON ? viewerHtml(cid, cur) : ''}
       ${soon ? '' : `<div class="mt-8 grid gap-6 lg:grid-cols-5">
-        <div class="lg:col-span-3"><h2 class="text-sm font-semibold uppercase tracking-wider text-white/50">Materiales</h2>${resHtml}</div>
-        <div class="lg:col-span-2"><h2 class="text-sm font-semibold uppercase tracking-wider text-white/50">Mis notas <span id="note-status" class="ml-2 font-normal normal-case tracking-normal text-white/40"></span></h2>
-          <textarea id="note" rows="7" placeholder="Escribe tus apuntes de esta sesión…" class="mt-3 w-full resize-y rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white placeholder-white/30 focus:border-white/30 focus:outline-none">${esc(p.notes?.[cur.id] || '')}</textarea></div>
+        <div class="lg:col-span-3"><h2 class="au-sec">Materiales</h2>${resHtml}</div>
+        <div class="lg:col-span-2"><h2 class="au-sec">Mis notas <span id="note-status" class="ml-2 font-normal normal-case tracking-normal text-white/40"></span></h2>
+          <textarea id="note" rows="7" placeholder="Escribe tus apuntes de esta sesión…" class="au-note mt-3 placeholder-white/30">${esc(p.notes?.[cur.id] || '')}</textarea></div>
       </div>`}
       ${actionBar(doneBtn)}`;
   }
 
   const cb = isComplete(c, p) ? certBlock(c, p).replace('mt-3 ', '') : '';
-  const certBanner = isComplete(c, p) ? `<div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4">
+  const certBanner = isComplete(c, p) ? `<div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-400/40 p-4" style="background:linear-gradient(135deg,rgba(6,95,70,.35),rgba(16,185,129,.08))">
       <div><p class="font-semibold text-emerald-200">Completaste el curso</p><p class="text-sm text-emerald-100/70">${trackable(c).length} actividades${c.hours ? ` · ${esc(c.hours)} horas` : ''}${(() => { const q = Object.values(p.quiz || {}).map((x) => x.best).filter((n) => Number.isFinite(n)); return q.length ? ` · promedio en evaluaciones ${Math.round(q.reduce((a, b) => a + b, 0) / q.length)}%` : ''; })()}. Ya puedes solicitar tu certificado.</p></div>
       ${cb ? `<div class="w-full sm:w-60">${cb}</div>` : ''}</div>` : '';
 
   const side = sidebarHtml(c, cur, p);
-  return `${topbar('home')}
-  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
-    <div class="min-w-0"><a href="#/" class="text-sm text-white/50 hover:text-white/80">← Mis cursos</a>
-      <p class="mt-1 truncate font-display text-lg font-bold sm:text-xl">${esc(c.title)}</p></div>
-    <div class="w-full sm:w-72"><div class="mb-1.5 flex justify-between text-xs text-white/60"><span>${done} de ${total} actividades</span><span>${n}%</span></div>${bar(n)}</div>
+  return `<div class="${card} au-coursebar mb-6">
+    <img src="${esc(c.cover)}" alt="" class="au-thumb hidden sm:block">
+    <div class="min-w-0 flex-1"><a href="#/" class="au-crumb">← Mis cursos</a>
+      <h2 class="au-ctitle truncate">${esc(c.title)}</h2>
+      <p class="text-xs text-white/50">${c.modules.length} módulos · ${total} actividades${c.hours ? ` · ${esc(c.hours)} horas` : ''}</p></div>
+    <div class="w-full sm:w-72"><div class="mb-1.5 flex justify-between text-xs text-white/65"><span>${done} de ${total} actividades</span><strong class="text-emerald-300">${n}%</strong></div>${bar(n)}</div>
   </div>
   ${certBanner}
   <details class="${card} mb-5 lg:hidden"><summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold"><span>Contenido del curso</span><span class="text-xs font-normal text-white/50">${done}/${total}</span></summary><div id="side-m" class="px-3 pb-3">${side}</div></details>
@@ -1035,8 +1026,8 @@ function adminView() {
   /* ---- piezas reutilizables ---- */
   const appCard = (a) => `<div class="${card} p-4">
       <div class="flex flex-wrap items-start justify-between gap-3">
-        <div class="min-w-0"><div class="text-sm font-medium">${esc(a.name)} <span class="text-xs text-white/50">· ${esc(a.ownerEmail)}</span>${a.linkedin ? ` <a href="${esc(safeUrl(a.linkedin))}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs text-sky-300 hover:text-sky-200">LinkedIn ↗</a>` : ''}</div>
-          <div class="mt-0.5 text-xs text-sky-300/80">${esc(a.courseTitle)} · ${esc(fmtDate(a.createdAt))}</div></div>
+        <div class="min-w-0"><div class="text-sm font-medium">${esc(a.name)} <span class="text-xs text-white/50">· ${esc(a.ownerEmail)}</span>${a.linkedin ? ` <a href="${esc(safeUrl(a.linkedin))}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs text-cyan-300 hover:text-cyan-200">LinkedIn ↗</a>` : ''}</div>
+          <div class="mt-0.5 text-xs text-emerald-300/90">${esc(a.courseTitle)} · ${esc(fmtDate(a.createdAt))}</div></div>
         <div class="flex flex-wrap items-center gap-2 text-xs">
           ${a.status === 'pending' ? `<button data-act="app-approve" data-code="${esc(a.code)}" class="rounded-lg bg-emerald-500/20 px-3 py-1.5 font-semibold text-emerald-200 hover:bg-emerald-500/30">Aprobar e inscribir</button><button data-act="app-reject" data-code="${esc(a.code)}" class="rounded-lg border border-white/15 px-3 py-1.5 text-red-300 hover:border-red-300/40">Rechazar</button>`
             : `<span class="${a.status === 'approved' ? 'text-emerald-300' : 'text-white/40'}">${a.status === 'approved' ? 'Aprobada' : 'Rechazada'}</span>`}
@@ -1051,10 +1042,10 @@ function adminView() {
     const n = c && pr ? pct(c, pr) : null;
     return `<div class="${card} flex flex-wrap items-center justify-between gap-3 p-4">
       <div class="min-w-0"><p class="text-sm font-medium">${esc(ct.name)} <span class="text-xs text-white/50">· ${esc(ct.ownerEmail)}</span></p>
-        <p class="mt-0.5 text-xs text-sky-300/80">${esc(ct.courseTitle)}${n !== null ? ` · Progreso ${n}%` : ''}</p>
+        <p class="mt-0.5 text-xs text-emerald-300/90">${esc(ct.courseTitle)}${n !== null ? ` · Progreso ${n}%` : ''}</p>
         <p class="mt-0.5 text-xs text-white/35">${esc(ct.code)} · ${issued ? 'Emitido el ' + esc(fmtDate(ct.issuedAt)) : 'Solicitado el ' + esc(fmtDate(ct.requestedAt))}</p></div>
       <div class="flex flex-wrap items-center gap-2 text-xs">
-        ${issued ? `<a class="rounded-lg border border-white/15 px-3 py-1.5 text-sky-300 hover:border-sky-300/40" target="_blank" rel="noopener" href="/certificado/?c=${encodeURIComponent(ct.code)}">Ver</a>`
+        ${issued ? `<a class="rounded-lg border border-white/15 px-3 py-1.5 text-cyan-300 hover:border-cyan-300/40" target="_blank" rel="noopener" href="/certificado/?c=${encodeURIComponent(ct.code)}">Ver</a>`
           : `<button data-act="cert-issue" data-code="${esc(ct.code)}" class="rounded-lg bg-emerald-500/20 px-3 py-1.5 font-semibold text-emerald-200 hover:bg-emerald-500/30">Aprobar y emitir</button>`}
         <button data-act="cert-delete" data-code="${esc(ct.code)}" class="text-red-300 hover:text-red-200">${issued ? 'Revocar' : 'Rechazar'}</button></div></div>`;
   };
@@ -1068,7 +1059,7 @@ function adminView() {
   const tabs = [['resumen', 'Resumen', ''], ['postulaciones', 'Postulaciones', badge(pendingApps.length, true)],
     ['alumnos', 'Alumnos', badge(A.enrollments.length, false)], ['liberar', 'Liberar', ''], ['certificados', 'Certificados', badge(pendingCerts.length, true)], ['contenido', 'Contenido', '']];
   const nav = `<nav class="mb-7 flex gap-1 overflow-x-auto border-b border-white/10" aria-label="Secciones de administración">${tabs.map(([k, label, b]) =>
-    `<a href="#/admin/${k}" ${k === tab ? 'aria-current="page"' : ''} class="-mb-px shrink-0 border-b-2 px-4 py-2.5 text-sm transition ${k === tab ? 'border-sky-400 font-semibold text-white' : 'border-transparent text-white/60 hover:text-white'}">${label}${b}</a>`).join('')}</nav>`;
+    `<a href="#/admin/${k}" ${k === tab ? 'aria-current="page"' : ''} class="-mb-px shrink-0 border-b-2 px-4 py-2.5 text-sm transition ${k === tab ? 'border-emerald-400 font-semibold text-white' : 'border-transparent text-white/60 hover:text-white'}">${label}${b}</a>`).join('')}</nav>`;
 
   let body = '';
 
@@ -1077,8 +1068,8 @@ function adminView() {
     const stat = (label, value, sub, warn) => `<div class="${card} px-4 py-3 ${warn ? 'border-amber-400/40' : ''}"><p class="text-[11px] uppercase tracking-wider text-white/40">${label}</p>
       <p class="mt-1 font-display text-2xl font-bold ${warn ? 'text-amber-300' : ''}">${value}</p><p class="text-xs text-white/50">${sub}</p></div>`;
     const attention = pendingApps.length || pendingCerts.length
-      ? `${pendingApps.length ? `<div><div class="mb-2 flex items-center justify-between"><h3 class="text-sm font-semibold">Postulaciones pendientes</h3><a href="#/admin/postulaciones" class="text-xs text-sky-300 hover:text-sky-200">Ver todas</a></div><div class="space-y-3">${pendingApps.slice(0, 3).map(appCard).join('')}</div></div>` : ''}
-         ${pendingCerts.length ? `<div><div class="mb-2 flex items-center justify-between"><h3 class="text-sm font-semibold">Certificados por aprobar</h3><a href="#/admin/certificados" class="text-xs text-sky-300 hover:text-sky-200">Ver todos</a></div><div class="space-y-3">${pendingCerts.slice(0, 3).map(certCard).join('')}</div></div>` : ''}`
+      ? `${pendingApps.length ? `<div><div class="mb-2 flex items-center justify-between"><h3 class="text-sm font-semibold">Postulaciones pendientes</h3><a href="#/admin/postulaciones" class="text-xs text-cyan-300 hover:text-cyan-200">Ver todas</a></div><div class="space-y-3">${pendingApps.slice(0, 3).map(appCard).join('')}</div></div>` : ''}
+         ${pendingCerts.length ? `<div><div class="mb-2 flex items-center justify-between"><h3 class="text-sm font-semibold">Certificados por aprobar</h3><a href="#/admin/certificados" class="text-xs text-cyan-300 hover:text-cyan-200">Ver todos</a></div><div class="space-y-3">${pendingCerts.slice(0, 3).map(certCard).join('')}</div></div>` : ''}`
       : `<div class="${card} px-5 py-6 text-center"><p class="font-semibold text-emerald-300">Todo al día</p><p class="mt-1 text-sm text-white/60">No tienes postulaciones ni certificados pendientes.</p></div>`;
     const courseRows = S.catalog.map((c) => {
       const enrolled = A.enrollments.filter((e) => (e.courses || []).includes(c.id));
@@ -1131,8 +1122,8 @@ function adminView() {
         const all = !!e.releaseAll?.includes(c.id);
         const mods = c.modules.map((m, mi) => {
           const chips = m.sessions.map((x, j) => `<label class="cursor-pointer" title="${esc(x.title)}"><input type="checkbox" class="peer sr-only" data-act="rel-toggle" data-email="${esc(e.email)}" data-cid="${esc(c.id)}" data-id="${esc(x.id)}" ${all || isRel(e, c.id, x.id) ? 'checked' : ''} ${x.status === 'soon' || all ? 'disabled' : ''}>
-            <span class="inline-flex min-w-[2.25rem] justify-center rounded-md border border-white/10 px-1.5 py-1 text-[11px] text-white/40 transition peer-checked:border-emerald-400/40 peer-checked:bg-emerald-400/10 peer-checked:text-emerald-200 peer-disabled:opacity-40 peer-focus-visible:ring-2 peer-focus-visible:ring-sky-400/60">${esc(lbl(x, mi, j))}</span></label>`).join('');
-          const q = hasQuiz(c.id, m.id) ? `<span class="rounded-md border px-1.5 py-1 text-[11px] ${all || isRel(e, c.id, 'q-' + m.id) ? 'border-sky-400/40 bg-sky-400/10 text-sky-200' : 'border-white/10 text-white/30'}" title="La evaluación se habilita sola al liberar todo el módulo">Eval.</span>` : '';
+            <span class="inline-flex min-w-[2.25rem] justify-center rounded-md border border-white/10 px-1.5 py-1 text-[11px] text-white/40 transition peer-checked:border-emerald-400/40 peer-checked:bg-emerald-400/10 peer-checked:text-emerald-200 peer-disabled:opacity-40 peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-400/60">${esc(lbl(x, mi, j))}</span></label>`).join('');
+          const q = hasQuiz(c.id, m.id) ? `<span class="rounded-md border px-1.5 py-1 text-[11px] ${all || isRel(e, c.id, 'q-' + m.id) ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-200' : 'border-white/10 text-white/30'}" title="La evaluación se habilita sola al liberar todo el módulo">Eval.</span>` : '';
           return `<div class="flex flex-wrap items-center gap-1.5"><span class="w-full truncate text-[11px] text-white/45 sm:w-60 sm:shrink-0">${esc(m.title)}</span>${chips}${q}</div>`;
         }).join('');
         return `<div class="mt-3 rounded-xl border border-white/10 p-3"><div class="flex flex-wrap items-center justify-between gap-2">
@@ -1149,7 +1140,7 @@ function adminView() {
     const checks = S.catalog.map((c) => `<label class="inline-flex cursor-pointer items-center gap-1.5 text-sm"><input type="checkbox" name="new-course" value="${esc(c.id)}"> ${esc(c.title)}</label>`).join('');
     const rows = A.enrollments.map((e) => {
       const chips = S.catalog.map((c) => `<label class="cursor-pointer"><input type="checkbox" class="peer sr-only" data-act="enr-course" data-email="${esc(e.email)}" data-cid="${esc(c.id)}" ${(e.courses || []).includes(c.id) ? 'checked' : ''}>
-        <span class="inline-flex items-center rounded-lg border border-white/10 px-2.5 py-1 text-xs text-white/40 transition peer-checked:border-sky-400/40 peer-checked:bg-sky-400/10 peer-checked:text-sky-200 peer-focus-visible:ring-2 peer-focus-visible:ring-sky-400/60">${esc(c.title)}</span></label>`).join('');
+        <span class="inline-flex items-center rounded-lg border border-white/10 px-2.5 py-1 text-xs text-white/40 transition peer-checked:border-emerald-400/40 peer-checked:bg-emerald-400/10 peer-checked:text-emerald-200 peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-400/60">${esc(c.title)}</span></label>`).join('');
       const bars = (e.courses || []).map((cid) => { const c = S.catalog.find((x) => x.id === cid); if (!c) return ''; const n = progOf(e.email, cid);
         return `<div class="min-w-[9rem] flex-1"><div class="mb-1 flex justify-between text-[11px] text-white/45"><span class="truncate pr-2">${esc(c.title)}</span><span>${n}%</span></div>${bar(n)}</div>`; }).join('');
       return `<div data-row data-search="${esc(((e.name || '') + ' ' + e.email).toLowerCase())}" data-courses=",${esc((e.courses || []).join(','))}," data-groups=",${esc((e.groups || []).join(','))}," class="${card} p-4">
@@ -1287,6 +1278,7 @@ function parseRoute() {
 
 async function render() {
   try {
+    paintHeader();
     if (!S.user) { root.innerHTML = loginView(); return; }
     const r = parseRoute();
     const noAccess = !S.isAdmin && (!S.enr || S.enr.active === false || !(S.enr.courses || []).length);
@@ -1309,6 +1301,7 @@ async function render() {
       }
       root.innerHTML = courseView(r.cid, r.sid);
       initViewer();
+      { const sd = document.getElementById('side-d'), cu = sd?.querySelector('.is-cur'); if (sd && cu) sd.scrollTop = Math.max(0, cu.offsetTop - sd.clientHeight / 3); }
       const sec = root.querySelector('[data-session]');
       if (sec) {
         const p = S.prog[r.cid] || (S.prog[r.cid] = {});
@@ -1408,6 +1401,7 @@ root.addEventListener('submit', async (e) => {
   } catch (err) { alert('Error: ' + (err.message || err)); }
 });
 
+document.addEventListener('click', (e) => { document.querySelectorAll('.au-menu[open]').forEach((d) => { if (!d.contains(e.target)) d.removeAttribute('open'); }); });
 root.addEventListener('click', async (e) => {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
@@ -1448,6 +1442,7 @@ root.addEventListener('click', async (e) => {
     if (act === 'vtab') { showTab(b.dataset.tab); return; }
     if (act === 'vfull') { const t = document.getElementById('vbody'); if (document.fullscreenElement) document.exitFullscreen(); else t.requestFullscreen?.(); return; }
     if (act === 'vdl') {
+      b.closest('.au-menu')?.removeAttribute('open');
       const v = document.getElementById('viewer'), old = b.innerHTML;
       b.disabled = true; b.textContent = 'Descargando…';
       try { await downloadKind(v.dataset.cid, v.dataset.folder, b.dataset.kind, v.dataset.sid); } catch (err) { alert(err.message || 'No se pudo descargar'); }

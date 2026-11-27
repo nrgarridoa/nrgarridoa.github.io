@@ -16,6 +16,7 @@
   <!-- CSS principal (preload + hoja) -->
   <link rel="preload" href="/assets/css/main.css" as="style" />
   <link rel="stylesheet" href="/assets/css/main.css">
+  {% if page.extra_css %}<link rel="stylesheet" href="{{ page.extra_css }}">{% endif %}
 
   <!-- Google Fonts optimizado -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
