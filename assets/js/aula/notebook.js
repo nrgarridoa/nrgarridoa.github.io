@@ -12,6 +12,7 @@ const ICON = {
   check: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>',
   undo: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6M3 13a9 9 0 109-9 9 9 0 00-6 2.3"/></svg>',
   plus: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  swap: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>',
   up: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>',
   down: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
   trash: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/></svg>',
@@ -134,6 +135,7 @@ export function mountNotebook(host, opts) {
   const byId = (i) => cells.find((c) => c.i === i);
   const addBar = (c) => `<div class="nb-add"><button type="button" data-nb="addcode" data-i="${c.i}">${ICON.plus} Código</button><button type="button" data-nb="addtext" data-i="${c.i}">${ICON.plus} Texto</button></div>`;
   const ctools = (c) => (scratch || c.user) ? `<div class="nb-ctools" role="toolbar" aria-label="Acciones de la celda">
+      <button type="button" data-nb="convert" data-i="${c.i}" title="${c.type === 'code' ? 'Convertir en celda de texto' : 'Convertir en celda de código'}" aria-label="Cambiar el tipo de celda">${ICON.swap}</button>
       <button type="button" data-nb="up" data-i="${c.i}" title="Subir celda" aria-label="Subir celda">${ICON.up}</button>
       <button type="button" data-nb="down" data-i="${c.i}" title="Bajar celda" aria-label="Bajar celda">${ICON.down}</button>
       <button type="button" data-nb="del" data-i="${c.i}" title="Eliminar celda" aria-label="Eliminar celda">${ICON.trash}</button></div>` : '';
@@ -190,6 +192,16 @@ export function mountNotebook(host, opts) {
     persist();
     if (focus) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (c.type === 'code') c.editor.focus(); else mdEdit(c, true); }
     return c;
+  }
+  // Cambia una celda propia de código a texto o al revés, conservando su contenido y su lugar.
+  function convertCell(c) {
+    const n = mk(c.type === 'code' ? 'markdown' : 'code', c.src, true);
+    n.key = c.key;
+    cells[cells.indexOf(c)] = n;
+    const el = buildCell(n);
+    c.el.replaceWith(el);
+    persist();
+    if (n.type === 'code') n.editor.focus(); else if (n.src.trim()) mdRender(n); else mdEdit(n, true);
   }
   function moveCell(c, dir) {
     const k = cells.indexOf(c), j = k + dir;
@@ -305,6 +317,7 @@ export function mountNotebook(host, opts) {
     if (act === 'run') runCell(id);
     else if (act === 'runall') runAll();
     else if (act === 'addcode' || act === 'addtext') insertCell(act === 'addcode' ? 'code' : 'md', id === -1 ? null : id === -2 ? cells[cells.length - 1] || null : byId(id));
+    else if (act === 'convert') convertCell(byId(id));
     else if (act === 'up') moveCell(byId(id), -1);
     else if (act === 'down') moveCell(byId(id), 1);
     else if (act === 'del') removeCell(byId(id));
