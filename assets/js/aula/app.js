@@ -187,6 +187,7 @@ function demoApi() {
   }
   const certs = [];
   if (qs.has('pending')) certs.push({ code: 'NG-DEMO-PEND-0001', ownerEmail: 'maria@gmail.com', name: 'María Pérez', courseId: 'pbi-mineria', courseTitle: 'Power BI para Minería', hours: 24, status: 'pending', requestedAt: new Date().toISOString() });
+  if (qs.has('issued')) certs.push({ code: 'NG-DEMO-ABCD-WXYZ', ownerEmail: 'alumno@gmail.com', name: 'Alumno Demo', courseId: 'pbi-mineria', courseTitle: 'Power BI para Minería', hours: 24, status: 'issued', requestedAt: new Date().toISOString(), issuedAt: new Date().toISOString() });
   const apps = [];
   if (qs.has('apps')) {
     apps.push({ code: 'ana@gmail.com__pbi-mineria', ownerEmail: 'ana@gmail.com', name: 'Ana Torres', courseId: 'pbi-mineria', courseTitle: 'Power BI para Minería', linkedin: 'https://www.linkedin.com/in/ana-torres', profile: 'Analista de planeamiento en una minera de Arequipa, 3 años de experiencia con Excel avanzado.', goal: 'Automatizar los reportes semanales de producción.', status: 'pending', createdAt: new Date().toISOString() });
@@ -474,6 +475,7 @@ function topbar(active) {
     <nav class="flex items-center gap-1">
       <span class="mr-3 hidden text-xs font-semibold uppercase tracking-[0.18em] text-sky-300/80 sm:inline">Aula virtual</span>
       ${link('#/', 'Mis cursos', 'home')}
+      ${!S.isAdmin && S.certs.length ? link('#/certs', 'Certificados', 'certs') : ''}
       ${S.isAdmin ? link('#/admin', 'Administración' + (S.pending ? ` <span class="ml-1 rounded-md bg-amber-400/90 text-slate-900 text-[11px] font-semibold px-1.5 py-0.5">${S.pending}</span>` : ''), 'admin') : ''}
     </nav>
     <div class="flex items-center gap-3 text-sm">
@@ -503,6 +505,33 @@ function noAccessView() {
       : `<p class="mt-3 text-sm text-white/70">Si quieres acceder a un curso, envía tu postulación desde la sección de cursos con esta misma cuenta.</p>`}
     <a href="/cursos/" class="inline-flex mt-5 rounded-lg border border-white/15 px-4 py-2 text-sm text-white/80 hover:text-white">Ver cursos</a>
   </div>`;
+}
+
+const certUrl = (code) => `${location.origin}/certificado/?c=${encodeURIComponent(code)}`;
+const linkedinUrl = (ct) => {
+  const d = new Date(ct.issuedAt || Date.now());
+  return 'https://www.linkedin.com/profile/add?' + new URLSearchParams({ startTask: 'CERTIFICATION_NAME', name: ct.courseTitle, organizationName: 'Nilson Garrido',
+    issueYear: String(d.getFullYear()), issueMonth: String(d.getMonth() + 1), certUrl: certUrl(ct.code), certId: ct.code }).toString();
+};
+
+// Vista "Certificados": los del alumno con ver/descargar, LinkedIn y copiar enlace.
+function certsView() {
+  const mine = S.certs.slice().sort((a, b) => String(b.issuedAt || b.requestedAt).localeCompare(String(a.issuedAt || a.requestedAt)));
+  const act = 'inline-flex items-center justify-center rounded-lg border border-white/15 px-3.5 py-2 text-sm text-white/80 transition hover:border-white/30 hover:text-white';
+  const cards = mine.map((ct) => {
+    const issued = ct.status === 'issued';
+    return `<div class="${card} flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="min-w-0"><p class="text-lg font-semibold">${esc(ct.courseTitle)}</p>
+        <p class="mt-0.5 text-sm text-white/60">${esc(ct.hours)} h · ${issued ? 'Emitido el ' + esc(fmtDate(ct.issuedAt)) : 'Solicitado el ' + esc(fmtDate(ct.requestedAt))}</p>
+        ${issued ? `<p class="mt-1 font-mono text-xs text-white/40">${esc(ct.code)}</p>` : '<p class="mt-1 text-sm text-amber-300/90">Pendiente de aprobación. Te avisaremos por correo cuando esté emitido.</p>'}</div>
+      ${issued ? `<div class="flex flex-wrap gap-2"><a href="${esc(certUrl(ct.code))}" target="_blank" rel="noopener" class="${act} text-white" style="${gradient}">Ver y descargar</a>
+        <a href="${esc(linkedinUrl(ct))}" target="_blank" rel="noopener noreferrer" class="${act}">Añadir a LinkedIn</a>
+        <button data-act="cert-copy" data-code="${esc(ct.code)}" class="${act}">Copiar enlace</button></div>` : ''}</div>`;
+  }).join('');
+  return `${topbar('certs')}
+    <h1 class="text-2xl font-display font-bold">Mis certificados</h1>
+    <p class="mt-1 text-sm text-white/60">Cada certificado tiene un código y un QR para verificar su autenticidad.</p>
+    <div class="mt-6 space-y-3">${cards || `<div class="${card} px-5 py-10 text-center text-sm text-white/55">Aún no tienes certificados. Aparecerán aquí cuando completes un curso.</div>`}</div>`;
 }
 
 function certBlock(c, p) {
@@ -889,7 +918,7 @@ function courseView(cid, sid) {
 
   const cb = isComplete(c, p) ? certBlock(c, p).replace('mt-3 ', '') : '';
   const certBanner = isComplete(c, p) ? `<div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4">
-      <div><p class="font-semibold text-emerald-200">¡Completaste el curso!</p><p class="text-sm text-emerald-100/70">Terminaste todas las actividades.</p></div>
+      <div><p class="font-semibold text-emerald-200">Completaste el curso</p><p class="text-sm text-emerald-100/70">${trackable(c).length} actividades${c.hours ? ` · ${esc(c.hours)} horas` : ''}${(() => { const q = Object.values(p.quiz || {}).map((x) => x.best).filter((n) => Number.isFinite(n)); return q.length ? ` · promedio en evaluaciones ${Math.round(q.reduce((a, b) => a + b, 0) / q.length)}%` : ''; })()}. Ya puedes solicitar tu certificado.</p></div>
       ${cb ? `<div class="w-full sm:w-60">${cb}</div>` : ''}</div>` : '';
 
   const side = sidebarHtml(c, cur, p);
@@ -1252,6 +1281,7 @@ function parseRoute() {
   const p = location.hash.replace(/^#\/?/, '').split('/');
   if (p[0] === 'c' && p[1]) return { v: 'course', cid: p[1], sid: p[2] };
   if (p[0] === 'admin') return { v: 'admin', tab: p[1] || '' };
+  if (p[0] === 'certs') return { v: 'certs' };
   return { v: 'home' };
 }
 
@@ -1261,7 +1291,10 @@ async function render() {
     const r = parseRoute();
     const noAccess = !S.isAdmin && (!S.enr || S.enr.active === false || !(S.enr.courses || []).length);
     if (noAccess) { root.innerHTML = noAccessView(); return; }
-    if (r.v === 'admin') {
+    if (r.v === 'certs') {
+      if (S.isAdmin) { location.hash = '#/admin/certificados'; return; }
+      root.innerHTML = certsView();
+    } else if (r.v === 'admin') {
       if (!S.isAdmin) { location.hash = '#/'; return; }
       if (!S.admin) { root.innerHTML = `${topbar('admin')}<p class="text-white/60 text-sm">Cargando…</p>`; await loadAdmin(); }
       root.innerHTML = adminView();
@@ -1381,6 +1414,11 @@ root.addEventListener('click', async (e) => {
   const act = b.dataset.act;
   try {
     if (act.startsWith('exam-')) { await examClick(act, b); return; }
+    if (act === 'cert-copy') {
+      try { await navigator.clipboard.writeText(certUrl(b.dataset.code)); b.textContent = 'Enlace copiado'; setTimeout(() => { b.textContent = 'Copiar enlace'; }, 2000); }
+      catch { prompt('Copia este enlace:', certUrl(b.dataset.code)); }
+      return;
+    }
     if (act === 'rel-all' || act === 'rel-none') {
       const cid = b.dataset.cid, c = S.catalog.find((x) => x.id === cid);
       if (act === 'rel-none' && !confirm('¿Bloquear todo el contenido de este curso para este alumno?')) return;

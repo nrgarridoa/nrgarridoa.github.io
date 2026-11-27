@@ -43,3 +43,15 @@ con su token). Los archivos no necesitan compartirse: solo tiene que poder leerl
 Los archivos del aula solo se entregan si la sesión está liberada para ese alumno (`released` o `releaseAll` en su
 inscripción de Firestore). La carpeta de cada sesión sale del catálogo público del sitio (`aula/catalog.json`), no de lo
 que envía el navegador. Al publicar este cambio hay que pegar también `firestore.rules` en la consola de Firebase.
+
+## Evaluaciones (intentos, tiempo, plazo y calificación en el servidor)
+
+Las respuestas correctas viven en `courses/{curso}/content/q-{módulo}`, que ningún alumno puede leer (reglas de Firestore).
+El script entrega las preguntas sin respuestas, controla intentos, tiempo y plazo, califica y guarda el resultado en
+`users/{correo}/progress/{curso}` (campos `quiz` y `quizPassed`, que el alumno no puede escribir) y el historial en `quizAttempts`.
+Para eso accede a Firestore con una cuenta de servicio:
+
+1. Firebase → Configuración del proyecto → Cuentas de servicio → **Generar nueva clave privada** (baja un `.json`).
+2. En el editor de Apps Script: Configuración del proyecto → Propiedades del script → agrega `SA_KEY` con **todo** el contenido del `.json`.
+3. Ejecuta `probarServicio` una vez. Debe decir "Cuenta de servicio correcta".
+4. Borra el `.json` descargado: es una credencial. No lo subas a ningún repositorio.
