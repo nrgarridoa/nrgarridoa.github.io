@@ -12,6 +12,8 @@ const ICON = {
   check: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>',
   undo: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6M3 13a9 9 0 109-9 9 9 0 00-6 2.3"/></svg>',
   plus: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  up: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>',
+  down: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
   trash: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/></svg>',
 };
 const exId = (src) => (src.match(/check\(\s*["']([^"']+)["']/) || [])[1] || null;
@@ -74,18 +76,26 @@ export function createKernel({ loadZip, cwd }) {
 /* ------------------------------------------------------------------ cuaderno */
 export function mountNotebook(host, opts) {
   const kernel = opts.kernel, scratch = !!opts.scratch;
-  let uid = 0;
-  const mk = (type, src) => ({ i: uid++, type, src, orig: src, ex: type === 'code' ? exId(src) : null, count: null, state: 'idle', out: [], editor: null, el: null });
-  let cells;
-  let mods = {};
-  try { mods = JSON.parse(localStorage.getItem(opts.storeKey) || (scratch ? '[]' : '{}')); } catch { mods = scratch ? [] : {}; }
+  let uidc = 0;
+  const mk = (type, src, user = false) => ({ i: uidc++, key: null, type, src, orig: src, user, ex: type === 'code' && !user ? exId(src) : null, count: null, state: 'idle', out: [], editor: null, el: null });
+
+  // ---------- lo que el alumno escribio (guardado en su navegador) ----------
+  let store = null;
+  try { store = JSON.parse(localStorage.getItem(opts.storeKey) || 'null'); } catch { store = null; }
+  const newKey = () => 'u:' + Math.random().toString(36).slice(2, 8);
+  let cells = [];
+  let pendingAdded = [];
   if (scratch) {
-    const saved = Array.isArray(mods) && mods.length ? mods : ['# Escribe aquí tu código y ejecútalo con Shift+Enter\n'];
-    cells = saved.map((s) => mk('code', String(s)));
+    const items = Array.isArray(store) && store.length ? store : [{ t: 'code', s: '# Escribe aquí tu código y ejecútalo con Shift+Enter\n' }];
+    cells = items.map((it) => { const o = typeof it === 'string' ? { t: 'code', s: it } : it; const c = mk(o.t === 'md' ? 'markdown' : 'code', String(o.s ?? ''), true); c.key = o.id ? 'u:' + o.id : newKey(); return c; });
   } else {
-    cells = opts.nb.cells.map((c) => mk(c.cell_type, Array.isArray(c.source) ? c.source.join('') : String(c.source || '')));
-    cells.forEach((c, k) => { if (c.type === 'code' && typeof mods[k] === 'string') c.src = mods[k]; c.idx = k; });
-    cells.forEach((c, k) => { c.idx = k; });
+    const edits = store && store.v === 2 ? store.edits || {} : (store && !store.v && typeof store === 'object' ? store : {});
+    pendingAdded = store && store.v === 2 ? store.added || [] : [];
+    cells = opts.nb.cells.map((raw, k) => {
+      const c = mk(raw.cell_type, Array.isArray(raw.source) ? raw.source.join('') : String(raw.source || ''));
+      c.idx = k; c.key = 'o:' + k; if (c.type === 'code' && typeof edits[k] === 'string') c.src = edits[k];
+      return c;
+    });
   }
   const codeCells = () => cells.filter((c) => c.type === 'code');
   const exercises = scratch ? [] : [...new Set(codeCells().map((c) => c.ex).filter(Boolean))];
@@ -96,17 +106,17 @@ export function mountNotebook(host, opts) {
   let saveT = null;
   const persist = () => { clearTimeout(saveT); saveT = setTimeout(() => {
     try {
-      if (scratch) localStorage.setItem(opts.storeKey, JSON.stringify(cells.map((c) => c.src)));
-      else {
-        const o = {}; for (const c of cells) if (c.type === 'code' && c.src !== c.orig) o[c.idx] = c.src;
-        if (Object.keys(o).length) localStorage.setItem(opts.storeKey, JSON.stringify(o)); else localStorage.removeItem(opts.storeKey);
-      }
+      if (scratch) { localStorage.setItem(opts.storeKey, JSON.stringify(cells.map((c) => ({ id: c.key.slice(2), t: c.type === 'code' ? 'code' : 'md', s: c.src })))); return; }
+      const edits = {}; for (const c of cells) if (!c.user && c.type === 'code' && c.src !== c.orig) edits[c.idx] = c.src;
+      const added = []; cells.forEach((c, k) => { if (c.user) added.push({ id: c.key.slice(2), after: k ? cells[k - 1].key : null, t: c.type === 'code' ? 'code' : 'md', s: c.src }); });
+      if (Object.keys(edits).length || added.length) localStorage.setItem(opts.storeKey, JSON.stringify({ v: 2, edits, added })); else localStorage.removeItem(opts.storeKey);
     } catch { /* sin espacio */ }
-  }, 500); };
+  }, 400); };
 
   host.innerHTML = `<div class="nb">
     <div class="nb-bar">
-      ${scratch ? `<button type="button" class="au-btn nb-btn" data-nb="add" title="Agregar una celda de código">${ICON.plus}<span>Nueva celda</span></button>` : ''}
+      ${scratch ? `<button type="button" class="au-btn nb-btn" data-nb="addcode" data-i="-2" title="Agregar una celda de código al final">${ICON.plus}<span>Código</span></button>
+      <button type="button" class="au-ghost" data-nb="addtext" data-i="-2" title="Agregar una celda de texto al final">${ICON.plus}<span>Texto</span></button>` : ''}
       <button type="button" class="${scratch ? 'au-ghost' : 'au-btn nb-btn'}" data-nb="runall" title="Ejecutar todas las celdas">${ICON.all}<span>Ejecutar todo</span></button>
       <button type="button" class="au-ghost" data-nb="restart" title="Reinicia Python y borra las variables">${ICON.restart}<span>Reiniciar</span></button>
       <button type="button" class="au-ghost nb-stop" data-nb="stop" hidden title="Detiene la ejecución y reinicia Python">${ICON.stop}<span>Detener</span></button>
@@ -115,38 +125,93 @@ export function mountNotebook(host, opts) {
       ${exercises.length ? `<div class="nb-prog" title="Ejercicios resueltos"><span data-role="pt"></span><div class="au-bar"><i data-role="pb" style="width:0%"></i></div></div>` : ''}
       ${!scratch && opts.onStatic ? `<button type="button" class="nb-link" data-nb="static">Ver versión de lectura</button>` : ''}
     </div>
-    ${scratch ? `<div class="nb-note nb-note-info">Práctica libre: aquí escribes y ejecutas código sin tocar la clase. Comparte las variables con el cuaderno de la clase, y se guarda en tu navegador.</div>` : ''}
+    ${scratch ? `<div class="nb-note nb-note-info">Práctica libre: escribe y ejecuta código sin tocar la clase. Pasa el mouse entre celdas para agregar código o texto; usa las flechas y la papelera de cada celda para ordenarlas. Comparte variables con el cuaderno de la clase y se guarda en tu navegador.</div>` : ''}
     ${usesObspy ? `<div class="nb-note">Esta cápsula usa <b>ObsPy</b>, que todavía no funciona en el navegador. Puedes leerla aquí y ejecutarla en tu computadora con el notebook y el paquete del curso (menú Descargas).</div>` : ''}
-    <div class="nb-cells" data-role="cells"></div>
+    <div class="nb-cells" data-role="cells">${scratch ? `<div class="nb-add nb-add-top"><button type="button" data-nb="addcode" data-i="-1">${ICON.plus} Código</button><button type="button" data-nb="addtext" data-i="-1">${ICON.plus} Texto</button></div>` : ''}</div>
   </div>`;
   const $ = (s) => host.querySelector(s);
   const cellsEl = $('[data-role=cells]');
   const byId = (i) => cells.find((c) => c.i === i);
+  const addBar = (c) => `<div class="nb-add"><button type="button" data-nb="addcode" data-i="${c.i}">${ICON.plus} Código</button><button type="button" data-nb="addtext" data-i="${c.i}">${ICON.plus} Texto</button></div>`;
+  const ctools = (c) => (scratch || c.user) ? `<div class="nb-ctools" role="toolbar" aria-label="Acciones de la celda">
+      <button type="button" data-nb="up" data-i="${c.i}" title="Subir celda" aria-label="Subir celda">${ICON.up}</button>
+      <button type="button" data-nb="down" data-i="${c.i}" title="Bajar celda" aria-label="Bajar celda">${ICON.down}</button>
+      <button type="button" data-nb="del" data-i="${c.i}" title="Eliminar celda" aria-label="Eliminar celda">${ICON.trash}</button></div>` : '';
 
-  function buildCell(c, before) {
+  function mdRender(c) {
+    const v = c.el.querySelector('.nb-mdview');
+    v.innerHTML = c.src.trim() ? renderMarkdown(c.src) : '<p class="nb-mdhint">Celda de texto vacía. Haz doble clic para escribir.</p>';
+  }
+  function mdEdit(c, on) {
+    const ta = c.el.querySelector('.nb-mdedit'), v = c.el.querySelector('.nb-mdview');
+    if (on) { ta.value = c.src; ta.hidden = false; v.hidden = true; ta.style.height = 'auto'; ta.style.height = Math.max(90, ta.scrollHeight + 4) + 'px'; ta.focus(); }
+    else { c.src = ta.value; ta.hidden = true; v.hidden = false; mdRender(c); persist(); }
+  }
+
+  function buildCell(c) {
     const el = document.createElement('div');
-    c.el = el;
+    c.el = el; el.dataset.i = c.i;
     if (c.type === 'markdown') {
-      el.className = 'nb-cell nb-md';
-      el.innerHTML = renderMarkdown(c.src);
+      el.className = 'nb-cell nb-md' + (c.user ? ' is-user' : '');
+      if (c.user) {
+        el.innerHTML = `${ctools(c)}<div class="nb-mdview"></div><textarea class="nb-mdedit" hidden aria-label="Celda de texto (Markdown)" placeholder="Escribe aquí tu texto (admite Markdown). Shift+Enter para terminar."></textarea>${addBar(c)}`;
+        const ta = el.querySelector('.nb-mdedit');
+        ta.addEventListener('blur', () => { if (!ta.hidden) mdEdit(c, false); });
+        ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey)) { e.preventDefault(); mdEdit(c, false); } });
+        ta.addEventListener('input', () => { c.src = ta.value; ta.style.height = 'auto'; ta.style.height = Math.max(90, ta.scrollHeight + 4) + 'px'; persist(); });
+        el.querySelector('.nb-mdview').addEventListener('dblclick', () => mdEdit(c, true));
+        mdRender(c);
+      } else { el.innerHTML = `${renderMarkdown(c.src)}${addBar(c)}`; }
     } else {
-      el.className = 'nb-cell nb-code' + (c.ex ? ' is-ex' : '');
+      el.className = 'nb-cell nb-code' + (c.ex ? ' is-ex' : '') + (c.user ? ' is-user' : '');
       el.innerHTML = `<div class="nb-gutter"><button type="button" class="nb-run" data-nb="run" data-i="${c.i}" title="Ejecutar (Shift+Enter)" aria-label="Ejecutar celda">${ICON.play}</button><span class="nb-count">[ ]</span></div>
         <div class="nb-main">
           ${c.ex ? `<div class="nb-exhead"><span class="nb-exname">Ejercicio ${esc(c.ex)}</span><span class="nb-exchip" data-exchip></span></div>` : ''}
+          ${ctools(c)}
           <div class="nb-editor"></div>
-          <div class="nb-tools"><span class="nb-cstatus"></span>
-            ${scratch ? `<button type="button" class="nb-link" data-nb="del" data-i="${c.i}">${ICON.trash} Quitar celda</button>` : `<button type="button" class="nb-link" data-nb="reset" data-i="${c.i}" hidden>${ICON.undo} Restaurar celda</button>`}</div>
-          <div class="nb-out"></div></div>`;
+          <div class="nb-tools"><span class="nb-cstatus"></span>${c.user ? '' : `<button type="button" class="nb-link" data-nb="reset" data-i="${c.i}" hidden>${ICON.undo} Restaurar celda</button>`}</div>
+          <div class="nb-out"></div></div>
+        ${addBar(c)}`;
       c.editor = createEditor(el.querySelector('.nb-editor'), c.src, {
-        onRun: (mode) => { runCell(c.i).then(() => { if (mode === 'next') focusNext(c.i); }); },
+        onRun: (mode) => { runCell(c.i).then(() => { if (mode === 'next') focusNext(c.i); else if (mode === 'insert') insertCell('code', c, true); }); },
         onChange: (v) => { c.src = v; syncCell(c); persist(); },
       });
       syncCell(c); paintEx(c);
     }
-    cellsEl.insertBefore(el, before || null);
+    return el;
   }
-  cells.forEach((c) => buildCell(c));
+  function insertCell(type, after, focus = true) {
+    const c = mk(type === 'code' ? 'code' : 'markdown', '', true);
+    c.key = newKey();
+    const at = after ? cells.indexOf(after) + 1 : 0;
+    cells.splice(at, 0, c);
+    const el = buildCell(c);
+    if (after) after.el.after(el); else cellsEl.querySelector('.nb-add-top')?.after(el) || cellsEl.prepend(el);
+    persist();
+    if (focus) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (c.type === 'code') c.editor.focus(); else mdEdit(c, true); }
+    return c;
+  }
+  function moveCell(c, dir) {
+    const k = cells.indexOf(c), j = k + dir;
+    if (j < 0 || j >= cells.length) return;
+    [cells[k], cells[j]] = [cells[j], cells[k]];
+    if (dir < 0) cells[j + 1].el.before(c.el); else cells[j - 1].el.after(c.el);
+    if (c.type === 'code') c.editor.focus();
+    persist();
+  }
+  function removeCell(c) {
+    if (scratch && cells.length === 1) { if (c.type === 'code') { c.editor.setValue(''); c.out = []; paintOut(c); } else { c.src = ''; mdRender(c); persist(); } return; }
+    cells.splice(cells.indexOf(c), 1); c.el.remove(); persist();
+  }
+
+  cells.forEach((c) => cellsEl.appendChild(buildCell(c)));
+  // celdas agregadas por el alumno en la clase: se vuelven a colocar despues de la celda que las precedia
+  for (const a of pendingAdded) {
+    const anchor = a.after ? cells.find((c) => c.key === a.after) : null;
+    const c = mk(a.t === 'md' ? 'markdown' : 'code', String(a.s ?? ''), true); c.key = 'u:' + a.id;
+    cells.splice(anchor ? cells.indexOf(anchor) + 1 : 0, 0, c);
+    const el = buildCell(c); if (anchor) anchor.el.after(el); else cellsEl.prepend(el);
+  }
   updateProgress();
 
   function syncCell(c) { const r = c.el.querySelector('[data-nb=reset]'); if (r) r.hidden = c.src === c.orig; }
@@ -189,14 +254,9 @@ export function mountNotebook(host, opts) {
   function focusNext(i) {
     const list = codeCells(), k = list.findIndex((c) => c.i === i);
     let nxt = list[k + 1];
-    if (!nxt && scratch) { nxt = addCell('', false); }
+    if (!nxt && scratch) nxt = insertCell('code', byId(i), false);
     if (!nxt) return;
     nxt.el.scrollIntoView({ block: 'center', behavior: 'smooth' }); nxt.editor.focus();
-  }
-  function addCell(src = '', focus = true) {
-    const c = mk('code', src); c.idx = cells.length; cells.push(c); buildCell(c); persist();
-    if (focus) { c.el.scrollIntoView({ block: 'center', behavior: 'smooth' }); c.editor.focus(); }
-    return c;
   }
 
   // ---------- ejecucion ----------
@@ -237,22 +297,20 @@ export function mountNotebook(host, opts) {
     const el = $('[data-role=status]'); el.dataset.s = s; el.querySelector('b').textContent = text;
     $('.nb-stop').hidden = s !== 'busy' && s !== 'loading';
   });
-  const offRestart = kernel.onRestart(() => { for (const c of codeCells()) { c.count = null; if (c.state !== 'idle') setState(c, 'idle'); else setState(c, 'idle'); } });
+  const offRestart = kernel.onRestart(() => { for (const c of codeCells()) { c.count = null; setState(c, 'idle'); } });
 
   host.addEventListener('click', (e) => {
     const b = e.target.closest('[data-nb]'); if (!b || !host.contains(b)) return;
-    const act = b.dataset.nb;
-    if (act === 'run') runCell(Number(b.dataset.i));
+    const act = b.dataset.nb, id = Number(b.dataset.i);
+    if (act === 'run') runCell(id);
     else if (act === 'runall') runAll();
-    else if (act === 'add') addCell('');
+    else if (act === 'addcode' || act === 'addtext') insertCell(act === 'addcode' ? 'code' : 'md', id === -1 ? null : id === -2 ? cells[cells.length - 1] || null : byId(id));
+    else if (act === 'up') moveCell(byId(id), -1);
+    else if (act === 'down') moveCell(byId(id), 1);
+    else if (act === 'del') removeCell(byId(id));
     else if (act === 'restart') kernel.kill('Python reiniciado: las variables se borraron.');
     else if (act === 'stop') kernel.kill('Ejecución detenida. Python se reiniciará la próxima vez que ejecutes una celda.');
-    else if (act === 'reset') { const c = byId(Number(b.dataset.i)); c.editor.setValue(c.orig); }
-    else if (act === 'del') {
-      const c = byId(Number(b.dataset.i)); if (!c) return;
-      if (cells.length === 1) { c.editor.setValue(''); c.out = []; paintOut(c); return; }
-      cells = cells.filter((x) => x !== c); c.el.remove(); persist();
-    }
+    else if (act === 'reset') { const c = byId(id); c.editor.setValue(c.orig); }
     else if (act === 'static') opts.onStatic();
   });
 

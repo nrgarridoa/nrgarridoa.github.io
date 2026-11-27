@@ -254,3 +254,27 @@ body.aula .bg-white\/\[\.03\], body.aula .bg-white\/\[0\.03\], body.aula .bg-whi
 .au-notes .au-note { height: 240px; resize: none; }
 .nb-note-info { background: var(--au-tint); border-color: #A7F3D0; color: var(--au-deep); }
 @media (max-width: 640px) { .au-fab { right: 14px; bottom: 14px; } .au-notes { right: 12px; bottom: 74px; } }
+
+/* ---------- edicion de celdas (como Jupyter) ---------- */
+.nb-code { grid-template-rows: auto auto; }
+.nb-cell > .nb-add { grid-column: 1 / -1; }
+.nb-main { position: relative; }
+.nb-ctools { position: absolute; top: 6px; right: 8px; z-index: 3; display: flex; gap: 2px; padding: 2px; border-radius: 9px; background: rgba(255,255,255,.96); border: 1px solid var(--au-line); box-shadow: 0 6px 16px -8px rgba(15,23,42,.35); opacity: 0; transition: opacity .12s; }
+.nb-cell:hover > .nb-main > .nb-ctools, .nb-cell:hover > .nb-ctools, .nb-ctools:focus-within { opacity: 1; }
+.nb-ctools button { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; color: #64748B; cursor: pointer; }
+.nb-ctools button:hover { background: var(--au-tint); color: var(--au-gi); }
+.nb-ctools button[data-nb="del"]:hover { background: #FEF2F2; color: #B91C1C; }
+.nb-md.is-user { position: relative; border: 1px dashed transparent; border-radius: 10px; padding: .4rem .8rem; }
+.nb-md.is-user:hover, .nb-md.is-user:focus-within { border-color: var(--au-line2); }
+.nb-md.is-user > .nb-ctools { top: 4px; }
+.nb-mdedit { width: 100%; min-height: 90px; resize: vertical; border-radius: 10px; border: 1px solid var(--au-g); background: #fff; padding: .6rem .75rem; font: 13.5px/1.55 "JetBrains Mono", ui-monospace, monospace; color: var(--au-text); box-shadow: 0 0 0 3px rgba(16,185,129,.12); }
+.nb-mdedit:focus { outline: none; }
+.nb-mdhint { color: #94A3B8; font-style: italic; }
+.nb-add { position: relative; display: flex; justify-content: center; align-items: center; gap: .4rem; height: 26px; opacity: 0; transition: opacity .12s; }
+.nb-add::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dashed #CBD5E1; }
+.nb-add button { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: .25rem; padding: 2px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #475569; background: #fff; border: 1px solid var(--au-line2); cursor: pointer; }
+.nb-add button:hover { color: var(--au-gi); border-color: #6EE7B7; background: var(--au-tint); }
+.nb-cell:hover > .nb-add, .nb-add:focus-within, .nb-add-top:hover { opacity: 1; }
+.nb-cells > .nb-cell:last-child > .nb-add { opacity: 1; }
+.nb-add-top { opacity: 0; height: 22px; }
+@media (hover: none) { .nb-add, .nb-add-top, .nb-ctools { opacity: 1; } }

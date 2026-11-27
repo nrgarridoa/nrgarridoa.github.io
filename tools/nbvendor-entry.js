@@ -42,7 +42,7 @@ export function createEditor(parent, doc, { onRun, onChange }) {
     extensions: [
       history(), drawSelection(), highlightSpecialChars(), indentOnInput(), bracketMatching(), closeBrackets(),
       python(), syntaxHighlighting(idle), theme,
-      Prec.highest(keymap.of([{ key: 'Shift-Enter', run: run('next') }, { key: 'Mod-Enter', run: run('stay') }])),
+      Prec.highest(keymap.of([{ key: 'Shift-Enter', run: run('next') }, { key: 'Mod-Enter', run: run('stay') }, { key: 'Alt-Enter', run: run('insert') }])),
       keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
       EditorView.updateListener.of((u) => { if (u.docChanged && onChange) onChange(u.state.doc.toString()); }),
     ],
